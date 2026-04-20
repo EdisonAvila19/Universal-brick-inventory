@@ -1,0 +1,299 @@
+---
+import AppLayout from "../layouts/AppLayout.astro";
+import { getInventoryBricks, getInventorySets, updateBrickPurchasePlan } from "../lib/inventoryStore";
+
+const createJsonResponse = (payload: Record<string, unknown>, status = 200) => {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8"
+    }
+  });
+};
+
+const url = new URL(Astro.request.url);
+let pieceFilter = url.searchParams.get("piece") ?? "";
+let setFilters = url.searchParams.getAll("set").map((value) => value.trim()).filter(Boolean);
+let neededFilter = url.searchParams.get("needed") ?? "all";
+let feedback: { type: "success" | "error"; message: string } | null = null;
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const action = String(formData.get("action") ?? "");
+  const wantsJson =
+    String(formData.get("responseType") ?? "") === "json" ||
+    (Astro.request.headers.get("accept") ?? "").includes("application/json");
+  pieceFilter = String(formData.get("piece") ?? pieceFilter);
+  setFilters = formData.getAll("set").map((value) => String(value).trim()).filter(Boolean);
+  neededFilter = String(formData.get("needed") ?? neededFilter);
+
+  if (action === "update-purchase-plan") {
+    const reference = String(formData.get("reference") ?? "");
+    const fromSet = String(formData.get("fromSet") ?? "");
+    const color = String(formData.get("color") ?? "");
+    const plannedLegoQuantity = Number(formData.get("plannedLegoQuantity") ?? "0");
+    const plannedBricklinkQuantity = Number(formData.get("plannedBricklinkQuantity") ?? "0");
+    const neededValue = Number(formData.get("neededValue") ?? "0");
+    const normalizedNeededValue = Number.isFinite(neededValue) ? Math.max(0, Math.floor(neededValue)) : 0;
+    const normalizedLegoQuantity = Number.isFinite(plannedLegoQuantity) ? Math.max(0, Math.floor(plannedLegoQuantity)) : 0;
+    const normalizedBricklinkQuantity = Number.isFinite(plannedBricklinkQuantity) ? Math.max(0, Math.floor(plannedBricklinkQuantity)) : 0;
+    const plannedTotalQuantity = normalizedLegoQuantity + normalizedBricklinkQuantity;
+
+    if (!reference || !fromSet || !color) {
+      if (wantsJson) {
+        return createJsonResponse({ updated: false, message: "Invalid purchase plan data." }, 400);
+      }
+      feedback = { type: "error", message: "Invalid purchase plan data." };
+    } else if (plannedTotalQuantity > normalizedNeededValue) {
+      if (wantsJson) {
+        return createJsonResponse({ updated: false, message: "Planned quantity cannot exceed needed quantity." }, 400);
+      }
+      feedback = { type: "error", message: "Planned quantity cannot exceed needed quantity." };
+    } else {
+      const result = await updateBrickPurchasePlan({
+        reference,
+        fromSet,
+        color,
+        plannedLegoQuantity: normalizedLegoQuantity,
+        plannedBricklinkQuantity: normalizedBricklinkQuantity
+      });
+      if (wantsJson) {
+        return createJsonResponse({
+          updated: result.updated,
+          message: result.updated ? "Purchase plan updated." : "Could not update purchase plan.",
+          plannedLegoQuantity: normalizedLegoQuantity,
+          plannedBricklinkQuantity: normalizedBricklinkQuantity,
+          plannedTotalQuantity,
+          neededValue: normalizedNeededValue,
+          isCompleted: plannedTotalQuantity === normalizedNeededValue
+        }, result.updated ? 200 : 404);
+      }
+      feedback = result.updated
+        ? { type: "success", message: "Purchase plan updated." }
+        : { type: "error", message: "Could not update purchase plan." };
+    }
+  }
+}
+
+const bricks = await getInventoryBricks();
+const sets = await getInventorySets();
+const setNameMap = new Map(sets.map((set) => [set.setNumber, set.name]));
+
+const neededBricks = bricks
+  .map((brick) => ({ ...brick, needed: Math.max(0, brick.required - brick.stock) }))
+  .filter((brick) => brick.needed > 0)
+  .sort((a, b) => b.needed - a.needed);
+
+const normalizedPieceFilter = pieceFilter.trim().toLowerCase();
+
+const filteredBricks = neededBricks.filter((brick) => {
+  const matchesPiece = !normalizedPieceFilter || brick.reference.toLowerCase().includes(normalizedPieceFilter) || brick.name.toLowerCase().includes(normalizedPieceFilter);
+  const matchesSet = setFilters.length === 0 || setFilters.includes(brick.fromSet);
+  const matchesNeeded =
+    neededFilter === "all" ||
+    (neededFilter === "1-2" && brick.needed >= 1 && brick.needed <= 2) ||
+    (neededFilter === "3-5" && brick.needed >= 3 && brick.needed <= 5) ||
+    (neededFilter === "6+" && brick.needed >= 6);
+  return matchesPiece && matchesSet && matchesNeeded;
+}).map((brick) => {
+  const legacyQuantity = Number.isFinite(brick.plannedQuantity) ? Math.max(0, Math.floor(brick.plannedQuantity ?? 0)) : 0;
+  const plannedLegoQuantityEffective = Number.isFinite(brick.plannedLegoQuantity)
+    ? Math.max(0, Math.floor(brick.plannedLegoQuantity ?? 0))
+    : brick.plannedStore === "lego"
+      ? legacyQuantity
+      : 0;
+  const plannedBricklinkQuantityEffective = Number.isFinite(brick.plannedBricklinkQuantity)
+    ? Math.max(0, Math.floor(brick.plannedBricklinkQuantity ?? 0))
+    : brick.plannedStore === "bricklink"
+      ? legacyQuantity
+      : 0;
+  return {
+    ...brick,
+    plannedLegoQuantityEffective,
+    plannedBricklinkQuantityEffective,
+    plannedTotalQuantity: plannedLegoQuantityEffective + plannedBricklinkQuantityEffective
+  };
+});
+
+const totalUnits = filteredBricks.reduce((acc, brick) => acc + brick.needed, 0);
+const setsAffected = new Set(filteredBricks.map((brick) => brick.fromSet)).size;
+---
+
+<AppLayout title="Bricks Inventory | Shopping List" active="shopping">
+  <header class="mb-8 flex flex-col md:flex-row justify-between items-end md:items-center gap-6">
+    <div>
+      <h1 class="text-4xl font-extrabold tracking-tight mb-2">Shopping List</h1>
+      <p class="text-secondary font-medium">{filteredBricks.length} unique pieces needed · {totalUnits} total units · {setsAffected} set{setsAffected !== 1 ? "s" : ""} affected.</p>
+    </div>
+  </header>
+
+  <p id="shopping-feedback" class={`mb-6 rounded-lg px-4 py-3 text-sm font-medium ${feedback ? (feedback.type === "success" ? "bg-primary-container text-on-primary-container" : "bg-error-container text-on-error-container") : "hidden"}`}>
+    {feedback?.message ?? ""}
+  </p>
+
+  <form method="get" class="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4 bg-surface-container-low rounded-xl p-4">
+    <label class="text-xs font-bold uppercase tracking-wider text-secondary flex flex-col gap-2">
+      Piece
+      <input type="text" name="piece" value={pieceFilter} placeholder="Reference or name" class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+    </label>
+    <label class="text-xs font-bold uppercase tracking-wider text-secondary flex flex-col gap-2">
+      Set
+      <select name="set" multiple size="1" class="h-[42px] bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm">
+        <option value="" selected={setFilters.length === 0}>All sets</option>
+        {sets.map((set) => (
+          <option value={set.setNumber} selected={setFilters.includes(set.setNumber)}>{set.name} ({set.setNumber})</option>
+        ))}
+      </select>
+    </label>
+    <label class="text-xs font-bold uppercase tracking-wider text-secondary flex flex-col gap-2">
+      Needed
+      <select name="needed" class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm">
+        <option value="all" selected={neededFilter === "all"}>All</option>
+        <option value="1-2" selected={neededFilter === "1-2"}>1 to 2</option>
+        <option value="3-5" selected={neededFilter === "3-5"}>3 to 5</option>
+        <option value="6+" selected={neededFilter === "6+"}>6+</option>
+      </select>
+    </label>
+    <div class="flex items-end gap-2">
+      <button type="submit" class="w-full bg-primary text-white rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider">Apply</button>
+      <a href="/shopping" class="w-full text-center bg-surface-container-highest text-secondary rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider">Reset</a>
+    </div>
+  </form>
+
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+    <div class="bg-surface-container-low p-6 rounded-xl"><p class="text-secondary text-sm font-bold uppercase tracking-widest mb-1">Unique Parts</p><p class="text-3xl font-black">{filteredBricks.length}</p></div>
+    <div class="bg-surface-container-low p-6 rounded-xl border-l-4 border-error"><p class="text-secondary text-sm font-bold uppercase tracking-widest mb-1">Total Units Needed</p><p class="text-3xl font-black text-error">{totalUnits}</p></div>
+    <div class="bg-surface-container-low p-6 rounded-xl border-l-4 border-primary-container"><p class="text-secondary text-sm font-bold uppercase tracking-widest mb-1">Sets Affected</p><p class="text-3xl font-black">{setsAffected}</p></div>
+  </section>
+
+  {filteredBricks.length === 0 ? (
+    <div class="text-center py-16">
+      <h2 class="text-2xl font-black mb-2">No pieces match your filters</h2>
+      <p class="text-sm text-secondary mt-2">Try changing filters or add more sets from <a href="/add-set" class="text-primary font-bold">Catalog New Set</a>.</p>
+    </div>
+  ) : (
+    <section>
+      <div class="bg-surface-container-low rounded-xl overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="text-secondary text-xs uppercase tracking-widest border-b border-outline-variant/20">
+              <th class="px-6 py-4 font-bold">Piece</th>
+              <th class="px-6 py-4 font-bold">Set</th>
+              <th class="px-6 py-4 font-bold text-center">Needed</th>
+              <th class="px-6 py-4 font-bold text-center">Tienda Lego</th>
+              <th class="px-6 py-4 font-bold text-center">Bricklink</th>
+              <th class="px-6 py-4 font-bold text-center">Planned</th>
+              <th class="px-6 py-4 font-bold text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-outline-variant/20">
+            {filteredBricks.map((brick) => (
+              <tr data-shopping-row data-needed={brick.needed} class={`transition-colors ${brick.plannedTotalQuantity === brick.needed ? "bg-primary-container/35 hover:bg-primary-container/45" : "hover:bg-surface-container-low"}`}>
+                <td class="px-6 py-4"><div class="flex items-center gap-4"><div class="w-12 h-12 bg-white rounded-md p-1 overflow-hidden flex-shrink-0"><img alt={brick.name} class="w-full h-full object-contain" src={brick.image} /></div><div><p class="font-bold text-sm leading-tight">{brick.name}</p><p class="text-secondary text-xs">Ref. {brick.reference} · {brick.color}</p></div></div></td>
+                <td class="px-6 py-4"><p class="text-sm font-medium">{setNameMap.get(brick.fromSet) ?? brick.fromSet}</p><p class="text-xs text-secondary">{brick.fromSet}</p></td>
+                <td class="px-6 py-4 text-center"><span class="bg-error-container text-on-error-container text-xs font-black px-3 py-1 rounded-full">{brick.needed}</span></td>
+                <td class="px-6 py-4" colspan="4">
+                  <form method="post" data-async-purchase-form class="grid grid-cols-[96px_96px_auto_1fr] items-center gap-2 min-w-[420px]">
+                    <input type="hidden" name="action" value="update-purchase-plan" />
+                    <input type="hidden" name="responseType" value="json" />
+                    <input type="hidden" name="reference" value={brick.reference} />
+                    <input type="hidden" name="fromSet" value={brick.fromSet} />
+                    <input type="hidden" name="color" value={brick.color} />
+                    <input type="hidden" name="neededValue" value={brick.needed} />
+                    <input type="hidden" name="piece" value={pieceFilter} />
+                    {setFilters.map((setNumber) => <input type="hidden" name="set" value={setNumber} />)}
+                    <input type="hidden" name="needed" value={neededFilter} />
+                    <input type="number" name="plannedLegoQuantity" min="0" max={brick.needed} value={brick.plannedLegoQuantityEffective} class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm w-24 text-center" />
+                    <input type="number" name="plannedBricklinkQuantity" min="0" max={brick.needed} value={brick.plannedBricklinkQuantityEffective} class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm w-24 text-center" />
+                    <p data-planned-display class={`text-xs text-center font-semibold ${brick.plannedTotalQuantity === brick.needed ? "text-primary" : "text-secondary"}`}>{brick.plannedTotalQuantity} / {brick.needed}{brick.plannedTotalQuantity === brick.needed ? " ✓" : ""}</p>
+                    <div class="text-right">
+                      <button type="submit" data-save-button class="bg-primary text-white rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider">Save</button>
+                    </div>
+                  </form>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )}
+  <script is:inline>
+    const feedbackEl = document.getElementById("shopping-feedback");
+    const successClasses = ["bg-primary-container", "text-on-primary-container"];
+    const errorClasses = ["bg-error-container", "text-on-error-container"];
+
+    const setFeedback = (type, message) => {
+      if (!feedbackEl) return;
+      feedbackEl.classList.remove("hidden", ...successClasses, ...errorClasses);
+      feedbackEl.classList.add(...(type === "success" ? successClasses : errorClasses));
+      feedbackEl.textContent = message;
+    };
+
+    document.querySelectorAll("form[data-async-purchase-form]").forEach((form) => {
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const saveButton = form.querySelector("[data-save-button]");
+        const row = form.closest("[data-shopping-row]");
+        const plannedDisplay = form.querySelector("[data-planned-display]");
+        const legoInput = form.querySelector('input[name="plannedLegoQuantity"]');
+        const bricklinkInput = form.querySelector('input[name="plannedBricklinkQuantity"]');
+        const neededInput = form.querySelector('input[name="neededValue"]');
+        const neededValue = Number(neededInput?.value ?? row?.getAttribute("data-needed") ?? "0");
+        const buttonText = saveButton?.textContent ?? "Save";
+
+        if (saveButton) {
+          saveButton.disabled = true;
+          saveButton.textContent = "Saving...";
+        }
+
+        try {
+          const response = await fetch(form.getAttribute("action") || window.location.pathname, {
+            method: "POST",
+            body: new FormData(form),
+            headers: {
+              Accept: "application/json"
+            }
+          });
+          const payload = await response.json();
+          if (!response.ok || !payload.updated) {
+            setFeedback("error", payload.message || "Could not update purchase plan.");
+            return;
+          }
+
+          const nextLego = Number(payload.plannedLegoQuantity ?? 0);
+          const nextBricklink = Number(payload.plannedBricklinkQuantity ?? 0);
+          const nextTotal = Number(payload.plannedTotalQuantity ?? nextLego + nextBricklink);
+          const isCompleted = nextTotal === Math.max(0, Math.floor(Number.isFinite(neededValue) ? neededValue : 0));
+
+          if (legoInput) legoInput.value = String(nextLego);
+          if (bricklinkInput) bricklinkInput.value = String(nextBricklink);
+
+          if (plannedDisplay) {
+            plannedDisplay.classList.remove("text-primary", "text-secondary");
+            plannedDisplay.classList.add(isCompleted ? "text-primary" : "text-secondary");
+            plannedDisplay.textContent = `${nextTotal} / ${Math.max(0, Math.floor(Number.isFinite(neededValue) ? neededValue : 0))}${isCompleted ? " ✓" : ""}`;
+          }
+
+          if (row) {
+            row.classList.remove("bg-primary-container/35", "hover:bg-primary-container/45", "hover:bg-surface-container-low");
+            if (isCompleted) {
+              row.classList.add("bg-primary-container/35", "hover:bg-primary-container/45");
+            } else {
+              row.classList.add("hover:bg-surface-container-low");
+            }
+          }
+
+          setFeedback("success", payload.message || "Purchase plan updated.");
+        } catch {
+          setFeedback("error", "Could not update purchase plan.");
+        } finally {
+          if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.textContent = buttonText;
+          }
+        }
+      });
+    });
+  </script>
+</AppLayout>

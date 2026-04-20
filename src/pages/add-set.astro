@@ -1,0 +1,145 @@
+---
+import AppLayout from "../layouts/AppLayout.astro";
+import type { Brand } from "../data/archiveData";
+import { addSetToInventory } from "../lib/inventoryStore";
+import { fetchRebrickableSetWithParts } from "../lib/rebrickable";
+import { mapManualSetToRecord, mapRebrickablePartsToBricks, mapRebrickableSetToRecord } from "../lib/setMapper";
+
+function normalizeSetNumber(input: string) {
+  const raw = input.trim();
+  if (!raw) return "";
+  return raw.includes("-") ? raw : `${raw}-1`;
+}
+
+const url = new URL(Astro.request.url);
+const rebrickableSetNum = normalizeSetNumber(url.searchParams.get("set")?.trim() ?? "");
+
+let feedback = "";
+let feedbackTone: "ok" | "error" = "ok";
+let rebrickablePreview: ReturnType<typeof mapRebrickableSetToRecord> | null = null;
+let rebrickablePartsCount = 0;
+let rebrickableError = "";
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const action = String(formData.get("action") ?? "");
+  try {
+    if (action === "add-rebrickable") {
+      const setNumber = normalizeSetNumber(String(formData.get("setNumber") ?? ""));
+      if (!setNumber) {
+        throw new Error("Set number is required");
+      }
+      const result = await fetchRebrickableSetWithParts(setNumber);
+      const record = mapRebrickableSetToRecord(result.set);
+      const brickRecords = mapRebrickablePartsToBricks(result.parts, record.setNumber);
+      const saved = await addSetToInventory(record, brickRecords);
+      if (!saved.added) {
+        feedbackTone = "error";
+        feedback = `Set ${record.setNumber} is already in inventory.`;
+      } else {
+        feedback = `Set ${record.setNumber} added — ${brickRecords.length} unique parts catalogued.`;
+      }
+    }
+
+    if (action === "add-manual") {
+      const name = String(formData.get("name") ?? "").trim();
+      const setNumber = String(formData.get("setNumber") ?? "").trim();
+      const brand = String(formData.get("brand") ?? "Other") as Exclude<Brand, "LEGO">;
+      const totalPieces = Number(formData.get("totalPieces") ?? 0);
+      const homologatedToLego = formData.get("homologatedToLego") === "on";
+      if (!name || !setNumber || !totalPieces) {
+        throw new Error("Manual set requires name, set number and total pieces");
+      }
+      const record = mapManualSetToRecord({
+        name,
+        setNumber,
+        brand,
+        totalPieces,
+        homologatedToLego
+      });
+      const saved = await addSetToInventory(record);
+      if (!saved.added) {
+        feedbackTone = "error";
+        feedback = `Set ${record.setNumber} is already in inventory.`;
+      } else {
+        feedback = `Manual set ${record.setNumber} added to inventory.`;
+      }
+    }
+  } catch (error) {
+    feedbackTone = "error";
+    feedback = error instanceof Error ? error.message : "Unknown error";
+  }
+}
+
+if (rebrickableSetNum) {
+  try {
+    const result = await fetchRebrickableSetWithParts(rebrickableSetNum);
+    rebrickablePreview = mapRebrickableSetToRecord(result.set);
+    rebrickablePartsCount = result.parts.reduce((acc, part) => acc + part.quantity, 0);
+  } catch (error) {
+    rebrickableError = error instanceof Error ? error.message : "Unknown error";
+  }
+}
+---
+
+<AppLayout title="Bricks Inventory | Add Set" active="catalog">
+  <section class="mb-10">
+    <h1 class="text-4xl font-black tracking-tight mb-2">Catalog New Set</h1>
+    <p class="text-secondary">Add LEGO sets from Rebrickable or add compatible brand sets manually.</p>
+  </section>
+
+  {feedback && (
+    <p class:list={["mb-6 rounded-lg p-3 text-sm font-medium", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>{feedback}</p>
+  )}
+
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <article class="bg-surface-container-lowest rounded-xl p-6 space-y-4">
+      <h2 class="text-xl font-black">LEGO via Rebrickable</h2>
+      <form method="get" class="space-y-4">
+        <label class="block text-xs font-bold uppercase tracking-widest text-secondary">Set Number</label>
+        <div class="flex gap-3">
+          <input type="text" name="set" value={rebrickableSetNum} placeholder="Example: 42130-1" class="flex-1 bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm" />
+          <button type="submit" class="bg-primary text-white px-5 py-3 rounded-lg font-bold text-sm">Fetch</button>
+        </div>
+      </form>
+
+      {rebrickableError && <p class="text-sm text-error bg-error-container rounded-lg p-3">{rebrickableError}</p>}
+
+      {rebrickablePreview && (
+        <div class="bg-surface-container-low rounded-xl p-4 space-y-4">
+          <div class="flex items-start gap-4">
+            <div class="w-24 h-24 rounded-lg overflow-hidden bg-surface-container-high">
+              <img src={rebrickablePreview.image} alt={rebrickablePreview.name} class="w-full h-full object-cover" />
+            </div>
+            <div class="space-y-1">
+              <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Set No. {rebrickablePreview.setNumber}</p>
+              <h3 class="font-black text-lg">{rebrickablePreview.name}</h3>
+              <p class="text-sm text-secondary">{rebrickablePreview.totalPieces.toLocaleString()} pieces reported by Rebrickable</p>
+              <p class="text-sm text-secondary">{rebrickablePartsCount.toLocaleString()} part units in inventory breakdown</p>
+            </div>
+          </div>
+          <form method="post">
+            <input type="hidden" name="action" value="add-rebrickable" />
+            <input type="hidden" name="setNumber" value={rebrickablePreview.setNumber} />
+            <button type="submit" class="bg-primary text-white px-5 py-3 rounded-lg font-bold text-sm">Add to Inventory</button>
+          </form>
+        </div>
+      )}
+    </article>
+
+    <article class="bg-surface-container-lowest rounded-xl p-6 space-y-4">
+      <h2 class="text-xl font-black">Third-party / Manual Set</h2>
+      <form method="post" class="space-y-4">
+        <input type="hidden" name="action" value="add-manual" />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><label class="block text-xs font-bold uppercase tracking-widest text-secondary mb-2">Set Name</label><input name="name" required type="text" class="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm" /></div>
+          <div><label class="block text-xs font-bold uppercase tracking-widest text-secondary mb-2">Set Number</label><input name="setNumber" required type="text" class="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm" /></div>
+          <div><label class="block text-xs font-bold uppercase tracking-widest text-secondary mb-2">Brand</label><select name="brand" class="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm"><option>CaDA</option><option>Mould King</option><option>Other</option></select></div>
+          <div><label class="block text-xs font-bold uppercase tracking-widest text-secondary mb-2">Total Pieces</label><input name="totalPieces" required min="1" type="number" class="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm" /></div>
+        </div>
+        <label class="flex items-center gap-2 text-sm text-secondary"><input type="checkbox" name="homologatedToLego" class="rounded border-none" />Homologate to LEGO equivalent pieces where possible</label>
+        <button type="submit" class="signature-cta text-white px-6 py-3 rounded-full font-bold">Save Manual Set</button>
+      </form>
+    </article>
+  </section>
+</AppLayout>

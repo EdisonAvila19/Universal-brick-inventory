@@ -1,0 +1,1512 @@
+{
+  "sets": [
+    {
+      "id": "rbk-8576-1",
+      "setNumber": "8576-1",
+      "name": "Lehvak-Kal",
+      "brand": "LEGO",
+      "totalPieces": 40,
+      "ownedPieces": 0,
+      "image": "https://cdn.rebrickable.com/media/sets/8576-1/124387.jpg",
+      "source": "rebrickable",
+      "homologatedToLego": false
+    },
+    {
+      "id": "rbk-8505-1",
+      "setNumber": "8505-1",
+      "name": "Amazon / Jungle Slizer",
+      "brand": "LEGO",
+      "totalPieces": 36,
+      "ownedPieces": 0,
+      "image": "https://cdn.rebrickable.com/media/sets/8505-1/124424.jpg",
+      "source": "rebrickable",
+      "homologatedToLego": false
+    },
+    {
+      "id": "rbk-42165-1",
+      "setNumber": "42165-1",
+      "name": "Mercedes-AMG F1 W14 Pull-Back",
+      "brand": "LEGO",
+      "totalPieces": 240,
+      "ownedPieces": 0,
+      "image": "https://cdn.rebrickable.com/media/sets/42165-1/137087.jpg",
+      "source": "rebrickable",
+      "homologatedToLego": false
+    }
+  ],
+  "bricks": [
+    {
+      "reference": "32202",
+      "name": "Axle Hose, Soft 16L",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6057525.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "3708",
+      "name": "Technic Axle 12",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/370826.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "3706",
+      "name": "Technic Axle 6",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/370626.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "32013",
+      "name": "Technic Axle and Pin Connector Angled #1",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4107085.jpg",
+      "required": 4,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "42003",
+      "name": "Technic Axle and Pin Connector Perpendicular 3L with 2 Pin Holes",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6273708.jpg",
+      "required": 6,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "32291",
+      "name": "Technic Axle and Pin Connector Perpendicular Double",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4140430.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "92907",
+      "name": "Technic Axle and Pin Connector Perpendicular Split",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4610371.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "18651",
+      "name": "Technic Axle Pin 3L with Friction Ridges Lengthwise and 2L Axle",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6089119.jpg",
+      "required": 5,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "60483",
+      "name": "Technic Beam 1 x 2 Thick with Pin Hole and Axle Hole",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4515185.jpg",
+      "required": 3,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "41677",
+      "name": "Technic Beam 1 x 2 Thin",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4164133.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "32523",
+      "name": "Technic Beam 1 x 3 Thick",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4142822.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "2825",
+      "name": "Technic Beam 1 x 4 Thin with Stud Connector",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6331570.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "32316",
+      "name": "Technic Beam 1 x 5 Thick",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4142135.jpg",
+      "required": 6,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "32524",
+      "name": "Technic Beam 1 x 7 Thick",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4155458.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "40490",
+      "name": "Technic Beam 1 x 9 Thick",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4645732.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "71708",
+      "name": "Technic Beam 2 x 3 L-Shape with Quarter Ellipse Thick",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6326047.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "32140",
+      "name": "Technic Beam 2 x 4 L-Shape Thick",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4120017.jpg",
+      "required": 7,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "32056",
+      "name": "Technic Beam 3 x 3 L-Shape Thin",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4112287.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "60484",
+      "name": "Technic Beam 3 x 3 T-Shape Thick",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4552347.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "32526",
+      "name": "Technic Beam 3 x 5 L-Shape Thick",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4142823.jpg",
+      "required": 4,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "99773",
+      "name": "Technic Beam Triangle Thin [Type II]",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6331437.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "2723",
+      "name": "Technic Disc 3 x 3",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4121619.jpg",
+      "required": 4,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "2403",
+      "name": "Technic Panel Fairing #10 Medium Triangle Smooth",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6426604.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "11946",
+      "name": "Technic Panel Fairing #21 5L Small Smooth, Side B",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6023036.jpg",
+      "required": 5,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "11947",
+      "name": "Technic Panel Fairing #22 5L Small Smooth, Side A",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6022761.jpg",
+      "required": 5,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "71682",
+      "name": "Technic Panel Fairing 2 x 3 x 1",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6331026.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "64681",
+      "name": "Technic Panel Fairing #5 Long Smooth, Side A",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4558774.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "64393",
+      "name": "Technic Panel Fairing #6 Long Smooth, Side B",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4558731.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "2387",
+      "name": "Technic Panel Fairing #7 3L Very Small Smooth, Side A",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6426589.jpg",
+      "required": 3,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "2389",
+      "name": "Technic Panel Fairing #8 3L Very Small Smooth, Side B",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6426590.jpg",
+      "required": 3,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "2395",
+      "name": "Technic Panel Fairing #9 Medium Triangle Smooth",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6426603.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "46189",
+      "name": "Technic Pin Connector 3L with 2 Pins and Center Hole [Pin Ridges Across Part]",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6267991.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "44874",
+      "name": "Technic Pin Connector Hub with 2 Pins with Friction Ridges Lengthwise [Small Squared Pin Holes]",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6366229.jpg",
+      "required": 3,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "18654",
+      "name": "Technic Pin Connector Round 1L [Beam]",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6121485.jpg",
+      "required": 4,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "62462",
+      "name": "Technic Pin Connector Round [Slotted]",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4526982.jpg",
+      "required": 4,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "65304",
+      "name": "Technic Pin Long with Friction Ridges Lengthwise and Stop Bush [2 Lateral Holes, Small Pin Hole]",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6321745.jpg",
+      "required": 6,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "61332",
+      "name": "Technic Pin with Friction Ridges Lengthwise with No Center Slots",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6279875.jpg",
+      "required": 24,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "99012",
+      "name": "Technic Rotor Blade Small with Hole and Axle Connector End",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6442361.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "2431",
+      "name": "Tile 1 x 4 with Groove",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/243126.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "55978",
+      "name": "Tyre 37 x 22 ZR",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4499234.jpg",
+      "required": 4,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "56145",
+      "name": "Wheel 30.4 x 20 without Pinholes, with Reinforced Rim",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4299389.jpg",
+      "required": 4,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "43093",
+      "name": "Technic Axle Pin with Friction Ridges Lengthwise",
+      "color": "Blue",
+      "colorHex": "#0055BF",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4206482.jpg",
+      "required": 4,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "42924",
+      "name": "Technic Pin Long with Friction Ridges Lengthwise, 1 Center Slot",
+      "color": "Blue",
+      "colorHex": "#0055BF",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6299413.jpg",
+      "required": 31,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "12799",
+      "name": "Pullback Motor 6 x 3 x 5",
+      "color": "Dark Bluish Gray",
+      "colorHex": "#6C6E68",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6024100.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "6536",
+      "name": "Technic Axle and Pin Connector Perpendicular",
+      "color": "Dark Bluish Gray",
+      "colorHex": "#6C6E68",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4210851.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "41239",
+      "name": "Technic Beam 1 x 13 Thick",
+      "color": "Dark Bluish Gray",
+      "colorHex": "#6C6E68",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4261932.jpg",
+      "required": 6,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "32524",
+      "name": "Technic Beam 1 x 7 Thick",
+      "color": "Dark Bluish Gray",
+      "colorHex": "#6C6E68",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4210752.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "89678",
+      "name": "Technic Pin 1/2 with Friction",
+      "color": "Dark Bluish Gray",
+      "colorHex": "#6C6E68",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6395635.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "65487",
+      "name": "Technic Pin Connector Hub with 1 Pin with Friction Ridges Lengthwise [Centered Friction Ridge]",
+      "color": "Dark Bluish Gray",
+      "colorHex": "#6C6E68",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6282144.jpg",
+      "required": 6,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1",
+      "plannedQuantity": 3,
+      "plannedLegoQuantity": 1,
+      "plannedBricklinkQuantity": 2
+    },
+    {
+      "reference": "10197",
+      "name": "Technic Pin Connector Hub with 2 Perpendicular Axles",
+      "color": "Dark Bluish Gray",
+      "colorHex": "#6C6E68",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6005331.jpg",
+      "required": 4,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "32202",
+      "name": "Axle Hose, Soft 16L",
+      "color": "Dark Turquoise",
+      "colorHex": "#008F9B",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6482587.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "62462",
+      "name": "Technic Pin Connector Round [Slotted]",
+      "color": "Flat Silver",
+      "colorHex": "#898788",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6054858.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "4519",
+      "name": "Technic Axle 3",
+      "color": "Light Bluish Gray",
+      "colorHex": "#A0A5A9",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4211815.jpg",
+      "required": 8,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "63869",
+      "name": "Technic Axle and Pin Connector Perpendicular Triple",
+      "color": "Light Bluish Gray",
+      "colorHex": "#A0A5A9",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4538007.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "32123b",
+      "name": "Technic Bush 1/2 Smooth with Axle Hole Semi-Reduced",
+      "color": "Light Bluish Gray",
+      "colorHex": "#A0A5A9",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6271165.jpg",
+      "required": 6,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "65304",
+      "name": "Technic Pin Long with Friction Ridges Lengthwise and Stop Bush [2 Lateral Holes, Small Pin Hole]",
+      "color": "Light Bluish Gray",
+      "colorHex": "#A0A5A9",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6321747.jpg",
+      "required": 5,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "10105321",
+      "name": "Sticker Sheet for Set 42165-1",
+      "color": "[No Color/Any Color]",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/photos/9999/10105321-9999-fa36692d-00b4-4e0c-9cd4-2bdb86068d3a.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "32062",
+      "name": "Technic Axle 2 Notched",
+      "color": "Red",
+      "colorHex": "#C91A09",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4142865.jpg",
+      "required": 8,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "11214",
+      "name": "Technic Axle Pin 3L with Friction Ridges Lengthwise and 1L Axle",
+      "color": "Red",
+      "colorHex": "#C91A09",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6209519.jpg",
+      "required": 6,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "41677",
+      "name": "Technic Beam 1 x 2 Thin",
+      "color": "Red",
+      "colorHex": "#C91A09",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4186678.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "89678",
+      "name": "Technic Pin 1/2 with Friction",
+      "color": "Red",
+      "colorHex": "#C91A09",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6378120.jpg",
+      "required": 4,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "32073",
+      "name": "Technic Axle 5",
+      "color": "Yellow",
+      "colorHex": "#F2CD37",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/6130008.jpg",
+      "required": 3,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "42165-1"
+    },
+    {
+      "reference": "2569",
+      "name": "Antenna 8H Whip",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/256926.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32169pr0006",
+      "name": "Large Figure Visor / Limb Cover, Armour with Amazon / Jungle Print",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/photos/0/x209pb07-0-25d46002-349b-4667-baa7-5a593586a32d.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32062",
+      "name": "Technic Axle 2 Notched",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4109810.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "3705",
+      "name": "Technic Axle 4",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/370526.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32073",
+      "name": "Technic Axle 5",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4114740.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "3706",
+      "name": "Technic Axle 6",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/370626.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32039",
+      "name": "Technic Axle Connector with Axle Hole",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4107081.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "2780",
+      "name": "Technic Pin with Friction Ridges Lengthwise and Center Slots",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4121715.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "4716",
+      "name": "Technic Worm Gear",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/471626.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "30173a",
+      "name": "Weapon Sword / Katana [Octagonal Guard]",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4114206.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32194",
+      "name": "Packaging, Case, Bottom, Throwbot / Slizer 'Flying'",
+      "color": "Dark Turquoise",
+      "colorHex": "#008F9B",
+      "image": "https://cdn.rebrickable.com/media/parts/photos/3/32194-3-6506f10f-3b39-4988-bf7a-4d8c71a3aaf9.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32174",
+      "name": "Technic Axle Connector 2 x 3 with Ball Socket, Open Sides",
+      "color": "Dark Turquoise",
+      "colorHex": "#008F9B",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4119330.jpg",
+      "required": 5,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32165",
+      "name": "Technic Block 3 x 6 x 1 & 2/3",
+      "color": "Dark Turquoise",
+      "colorHex": "#008F9B",
+      "image": "https://cdn.rebrickable.com/media/parts/ldraw/3/32165.png",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "4019",
+      "name": "Technic Gear 16 Tooth with Round Holes [Old Style]",
+      "color": "Dark Turquoise",
+      "colorHex": "#008F9B",
+      "image": "https://cdn.rebrickable.com/media/parts/ldraw/3/4019.png",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32172",
+      "name": "Technic Pin Connector Block 3 x 3 x 1",
+      "color": "Dark Turquoise",
+      "colorHex": "#008F9B",
+      "image": "https://cdn.rebrickable.com/media/parts/ldraw/3/32172.png",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32168",
+      "name": "Large Figure Skeletal, Arm Forked with Flexible Center and Ball Joint",
+      "color": "Green",
+      "colorHex": "#237841",
+      "image": "https://cdn.rebrickable.com/media/parts/photos/2/32168-2-3bac974d-1ef4-4645-872f-3f3b15dd2ac1.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32173",
+      "name": "Large Figure Skeletal, Limb, Angular, 2 x 7 with 2 Ball Joints",
+      "color": "Green",
+      "colorHex": "#237841",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4119323.jpg",
+      "required": 3,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32171pr0037",
+      "name": "Large Figure Throwing Disk, Amazon / Jungle, 2 Pips, Leaf Logo Print",
+      "color": "Green",
+      "colorHex": "#237841",
+      "image": "https://cdn.rebrickable.com/media/parts/photos/2/32171pb037-2-161aea99-4c87-4709-8804-61d8fe96f3b4.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32176",
+      "name": "Packaging, Case, Lid, Throwbot / Slizer 'Flying'",
+      "color": "Green",
+      "colorHex": "#237841",
+      "image": "https://cdn.rebrickable.com/media/parts/photos/2/32176-2-6d75e0bb-7e6c-4a97-9943-538a5e7ea6c8.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32175",
+      "name": "Technic Connector Block 3 x 3 Triangular with Axle, and Pin Hole",
+      "color": "Green",
+      "colorHex": "#237841",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4119334.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "3649",
+      "name": "Technic Gear 40 Tooth",
+      "color": "Green",
+      "colorHex": "#237841",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4120109.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32166",
+      "name": "Technic Gearbox Half",
+      "color": "Green",
+      "colorHex": "#237841",
+      "image": "https://cdn.rebrickable.com/media/parts/ldraw/2/32166.png",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32123a",
+      "name": "Technic Bush 1/2 Smooth with Axle Hole Reduced",
+      "color": "Light Gray",
+      "colorHex": "#9BA19D",
+      "image": "https://cdn.rebrickable.com/media/parts/ldraw/7/32123a.png",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "32171pr0050",
+      "name": "Large Figure Throwing Disk, Electro / Energy, 3 Pips, Electro Throwing Disk Print",
+      "color": "Purple",
+      "colorHex": "#81007B",
+      "image": "https://cdn.rebrickable.com/media/parts/photos/22/32171pb050-22-fb492996-4be7-4397-bd13-ad7074f064d8.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8505-1"
+    },
+    {
+      "reference": "41672",
+      "name": "Large Figure Skeletal, Limb 1 x 3 x 7 Beam with Axle Holes (Bohrok)",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4163139.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "3706",
+      "name": "Technic Axle 6",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/370626.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "6628",
+      "name": "Technic Pin with Friction Ridges Lengthwise and Towball",
+      "color": "Black",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4184169.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "41670",
+      "name": "Large Figure Skeletal, Limb, Angular 90°, 4 x 4 x 2 with 2 Ball Joints, and Axle Hole",
+      "color": "Green",
+      "colorHex": "#237841",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4192713.jpg",
+      "required": 4,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "41665",
+      "name": "Large Figure Skeletal, Torso, Beam 2 x 4 x 7 Angled",
+      "color": "Green",
+      "colorHex": "#237841",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4162065.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "85544",
+      "name": "Technic Rubber Belt Medium [24mm ID] [Round Cross Section]",
+      "color": "Green",
+      "colorHex": "#237841",
+      "image": "https://cdn.rebrickable.com/media/parts/ldraw/2/85544.png",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "41673",
+      "name": "Large Figure Mask Holder Krana 3 x 4",
+      "color": "Light Gray",
+      "colorHex": "#9BA19D",
+      "image": "https://cdn.rebrickable.com/media/parts/photos/7/41673-7-874e5d62-1bd3-4366-ad7a-fc4f0876d2ec.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "41666",
+      "name": "Technic Arm 1 x 7 with 9 Tooth Double Bevel Gear Ends",
+      "color": "Light Gray",
+      "colorHex": "#9BA19D",
+      "image": "https://cdn.rebrickable.com/media/parts/ldraw/7/41666.png",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "41667",
+      "name": "Technic Arm 2 x 5 with 1/4 Gear 8 Tooth Double Bevel",
+      "color": "Light Gray",
+      "colorHex": "#9BA19D",
+      "image": "https://cdn.rebrickable.com/media/parts/ldraw/7/41667.png",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "4519",
+      "name": "Technic Axle 3",
+      "color": "Light Gray",
+      "colorHex": "#9BA19D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4186007.jpg",
+      "required": 5,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "32073",
+      "name": "Technic Axle 5",
+      "color": "Light Gray",
+      "colorHex": "#9BA19D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4141482.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "32556a",
+      "name": "Technic Pin Long without Friction Ridges - Single Slot",
+      "color": "Light Gray",
+      "colorHex": "#9BA19D",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4154753.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "4199272",
+      "name": "CD-Rom, Lehvak-Kal",
+      "color": "[No Color/Any Color]",
+      "colorHex": "#05131D",
+      "image": "https://cdn.rebrickable.com/media/parts/photos/9999/lehvakkalcd-9999-9bb8f91b-8f13-4d46-9c1a-a721b783db09.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "41668",
+      "name": "Large Figure Foot, with Ball Joint Socket 2 x 3 x 5",
+      "color": "Pearl Light Gray",
+      "colorHex": "#9CA3A8",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4192709.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "44936",
+      "name": "Large Figure Weapon 5 x 5 Shield with Wrench Toothed",
+      "color": "Pearl Light Gray",
+      "colorHex": "#9CA3A8",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4215461.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "32174",
+      "name": "Technic Axle Connector 2 x 3 with Ball Socket, Open Sides",
+      "color": "Pearl Light Gray",
+      "colorHex": "#9CA3A8",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4192711.jpg",
+      "required": 6,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "41671pr0004",
+      "name": "Windscreen Bohrok 4 x 5 x 7 with Green Scales and Lehvak-Kal Logo",
+      "color": "Pearl Light Gray",
+      "colorHex": "#9CA3A8",
+      "image": "https://cdn.rebrickable.com/media/parts/photos/135/41671pb06-135-a21d3f24-0bf6-4fc7-95b4-ff343376d808.jpg",
+      "required": 1,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "41669",
+      "name": "Technic Tooth 1 x 3 with Axle Hole [Rounded Underside]",
+      "color": "Trans-Red",
+      "colorHex": "#C91A09",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4163567.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    },
+    {
+      "reference": "42074",
+      "name": "Large Figure Weapon, Claw / Tooth / Hook 2 x 3 with Axle and Hole",
+      "color": "White",
+      "colorHex": "#FFFFFF",
+      "image": "https://cdn.rebrickable.com/media/parts/elements/4163132.jpg",
+      "required": 2,
+      "stock": 0,
+      "buyAt": [
+        "lego",
+        "bricklink"
+      ],
+      "fromSet": "8576-1"
+    }
+  ]
+}

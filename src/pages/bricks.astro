@@ -1,0 +1,126 @@
+---
+import AppLayout from "../layouts/AppLayout.astro";
+import { getInventoryBricks, getInventorySets, updateBrickStock } from "../lib/inventoryStore";
+
+const url = new URL(Astro.request.url);
+const pieceFilter = (url.searchParams.get("piece") ?? "").trim();
+const setFilters = url.searchParams.getAll("set").map((value) => value.trim()).filter(Boolean);
+const statusFilter = url.searchParams.get("status") ?? "all";
+
+let feedback = "";
+let feedbackTone: "ok" | "error" = "ok";
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const action = String(formData.get("action") ?? "");
+  if (action === "update-stock") {
+    const reference = String(formData.get("reference") ?? "");
+    const fromSet = String(formData.get("fromSet") ?? "");
+    const color = String(formData.get("color") ?? "");
+    const stock = Number(formData.get("stock") ?? 0);
+    const result = await updateBrickStock({ reference, fromSet, color, stock });
+    if (result.updated) {
+      feedback = "Stock updated successfully.";
+    } else {
+      feedbackTone = "error";
+      feedback = "Could not update stock for the selected piece.";
+    }
+  }
+}
+
+const bricks = await getInventoryBricks();
+const sets = await getInventorySets();
+
+const normalizedPieceFilter = pieceFilter.toLowerCase();
+const filteredBricks = bricks.filter((brick) => {
+  const matchesPiece = !normalizedPieceFilter || brick.reference.toLowerCase().includes(normalizedPieceFilter) || brick.name.toLowerCase().includes(normalizedPieceFilter);
+  const matchesSet = setFilters.length === 0 || setFilters.includes(brick.fromSet);
+  const needed = Math.max(0, brick.required - brick.stock);
+  const matchesStatus = statusFilter === "all" || (statusFilter === "missing" ? needed > 0 : needed === 0);
+  return matchesPiece && matchesSet && matchesStatus;
+});
+
+const totalUniquePieces = bricks.length;
+const missingBricks = bricks.reduce((acc, b) => acc + (b.required > b.stock ? 1 : 0), 0);
+const setOptions = sets.map((set) => ({ label: `${set.setNumber} — ${set.name}`, value: set.setNumber }));
+---
+
+<AppLayout title="Bricks Inventory | Brick Inventory" active="bricks">
+  <section class="mb-10 flex flex-col md:flex-row justify-between items-end gap-6">
+    <div>
+      <h1 class="text-4xl font-black tracking-tight mb-2">Brick Inventory</h1>
+      <p class="text-secondary font-medium uppercase text-xs tracking-[0.2em]">Pieces and stock overview</p>
+    </div>
+    <div class="flex gap-12 text-right">
+      <div class="flex flex-col"><span class="text-4xl font-black tracking-tighter">{totalUniquePieces}</span><span class="text-[10px] uppercase font-bold text-secondary tracking-widest">Total Unique Pieces</span></div>
+      <div class="flex flex-col"><span class="text-4xl font-black text-error tracking-tighter">{missingBricks}</span><span class="text-[10px] uppercase font-bold text-error tracking-widest">Missing Bricks</span></div>
+    </div>
+  </section>
+
+  {feedback && (
+    <p class:list={["mb-6 rounded-lg p-3 text-sm font-medium", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>{feedback}</p>
+  )}
+
+  <form method="get" class="bg-surface-container-low p-6 rounded-xl mb-10 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+    <div>
+      <label class="block text-[10px] uppercase font-bold text-secondary mb-2 px-2">Piece Number or Name</label>
+      <input class="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm" placeholder="e.g. 3001" type="text" name="piece" value={pieceFilter} />
+    </div>
+    <div>
+      <label class="block text-[10px] uppercase font-bold text-secondary mb-2 px-2">Set Source</label>
+      <select class="w-full h-[46px] bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm" name="set" multiple size="1">
+        <option value="" selected={setFilters.length === 0}>All Sets</option>
+        {setOptions.map((option) => <option value={option.value} selected={setFilters.includes(option.value)}>{option.label}</option>)}
+      </select>
+    </div>
+    <div>
+      <label class="block text-[10px] uppercase font-bold text-secondary mb-2 px-2">Status</label>
+      <select class="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm" name="status">
+        <option value="all" selected={statusFilter === "all"}>All</option>
+        <option value="missing" selected={statusFilter === "missing"}>Missing</option>
+        <option value="in-stock" selected={statusFilter === "in-stock"}>In Stock</option>
+      </select>
+    </div>
+    <button type="submit" class="bg-on-surface text-white py-3 px-8 rounded-lg font-bold text-sm">Apply Filters</button>
+  </form>
+
+  {filteredBricks.length === 0 ? (
+    <div class="text-center py-24 text-secondary">
+      <h2 class="text-2xl font-black mb-2">No bricks found</h2>
+      <p class="text-sm">Adjust filters or add a set via <a href="/add-set" class="text-primary font-bold">Catalog New Set</a>.</p>
+    </div>
+  ) : (
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      {filteredBricks.map((brick) => {
+        const needed = Math.max(0, brick.required - brick.stock);
+        return (
+          <article class="bg-surface-container-lowest p-6 rounded-xl relative overflow-hidden">
+            <div class:list={["absolute top-4 right-4 text-[10px] font-bold px-3 py-1 rounded-full uppercase", needed > 0 ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>{needed > 0 ? "Missing" : "In Stock"}</div>
+            <div class="w-full aspect-square bg-surface-container-low rounded-md mb-6 overflow-hidden"><img alt={brick.name} class="w-full h-full object-contain p-8" src={brick.image} /></div>
+            <div class="flex justify-between items-start mb-4">
+              <div><p class="text-[10px] font-bold text-secondary tracking-widest uppercase">Ref. {brick.reference}</p><h3 class="font-bold text-lg leading-tight mt-1">{brick.name}</h3></div>
+              <div class="w-6 h-6 rounded-full shadow-inner" style={`background:${brick.colorHex};`} title={`Color: ${brick.color}`}></div>
+            </div>
+            <p class="text-xs text-secondary mb-4">{brick.color} · From set {brick.fromSet}</p>
+            <div class="grid grid-cols-3 gap-2 border-t border-outline-variant/20 pt-4 mb-4">
+              <div class="text-center"><p class="text-[10px] text-secondary font-bold uppercase mb-1">Required</p><p class="font-black">{brick.required}</p></div>
+              <div class="text-center"><p class="text-[10px] text-secondary font-bold uppercase mb-1">Stock</p><p class="font-black">{brick.stock}</p></div>
+              <div class="text-center"><p class="text-[10px] text-error font-bold uppercase mb-1">Needed</p><p class="font-black text-error">{needed}</p></div>
+            </div>
+            <details class="group">
+              <summary class="list-none cursor-pointer bg-surface-container-highest rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider text-secondary">Edit Stock</summary>
+              <form method="post" class="flex gap-2 items-center mt-3">
+                <input type="hidden" name="action" value="update-stock" />
+                <input type="hidden" name="reference" value={brick.reference} />
+                <input type="hidden" name="fromSet" value={brick.fromSet} />
+                <input type="hidden" name="color" value={brick.color} />
+                <input type="number" name="stock" min="0" value={brick.stock} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+                <button type="submit" class="bg-primary text-white rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider">Save</button>
+              </form>
+            </details>
+          </article>
+        );
+      })}
+    </section>
+  )}
+</AppLayout>
