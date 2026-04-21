@@ -2,6 +2,15 @@
 import AppLayout from "../layouts/AppLayout.astro";
 import { getInventoryBricks, getInventorySets, updateBrickStock } from "../lib/inventoryStore";
 
+const createJsonResponse = (payload: Record<string, unknown>, status = 200) => {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8"
+    }
+  });
+};
+
 const url = new URL(Astro.request.url);
 const pieceFilter = (url.searchParams.get("piece") ?? "").trim();
 const setFilters = url.searchParams.getAll("set").map((value) => value.trim()).filter(Boolean);
@@ -13,17 +22,43 @@ let feedbackTone: "ok" | "error" = "ok";
 if (Astro.request.method === "POST") {
   const formData = await Astro.request.formData();
   const action = String(formData.get("action") ?? "");
+  const wantsJson =
+    String(formData.get("responseType") ?? "") === "json" ||
+    (Astro.request.headers.get("accept") ?? "").includes("application/json");
   if (action === "update-stock") {
     const reference = String(formData.get("reference") ?? "");
     const fromSet = String(formData.get("fromSet") ?? "");
     const color = String(formData.get("color") ?? "");
     const stock = Number(formData.get("stock") ?? 0);
-    const result = await updateBrickStock({ reference, fromSet, color, stock });
-    if (result.updated) {
-      feedback = "Stock updated successfully.";
-    } else {
+    const normalizedStock = Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : 0;
+
+    if (!reference || !fromSet || !color) {
+      if (wantsJson) {
+        return createJsonResponse({ updated: false, message: "Invalid stock data." }, 400);
+      }
       feedbackTone = "error";
       feedback = "Could not update stock for the selected piece.";
+    } else {
+      const result = await updateBrickStock({ reference, fromSet, color, stock: normalizedStock });
+      if (wantsJson) {
+        const bricks = await getInventoryBricks();
+        const updatedBrick = bricks.find((brick) => brick.reference === reference && brick.fromSet === fromSet && brick.color === color);
+        const required = updatedBrick?.required ?? 0;
+        const needed = Math.max(0, required - normalizedStock);
+        return createJsonResponse({
+          updated: result.updated,
+          message: result.updated ? "Stock updated successfully." : "Could not update stock for the selected piece.",
+          stock: normalizedStock,
+          required,
+          needed
+        }, result.updated ? 200 : 404);
+      }
+      if (result.updated) {
+        feedback = "Stock updated successfully.";
+      } else {
+        feedbackTone = "error";
+        feedback = "Could not update stock for the selected piece.";
+      }
     }
   }
 }
@@ -53,13 +88,11 @@ const setOptions = sets.map((set) => ({ label: `${set.setNumber} — ${set.name}
     </div>
     <div class="flex gap-12 text-right">
       <div class="flex flex-col"><span class="text-4xl font-black tracking-tighter">{totalUniquePieces}</span><span class="text-[10px] uppercase font-bold text-secondary tracking-widest">Total Unique Pieces</span></div>
-      <div class="flex flex-col"><span class="text-4xl font-black text-error tracking-tighter">{missingBricks}</span><span class="text-[10px] uppercase font-bold text-error tracking-widest">Missing Bricks</span></div>
+      <div class="flex flex-col"><span id="missing-bricks-value" class="text-4xl font-black text-error tracking-tighter">{missingBricks}</span><span class="text-[10px] uppercase font-bold text-error tracking-widest">Missing Bricks</span></div>
     </div>
   </section>
 
-  {feedback && (
-    <p class:list={["mb-6 rounded-lg p-3 text-sm font-medium", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>{feedback}</p>
-  )}
+  <p id="bricks-feedback" class:list={["mb-6 rounded-lg p-3 text-sm font-medium", feedback ? "" : "hidden", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>{feedback}</p>
 
   <form method="get" class="bg-surface-container-low p-6 rounded-xl mb-10 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
     <div>
@@ -94,28 +127,29 @@ const setOptions = sets.map((set) => ({ label: `${set.setNumber} — ${set.name}
       {filteredBricks.map((brick) => {
         const needed = Math.max(0, brick.required - brick.stock);
         return (
-          <article class="bg-surface-container-lowest p-6 rounded-xl relative overflow-hidden">
-            <div class:list={["absolute top-4 right-4 text-[10px] font-bold px-3 py-1 rounded-full uppercase", needed > 0 ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>{needed > 0 ? "Missing" : "In Stock"}</div>
+          <article class="bg-surface-container-lowest p-6 rounded-xl relative overflow-hidden flex flex-col h-full" data-brick-card>
+            <div data-status-pill class:list={["absolute top-4 right-4 text-[10px] font-bold px-3 py-1 rounded-full uppercase", needed > 0 ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>{needed > 0 ? "Missing" : "In Stock"}</div>
             <div class="w-full aspect-square bg-surface-container-low rounded-md mb-6 overflow-hidden"><img alt={brick.name} class="w-full h-full object-contain p-8" src={brick.image} /></div>
             <div class="flex justify-between items-start mb-4">
               <div><p class="text-[10px] font-bold text-secondary tracking-widest uppercase">Ref. {brick.reference}</p><h3 class="font-bold text-lg leading-tight mt-1">{brick.name}</h3></div>
               <div class="w-6 h-6 rounded-full shadow-inner" style={`background:${brick.colorHex};`} title={`Color: ${brick.color}`}></div>
             </div>
-            <p class="text-xs text-secondary mb-4">{brick.color} · From set {brick.fromSet}</p>
-            <div class="grid grid-cols-3 gap-2 border-t border-outline-variant/20 pt-4 mb-4">
-              <div class="text-center"><p class="text-[10px] text-secondary font-bold uppercase mb-1">Required</p><p class="font-black">{brick.required}</p></div>
-              <div class="text-center"><p class="text-[10px] text-secondary font-bold uppercase mb-1">Stock</p><p class="font-black">{brick.stock}</p></div>
-              <div class="text-center"><p class="text-[10px] text-error font-bold uppercase mb-1">Needed</p><p class="font-black text-error">{needed}</p></div>
+            <p class="text-xs text-secondary mb-6">{brick.color} · From set {brick.fromSet}</p>
+            <div class="grid grid-cols-3 gap-2 border-t border-outline-variant/20 pt-4 mb-4 mt-auto">
+              <div class="text-center"><p class="text-[10px] text-secondary font-bold uppercase mb-1">Required</p><p data-required-value class="font-black">{brick.required}</p></div>
+              <div class="text-center"><p class="text-[10px] text-secondary font-bold uppercase mb-1">Stock</p><p data-stock-value class="font-black">{brick.stock}</p></div>
+              <div class="text-center"><p class="text-[10px] text-error font-bold uppercase mb-1">Needed</p><p data-needed-value class="font-black text-error">{needed}</p></div>
             </div>
-            <details class="group">
-              <summary class="list-none cursor-pointer bg-surface-container-highest rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider text-secondary">Edit Stock</summary>
-              <form method="post" class="flex gap-2 items-center mt-3">
+            <details class="group mb-0">
+              <summary class="list-none cursor-pointer bg-surface-container-highest rounded-lg px-3 py-2 mx-auto w-fit text-xs font-bold uppercase tracking-wider text-secondary">Edit Stock</summary>
+              <form method="post" data-async-stock-form class="flex gap-2 items-center mt-3">
                 <input type="hidden" name="action" value="update-stock" />
+                <input type="hidden" name="responseType" value="json" />
                 <input type="hidden" name="reference" value={brick.reference} />
                 <input type="hidden" name="fromSet" value={brick.fromSet} />
                 <input type="hidden" name="color" value={brick.color} />
                 <input type="number" name="stock" min="0" value={brick.stock} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
-                <button type="submit" class="bg-primary text-white rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider">Save</button>
+                <button type="submit" data-save-button class="bg-primary text-white rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider">Save</button>
               </form>
             </details>
           </article>
@@ -123,4 +157,88 @@ const setOptions = sets.map((set) => ({ label: `${set.setNumber} — ${set.name}
       })}
     </section>
   )}
+  <script is:inline>
+    const feedbackEl = document.getElementById("bricks-feedback");
+    const missingBricksEl = document.getElementById("missing-bricks-value");
+    const successClasses = ["bg-tertiary-container", "text-on-tertiary-container"];
+    const errorClasses = ["bg-error-container", "text-on-error-container"];
+
+    const setFeedback = (type, message) => {
+      if (!feedbackEl) return;
+      feedbackEl.classList.remove("hidden", ...successClasses, ...errorClasses);
+      feedbackEl.classList.add(...(type === "success" ? successClasses : errorClasses));
+      feedbackEl.textContent = message;
+    };
+
+    const recalculateMissingBricks = () => {
+      if (!missingBricksEl) return;
+      const total = Array.from(document.querySelectorAll("[data-needed-value]")).reduce((acc, el) => acc + (Number(el.textContent || "0") > 0 ? 1 : 0), 0);
+      missingBricksEl.textContent = String(total);
+    };
+
+    document.querySelectorAll("form[data-async-stock-form]").forEach((form) => {
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const saveButton = form.querySelector("[data-save-button]");
+        const stockInput = form.querySelector('input[name="stock"]');
+        const card = form.closest("[data-brick-card]");
+        const detailsEl = form.closest("details");
+        const stockValueEl = card?.querySelector("[data-stock-value]");
+        const neededValueEl = card?.querySelector("[data-needed-value]");
+        const requiredValueEl = card?.querySelector("[data-required-value]");
+        const statusPill = card?.querySelector("[data-status-pill]");
+        const buttonText = saveButton?.textContent ?? "Save";
+
+        if (saveButton) {
+          saveButton.disabled = true;
+          saveButton.textContent = "Saving...";
+        }
+
+        try {
+          const response = await fetch(form.getAttribute("action") || window.location.href, {
+            method: "POST",
+            body: new FormData(form),
+            headers: {
+              Accept: "application/json"
+            }
+          });
+          const payload = await response.json();
+          if (!response.ok || !payload.updated) {
+            setFeedback("error", payload.message || "Could not update stock for the selected piece.");
+            return;
+          }
+
+          const nextStock = Number(payload.stock ?? stockInput?.value ?? 0);
+          const nextRequired = Number(payload.required ?? requiredValueEl?.textContent ?? 0);
+          const nextNeeded = Number(payload.needed ?? Math.max(0, nextRequired - nextStock));
+
+          if (stockInput) stockInput.value = String(nextStock);
+          if (stockValueEl) stockValueEl.textContent = String(nextStock);
+          if (neededValueEl) neededValueEl.textContent = String(nextNeeded);
+
+          if (statusPill) {
+            statusPill.classList.remove("bg-error-container", "text-on-error-container", "bg-tertiary-container", "text-on-tertiary-container");
+            if (nextNeeded > 0) {
+              statusPill.classList.add("bg-error-container", "text-on-error-container");
+              statusPill.textContent = "Missing";
+            } else {
+              statusPill.classList.add("bg-tertiary-container", "text-on-tertiary-container");
+              statusPill.textContent = "In Stock";
+            }
+          }
+
+          recalculateMissingBricks();
+          setFeedback("success", payload.message || "Stock updated successfully.");
+          detailsEl?.removeAttribute("open");
+        } catch {
+          setFeedback("error", "Could not update stock for the selected piece.");
+        } finally {
+          if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.textContent = buttonText;
+          }
+        }
+      });
+    });
+  </script>
 </AppLayout>

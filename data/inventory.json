@@ -28,7 +28,7 @@
       "name": "Mercedes-AMG F1 W14 Pull-Back",
       "brand": "LEGO",
       "totalPieces": 240,
-      "ownedPieces": 0,
+      "ownedPieces": 2,
       "image": "https://cdn.rebrickable.com/media/sets/42165-1/137087.jpg",
       "source": "rebrickable",
       "homologatedToLego": false
@@ -308,7 +308,7 @@
       "colorHex": "#05131D",
       "image": "https://cdn.rebrickable.com/media/parts/elements/4142823.jpg",
       "required": 4,
-      "stock": 0,
+      "stock": 2,
       "buyAt": [
         "lego",
         "bricklink"
@@ -719,10 +719,7 @@
         "lego",
         "bricklink"
       ],
-      "fromSet": "42165-1",
-      "plannedQuantity": 3,
-      "plannedLegoQuantity": 1,
-      "plannedBricklinkQuantity": 2
+      "fromSet": "42165-1"
     },
     {
       "reference": "10197",

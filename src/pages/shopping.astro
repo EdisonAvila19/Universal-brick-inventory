@@ -15,6 +15,7 @@ const url = new URL(Astro.request.url);
 let pieceFilter = url.searchParams.get("piece") ?? "";
 let setFilters = url.searchParams.getAll("set").map((value) => value.trim()).filter(Boolean);
 let neededFilter = url.searchParams.get("needed") ?? "all";
+let legoStoreEnabled = url.searchParams.get("legoStore") !== "off";
 let feedback: { type: "success" | "error"; message: string } | null = null;
 
 if (Astro.request.method === "POST") {
@@ -26,6 +27,7 @@ if (Astro.request.method === "POST") {
   pieceFilter = String(formData.get("piece") ?? pieceFilter);
   setFilters = formData.getAll("set").map((value) => String(value).trim()).filter(Boolean);
   neededFilter = String(formData.get("needed") ?? neededFilter);
+  legoStoreEnabled = String(formData.get("legoStore") ?? (legoStoreEnabled ? "on" : "off")) !== "off";
 
   if (action === "update-purchase-plan") {
     const reference = String(formData.get("reference") ?? "");
@@ -37,7 +39,8 @@ if (Astro.request.method === "POST") {
     const normalizedNeededValue = Number.isFinite(neededValue) ? Math.max(0, Math.floor(neededValue)) : 0;
     const normalizedLegoQuantity = Number.isFinite(plannedLegoQuantity) ? Math.max(0, Math.floor(plannedLegoQuantity)) : 0;
     const normalizedBricklinkQuantity = Number.isFinite(plannedBricklinkQuantity) ? Math.max(0, Math.floor(plannedBricklinkQuantity)) : 0;
-    const plannedTotalQuantity = normalizedLegoQuantity + normalizedBricklinkQuantity;
+    const effectiveLegoQuantity = legoStoreEnabled ? normalizedLegoQuantity : 0;
+    const plannedTotalQuantity = effectiveLegoQuantity + normalizedBricklinkQuantity;
 
     if (!reference || !fromSet || !color) {
       if (wantsJson) {
@@ -54,14 +57,14 @@ if (Astro.request.method === "POST") {
         reference,
         fromSet,
         color,
-        plannedLegoQuantity: normalizedLegoQuantity,
+        plannedLegoQuantity: effectiveLegoQuantity,
         plannedBricklinkQuantity: normalizedBricklinkQuantity
       });
       if (wantsJson) {
         return createJsonResponse({
           updated: result.updated,
           message: result.updated ? "Purchase plan updated." : "Could not update purchase plan.",
-          plannedLegoQuantity: normalizedLegoQuantity,
+          plannedLegoQuantity: effectiveLegoQuantity,
           plannedBricklinkQuantity: normalizedBricklinkQuantity,
           plannedTotalQuantity,
           neededValue: normalizedNeededValue,
@@ -109,9 +112,9 @@ const filteredBricks = neededBricks.filter((brick) => {
       : 0;
   return {
     ...brick,
-    plannedLegoQuantityEffective,
+    plannedLegoQuantityEffective: legoStoreEnabled ? plannedLegoQuantityEffective : 0,
     plannedBricklinkQuantityEffective,
-    plannedTotalQuantity: plannedLegoQuantityEffective + plannedBricklinkQuantityEffective
+    plannedTotalQuantity: (legoStoreEnabled ? plannedLegoQuantityEffective : 0) + plannedBricklinkQuantityEffective
   };
 });
 
@@ -131,7 +134,7 @@ const setsAffected = new Set(filteredBricks.map((brick) => brick.fromSet)).size;
     {feedback?.message ?? ""}
   </p>
 
-  <form method="get" class="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4 bg-surface-container-low rounded-xl p-4">
+  <form method="get" class="mb-8 grid grid-cols-1 md:grid-cols-5 gap-4 bg-surface-container-low rounded-xl p-4">
     <label class="text-xs font-bold uppercase tracking-wider text-secondary flex flex-col gap-2">
       Piece
       <input type="text" name="piece" value={pieceFilter} placeholder="Reference or name" class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
@@ -152,6 +155,13 @@ const setsAffected = new Set(filteredBricks.map((brick) => brick.fromSet)).size;
         <option value="1-2" selected={neededFilter === "1-2"}>1 to 2</option>
         <option value="3-5" selected={neededFilter === "3-5"}>3 to 5</option>
         <option value="6+" selected={neededFilter === "6+"}>6+</option>
+      </select>
+    </label>
+    <label class="text-xs font-bold uppercase tracking-wider text-secondary flex flex-col gap-2">
+      Tienda Lego
+      <select name="legoStore" class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm">
+        <option value="on" selected={legoStoreEnabled}>Habilitada</option>
+        <option value="off" selected={!legoStoreEnabled}>Deshabilitada</option>
       </select>
     </label>
     <div class="flex items-end gap-2">
@@ -180,7 +190,7 @@ const setsAffected = new Set(filteredBricks.map((brick) => brick.fromSet)).size;
               <th class="px-6 py-4 font-bold">Piece</th>
               <th class="px-6 py-4 font-bold">Set</th>
               <th class="px-6 py-4 font-bold text-center">Needed</th>
-              <th class="px-6 py-4 font-bold text-center">Tienda Lego</th>
+              {legoStoreEnabled && <th class="px-6 py-4 font-bold text-center">Tienda Lego</th>}
               <th class="px-6 py-4 font-bold text-center">Bricklink</th>
               <th class="px-6 py-4 font-bold text-center">Planned</th>
               <th class="px-6 py-4 font-bold text-right">Action</th>
@@ -192,8 +202,8 @@ const setsAffected = new Set(filteredBricks.map((brick) => brick.fromSet)).size;
                 <td class="px-6 py-4"><div class="flex items-center gap-4"><div class="w-12 h-12 bg-white rounded-md p-1 overflow-hidden flex-shrink-0"><img alt={brick.name} class="w-full h-full object-contain" src={brick.image} /></div><div><p class="font-bold text-sm leading-tight">{brick.name}</p><p class="text-secondary text-xs">Ref. {brick.reference} · {brick.color}</p></div></div></td>
                 <td class="px-6 py-4"><p class="text-sm font-medium">{setNameMap.get(brick.fromSet) ?? brick.fromSet}</p><p class="text-xs text-secondary">{brick.fromSet}</p></td>
                 <td class="px-6 py-4 text-center"><span class="bg-error-container text-on-error-container text-xs font-black px-3 py-1 rounded-full">{brick.needed}</span></td>
-                <td class="px-6 py-4" colspan="4">
-                  <form method="post" data-async-purchase-form class="grid grid-cols-[96px_96px_auto_1fr] items-center gap-2 min-w-[420px]">
+                <td class="px-6 py-4" colspan={legoStoreEnabled ? 4 : 3}>
+                  <form method="post" data-async-purchase-form class:list={["items-center gap-2", legoStoreEnabled ? "grid grid-cols-[96px_96px_auto_1fr] min-w-[420px]" : "grid grid-cols-[96px_auto_1fr] min-w-[320px]"]}>
                     <input type="hidden" name="action" value="update-purchase-plan" />
                     <input type="hidden" name="responseType" value="json" />
                     <input type="hidden" name="reference" value={brick.reference} />
@@ -203,7 +213,12 @@ const setsAffected = new Set(filteredBricks.map((brick) => brick.fromSet)).size;
                     <input type="hidden" name="piece" value={pieceFilter} />
                     {setFilters.map((setNumber) => <input type="hidden" name="set" value={setNumber} />)}
                     <input type="hidden" name="needed" value={neededFilter} />
-                    <input type="number" name="plannedLegoQuantity" min="0" max={brick.needed} value={brick.plannedLegoQuantityEffective} class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm w-24 text-center" />
+                    <input type="hidden" name="legoStore" value={legoStoreEnabled ? "on" : "off"} />
+                    {legoStoreEnabled ? (
+                      <input type="number" name="plannedLegoQuantity" min="0" max={brick.needed} value={brick.plannedLegoQuantityEffective} class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm w-24 text-center" />
+                    ) : (
+                      <input type="hidden" name="plannedLegoQuantity" value="0" />
+                    )}
                     <input type="number" name="plannedBricklinkQuantity" min="0" max={brick.needed} value={brick.plannedBricklinkQuantityEffective} class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm w-24 text-center" />
                     <p data-planned-display class={`text-xs text-center font-semibold ${brick.plannedTotalQuantity === brick.needed ? "text-primary" : "text-secondary"}`}>{brick.plannedTotalQuantity} / {brick.needed}{brick.plannedTotalQuantity === brick.needed ? " ✓" : ""}</p>
                     <div class="text-right">
