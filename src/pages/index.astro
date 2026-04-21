@@ -46,6 +46,14 @@ const priorityParts = [...bricks]
       )}
     </div>
 
-    <aside class="bg-surface-container-low p-6 rounded-xl"><h2 class="text-xl font-black tracking-tight">Priority Parts</h2><p class="text-xs text-secondary mt-1 mb-4">Needed for current builds</p>{priorityParts.length === 0 ? <p class="text-sm text-secondary">No missing parts right now.</p> : <div class="space-y-3">{priorityParts.map((part) => (<div class="bg-surface-container-lowest p-3 rounded-lg flex items-center gap-3"><div class="w-10 h-10 rounded-md" style={`background:${part.colorHex};`}></div><div class="flex-1"><p class="text-xs font-bold">{part.name}</p><p class="text-[10px] text-secondary">{part.color}</p></div><p class="font-black text-error">x{part.needed}</p></div>))}</div>}</aside>
+    <aside class="bg-surface-container-low p-6 rounded-xl">
+      <h2 class="text-xl font-black tracking-tight">Priority Parts</h2>
+      <p class="text-xs text-secondary mt-1 mb-4">Needed for current builds</p>
+      {priorityParts.length === 0 
+        ? <p class="text-sm text-secondary">No missing parts right now.</p> 
+        : <div class="space-y-3">{
+          priorityParts.map((part) => (<div class="bg-surface-container-lowest p-3 rounded-lg flex items-center gap-3"><div class="w-10 h-10 rounded-md" style={`background:${part.colorHex};`}></div><div class="flex-1"><p class="text-xs font-bold">{part.name}</p><p class="text-[10px] text-secondary">{part.color}</p></div><p class="font-black text-error">x{part.needed}</p></div>))}
+          </div>}
+    </aside>
   </section>
 </AppLayout>
