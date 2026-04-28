@@ -1,37 +1,111 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import type { BrickRecord, SetRecord } from "../data/archiveData";
+import { DatabaseSync } from "node:sqlite";
+import type { BrickRecord, PurchaseStore, SetRecord } from "../data/archiveData";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const STORE_FILE = path.join(DATA_DIR, "inventory.json");
+const DB_FILE = path.join(DATA_DIR, "inventory.sqlite");
 
 interface InventoryPayload {
   sets: SetRecord[];
   bricks: BrickRecord[];
 }
 
+let database: DatabaseSync | undefined;
+
+function getDb() {
+  if (!database) {
+    database = new DatabaseSync(DB_FILE);
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS sets (
+        id TEXT PRIMARY KEY,
+        setNumber TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        brand TEXT NOT NULL,
+        totalPieces INTEGER NOT NULL,
+        ownedPieces INTEGER NOT NULL,
+        image TEXT NOT NULL,
+        source TEXT NOT NULL,
+        homologatedToLego INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS bricks (
+        fromSet TEXT NOT NULL,
+        reference TEXT NOT NULL,
+        name TEXT NOT NULL,
+        color TEXT NOT NULL,
+        colorHex TEXT NOT NULL,
+        image TEXT NOT NULL,
+        required INTEGER NOT NULL,
+        stock INTEGER NOT NULL,
+        buyAt TEXT NOT NULL,
+        plannedStore TEXT,
+        plannedQuantity INTEGER,
+        plannedLegoQuantity INTEGER,
+        plannedBricklinkQuantity INTEGER,
+        PRIMARY KEY (fromSet, reference, color)
+      );
+    `);
+  }
+  return database;
+}
+
+function toBoolean(value: unknown) {
+  return Number(value) === 1;
+}
+
+function parseBuyAt(value: string): PurchaseStore[] {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? (parsed.filter((store) => store === "lego" || store === "bricklink") as PurchaseStore[]) : ["lego", "bricklink"];
+  } catch {
+    return ["lego", "bricklink"];
+  }
+}
+
 async function ensureStore() {
   await mkdir(DATA_DIR, { recursive: true });
+  const db = getDb();
+  const setCount = Number((db.prepare("SELECT COUNT(*) AS total FROM sets").get() as { total: number }).total);
+  const brickCount = Number((db.prepare("SELECT COUNT(*) AS total FROM bricks").get() as { total: number }).total);
+  if (setCount > 0 || brickCount > 0) return;
   try {
-    await readFile(STORE_FILE, "utf-8");
+    const raw = await readFile(STORE_FILE, "utf-8");
+    const parsed = JSON.parse(raw) as Partial<InventoryPayload>;
+    await saveStore({
+      sets: Array.isArray(parsed.sets) ? parsed.sets : [],
+      bricks: Array.isArray(parsed.bricks) ? parsed.bricks : []
+    });
   } catch {
-    const initial: InventoryPayload = { sets: [], bricks: [] };
-    await writeFile(STORE_FILE, JSON.stringify(initial, null, 2), "utf-8");
+    await saveStore({ sets: [], bricks: [] });
   }
 }
 
 async function readStore(): Promise<InventoryPayload> {
   await ensureStore();
-  const raw = await readFile(STORE_FILE, "utf-8");
-  const parsed = JSON.parse(raw) as Partial<InventoryPayload>;
+  const db = getDb();
+  const sets = db.prepare("SELECT id, setNumber, name, brand, totalPieces, ownedPieces, image, source, homologatedToLego FROM sets ORDER BY rowid ASC").all() as Array<Record<string, unknown>>;
+  const bricks = db.prepare("SELECT fromSet, reference, name, color, colorHex, image, required, stock, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity FROM bricks ORDER BY rowid ASC").all() as Array<Record<string, unknown>>;
   return {
-    sets: Array.isArray(parsed.sets) ? parsed.sets : [],
-    bricks: Array.isArray(parsed.bricks) ? parsed.bricks : []
+    sets: sets.map((set) => ({ ...set, homologatedToLego: toBoolean(set.homologatedToLego) })) as SetRecord[],
+    bricks: bricks.map((brick) => ({ ...brick, buyAt: parseBuyAt(String(brick.buyAt ?? "[]")) })) as BrickRecord[]
   };
 }
 
 async function saveStore(payload: InventoryPayload) {
-  await writeFile(STORE_FILE, JSON.stringify(payload, null, 2), "utf-8");
+  const db = getDb();
+  db.exec("BEGIN");
+  try {
+    db.exec("DELETE FROM bricks; DELETE FROM sets;");
+    const insertSet = db.prepare("INSERT INTO sets (id, setNumber, name, brand, totalPieces, ownedPieces, image, source, homologatedToLego) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    const insertBrick = db.prepare("INSERT INTO bricks (fromSet, reference, name, color, colorHex, image, required, stock, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    for (const set of payload.sets) insertSet.run(set.id, set.setNumber, set.name, set.brand, set.totalPieces, set.ownedPieces, set.image, set.source, set.homologatedToLego ? 1 : 0);
+    for (const brick of payload.bricks) insertBrick.run(brick.fromSet, brick.reference, brick.name, brick.color, brick.colorHex, brick.image, brick.required, brick.stock, JSON.stringify(brick.buyAt), brick.plannedStore ?? null, brick.plannedQuantity ?? null, brick.plannedLegoQuantity ?? null, brick.plannedBricklinkQuantity ?? null);
+    db.exec("COMMIT");
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
+  }
 }
 
 function normalizeNonNegativeInt(value: number, fallback = 0) {
