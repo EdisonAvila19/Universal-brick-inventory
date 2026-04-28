@@ -185,7 +185,6 @@ export async function deleteSetFromInventory(setNumber: string): Promise<{ remov
   if (store.sets.length === previousLength) {
     return { removed: false };
   }
-  store.bricks = store.bricks.filter((brick) => brick.fromSet !== setNumber);
   store.sets = recalculateOwnedPieces(store.sets, store.bricks);
   await saveStore(store);
   return { removed: true };
