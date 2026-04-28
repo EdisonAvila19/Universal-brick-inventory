@@ -135,6 +135,9 @@ const setOptions = sets.map((set) => ({ label: `${set.setNumber} — ${set.name}
               <div class="w-6 h-6 rounded-full shadow-inner" style={`background:${brick.colorHex};`} title={`Color: ${brick.color}`}></div>
             </div>
             <p class="text-xs text-secondary mb-6">{brick.color} · From set {brick.fromSet}</p>
+            <div class="mb-4">
+              <a href={`/edit-piece?fromSet=${encodeURIComponent(brick.fromSet)}&reference=${encodeURIComponent(brick.reference)}&color=${encodeURIComponent(brick.color)}`} class="inline-flex bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">Edit Piece Info</a>
+            </div>
             <div class="grid grid-cols-3 gap-2 border-t border-outline-variant/20 pt-4 mb-4 mt-auto">
               <div class="text-center"><p class="text-[10px] text-secondary font-bold uppercase mb-1">Required</p><p data-required-value class="font-black">{brick.required}</p></div>
               <div class="text-center"><p class="text-[10px] text-secondary font-bold uppercase mb-1">Stock</p><p data-stock-value class="font-black">{brick.stock}</p></div>

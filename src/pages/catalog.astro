@@ -72,6 +72,12 @@ const completion = totalSets === 0 ? 0 : Math.round(sets.reduce((acc, set) => ac
                 <a href={`/bricks?set=${encodeURIComponent(set.setNumber)}`} class="flex-1 text-center bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">Brick Inventory</a>
                 <a href={`/shopping?set=${encodeURIComponent(set.setNumber)}`} class="flex-1 text-center bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">Shopping List</a>
               </div>
+              <div class="mb-3">
+                <a href={`/set-parts?set=${encodeURIComponent(set.setNumber)}`} class="w-full inline-flex justify-center bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">View/Edit Pieces</a>
+              </div>
+              <div class="mb-3">
+                <a href={`/edit-set?set=${encodeURIComponent(set.setNumber)}`} class="w-full inline-flex justify-center bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">Edit Set Info</a>
+              </div>
               <div class="flex items-center justify-between gap-2">
                 <span class="text-xs font-medium text-secondary">{set.totalPieces.toLocaleString()} Pieces</span>
                 <form method="post">

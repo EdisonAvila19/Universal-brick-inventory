@@ -1,0 +1,216 @@
+---
+import AppLayout from "../layouts/AppLayout.astro";
+import { addBrickToSet, getInventoryBricks, getInventorySets, removeBrickFromSet, updateBrickInSet } from "../lib/inventoryStore";
+
+const url = new URL(Astro.request.url);
+const querySetNumber = (url.searchParams.get("set") ?? "").trim();
+
+let feedback = "";
+let feedbackTone: "ok" | "error" = "ok";
+
+const allSets = await getInventorySets();
+const allBricks = await getInventoryBricks();
+
+const normalizeKey = (reference: string, color: string) => `${reference.trim().toLowerCase()}|${color.trim().toLowerCase()}`;
+const existingBrickLookup = new Map<string, (typeof allBricks)[number]>();
+for (const brick of allBricks) {
+  const key = normalizeKey(brick.reference, brick.color);
+  if (!existingBrickLookup.has(key)) existingBrickLookup.set(key, brick);
+}
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const action = String(formData.get("action") ?? "");
+  const setNumber = String(formData.get("setNumber") ?? querySetNumber).trim();
+
+  try {
+    if (!setNumber) {
+      throw new Error("Set number is required.");
+    }
+
+    if (action === "add-brick") {
+      const existingKey = String(formData.get("existingKey") ?? "").trim();
+      const existingBrick = existingBrickLookup.get(existingKey.toLowerCase());
+      const result = await addBrickToSet({
+        fromSet: setNumber,
+        reference: existingBrick?.reference ?? String(formData.get("reference") ?? "").trim(),
+        name: existingBrick?.name ?? String(formData.get("name") ?? "").trim(),
+        color: existingBrick?.color ?? String(formData.get("color") ?? "").trim(),
+        colorHex: existingBrick?.colorHex ?? String(formData.get("colorHex") ?? "#000000").trim(),
+        image: existingBrick?.image ?? String(formData.get("image") ?? "").trim(),
+        required: Number(formData.get("required") ?? 1),
+        stock: Number(formData.get("stock") ?? 0)
+      });
+      if (!result.added) {
+        feedbackTone = "error";
+        if (result.reason === "duplicate-piece") feedback = "This piece already exists in the set (same reference and color).";
+        else if (result.reason === "set-not-found") feedback = "Set not found in inventory.";
+        else feedback = "Could not add piece. Check the form values.";
+      } else {
+        feedback = "Piece added successfully.";
+      }
+    }
+
+    if (action === "update-brick") {
+      const result = await updateBrickInSet({
+        fromSet: setNumber,
+        originalReference: String(formData.get("originalReference") ?? "").trim(),
+        originalColor: String(formData.get("originalColor") ?? "").trim(),
+        reference: String(formData.get("reference") ?? "").trim(),
+        name: String(formData.get("name") ?? "").trim(),
+        color: String(formData.get("color") ?? "").trim(),
+        colorHex: String(formData.get("colorHex") ?? "#000000").trim(),
+        image: String(formData.get("image") ?? "").trim(),
+        required: Number(formData.get("required") ?? 1),
+        stock: Number(formData.get("stock") ?? 0)
+      });
+      if (!result.updated) {
+        feedbackTone = "error";
+        if (result.reason === "duplicate-piece") feedback = "Another piece already uses that reference and color in this set.";
+        else if (result.reason === "piece-not-found") feedback = "Piece not found.";
+        else feedback = "Could not update piece. Check the form values.";
+      } else {
+        feedback = "Piece updated successfully.";
+      }
+    }
+
+    if (action === "remove-brick") {
+      const result = await removeBrickFromSet({
+        fromSet: setNumber,
+        reference: String(formData.get("reference") ?? "").trim(),
+        color: String(formData.get("color") ?? "").trim()
+      });
+      if (!result.removed) {
+        feedbackTone = "error";
+        feedback = "Could not remove piece.";
+      } else {
+        feedback = "Piece removed successfully.";
+      }
+    }
+  } catch (error) {
+    feedbackTone = "error";
+    feedback = error instanceof Error ? error.message : "Unknown error";
+  }
+}
+
+const selectedSet = allSets.find((set) => set.setNumber === querySetNumber) ?? null;
+const selectedSetBricks = selectedSet
+  ? allBricks
+      .filter((brick) => brick.fromSet === selectedSet.setNumber)
+      .sort((left, right) => `${left.reference}-${left.color}`.localeCompare(`${right.reference}-${right.color}`))
+  : [];
+const selectableExistingBricks = selectedSet
+  ? Array.from(existingBrickLookup.values())
+      .filter((brick) => brick.fromSet !== selectedSet.setNumber)
+      .sort((left, right) => `${left.reference}-${left.color}`.localeCompare(`${right.reference}-${right.color}`))
+  : [];
+const totalRequired = selectedSetBricks.reduce((acc, brick) => acc + brick.required, 0);
+const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick.required, brick.stock), 0);
+---
+
+<AppLayout title="Bricks Inventory | Set Pieces" active="catalog">
+  <section class="mb-10">
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">Set Composition</p>
+    <h1 class="text-4xl font-black tracking-tight">View and Edit Set Pieces</h1>
+  </section>
+
+  <section class="bg-surface-container-low rounded-xl p-6 mb-6">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
+      <div>
+        <label class="block text-[10px] uppercase font-bold text-secondary mb-2 px-2">Select Set</label>
+        <select name="set" class="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm">
+          <option value="">Choose a set</option>
+          {allSets.map((set) => <option value={set.setNumber} selected={set.setNumber === querySetNumber}>{set.setNumber} — {set.name}</option>)}
+        </select>
+      </div>
+      <button type="submit" class="bg-on-surface text-white px-6 py-3 rounded-lg font-bold text-sm">Open Set</button>
+    </form>
+  </section>
+
+  {feedback && <p class:list={["mb-6 rounded-lg p-3 text-sm font-medium", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>{feedback}</p>}
+
+  {!querySetNumber ? (
+    <section class="bg-surface-container-lowest rounded-xl p-12 text-center text-secondary">
+      <h2 class="text-2xl font-black mb-2">Select a set to continue</h2>
+      <p class="text-sm">Pick a set above to review and edit its pieces.</p>
+    </section>
+  ) : !selectedSet ? (
+    <section class="bg-error-container text-on-error-container rounded-xl p-6">
+      <h2 class="text-xl font-black mb-2">Set not found</h2>
+      <p class="text-sm">The selected set does not exist in inventory. Go back to <a href="/catalog" class="font-bold underline">Set Catalog</a>.</p>
+    </section>
+  ) : (
+    <>
+      <section class="bg-surface-container-lowest rounded-xl p-6 mb-8">
+        <div class="flex flex-col md:flex-row gap-6">
+          <img src={selectedSet.image} alt={selectedSet.name} class="w-32 h-32 object-cover rounded-lg bg-surface-container-low" />
+          <div class="space-y-2">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Set No. {selectedSet.setNumber}</p>
+            <h2 class="text-2xl font-black leading-tight">{selectedSet.name}</h2>
+            <p class="text-sm text-secondary">{selectedSet.brand} · {selectedSet.source === "rebrickable" ? "Imported from Rebrickable" : "Manual set"}</p>
+            <p class="text-sm text-secondary">Unique pieces: <span class="font-bold text-on-surface">{selectedSetBricks.length}</span> · Required units: <span class="font-bold text-on-surface">{totalRequired.toLocaleString()}</span> · Owned units: <span class="font-bold text-on-surface">{totalOwned.toLocaleString()}</span></p>
+          </div>
+        </div>
+      </section>
+
+      {selectedSetBricks.length === 0 ? (
+        <section class="bg-surface-container-lowest rounded-xl p-8 text-center text-secondary mb-8">
+          <h3 class="text-xl font-black mb-2">No pieces in this set yet</h3>
+          <p class="text-sm">Use the form below to add your first piece.</p>
+        </section>
+      ) : (
+        <section class="space-y-4 mb-10">
+          {selectedSetBricks.map((brick) => (
+            <article class="bg-surface-container-lowest rounded-xl p-5">
+              <div class="flex flex-col lg:flex-row gap-4 lg:items-center">
+                <div class="flex gap-4 min-w-0 lg:flex-1">
+                  <img src={brick.image} alt={brick.name} class="w-16 h-16 rounded-lg bg-surface-container-low object-contain p-2" />
+                  <div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {brick.reference}</p><h3 class="font-black text-base leading-tight truncate">{brick.name}</h3><p class="text-xs text-secondary">{brick.color}</p></div>
+                </div>
+                <form method="post" class="grid grid-cols-2 md:grid-cols-4 gap-2 lg:items-end">
+                  <input type="hidden" name="action" value="update-brick" />
+                  <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
+                  <input type="hidden" name="originalReference" value={brick.reference} />
+                  <input type="hidden" name="originalColor" value={brick.color} />
+                  <input type="hidden" name="reference" value={brick.reference} />
+                  <input type="hidden" name="name" value={brick.name} />
+                  <input type="hidden" name="color" value={brick.color} />
+                  <input type="hidden" name="colorHex" value={brick.colorHex} />
+                  <input type="hidden" name="image" value={brick.image} />
+                  <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Required</label><input required min="1" type="number" name="required" value={brick.required} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+                  <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Stock</label><input required min="0" type="number" name="stock" value={brick.stock} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+                  <button type="submit" class="bg-primary text-white px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Save Qty</button>
+                </form>
+                <form method="post" class="lg:ml-2">
+                  <input type="hidden" name="action" value="remove-brick" />
+                  <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
+                  <input type="hidden" name="reference" value={brick.reference} />
+                  <input type="hidden" name="color" value={brick.color} />
+                  <button type="submit" class="text-error text-xs font-bold uppercase tracking-widest">Remove Piece</button>
+                </form>
+              </div>
+              <details class="mt-4"><summary class="cursor-pointer text-xs font-bold uppercase tracking-widest text-secondary">Edit Piece Details</summary><form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3"><input type="hidden" name="action" value="update-brick" /><input type="hidden" name="setNumber" value={selectedSet.setNumber} /><input type="hidden" name="originalReference" value={brick.reference} /><input type="hidden" name="originalColor" value={brick.color} /><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Reference</label><input required name="reference" value={brick.reference} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Name</label><input required name="name" value={brick.name} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color</label><input required name="color" value={brick.color} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color Hex</label><input name="colorHex" value={brick.colorHex} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Image URL</label><input type="url" name="image" value={brick.image} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Required</label><input required min="1" type="number" name="required" value={brick.required} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Stock</label><input required min="0" type="number" name="stock" value={brick.stock} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div class="md:col-span-2"><button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Save Full Details</button></div></form></details>
+            </article>
+          ))}
+        </section>
+      )}
+
+      <section class="bg-surface-container-low rounded-xl p-6">
+        <h3 class="text-xl font-black mb-4">Add Piece to Set</h3>
+        <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input type="hidden" name="action" value="add-brick" />
+          <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
+          <div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Search Existing Piece</label><input name="existingKey" list="existing-bricks" placeholder="Search by typing reference or color" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /><datalist id="existing-bricks">{selectableExistingBricks.map((brick) => <option value={`${brick.reference}|${brick.color}`}>{brick.reference} · {brick.color} · {brick.name}</option>)}</datalist></div>
+          <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Reference</label><input name="reference" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+          <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Name</label><input name="name" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+          <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color</label><input name="color" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+          <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color Hex</label><input name="colorHex" value="#000000" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+          <div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Image URL</label><input type="url" name="image" placeholder="https://..." class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+          <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Required</label><input required min="1" type="number" name="required" value="1" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+          <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Stock</label><input required min="0" type="number" name="stock" value="0" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+          <div class="md:col-span-2"><button type="submit" class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm">Add Piece</button></div>
+        </form>
+      </section>
+    </>
+  )}
+</AppLayout>

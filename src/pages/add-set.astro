@@ -16,6 +16,7 @@ const rebrickableSetNum = normalizeSetNumber(url.searchParams.get("set")?.trim()
 
 let feedback = "";
 let feedbackTone: "ok" | "error" = "ok";
+let feedbackSetNumber = "";
 let rebrickablePreview: ReturnType<typeof mapRebrickableSetToRecord> | null = null;
 let rebrickablePartsCount = 0;
 let rebrickableError = "";
@@ -37,6 +38,7 @@ if (Astro.request.method === "POST") {
         feedbackTone = "error";
         feedback = `Set ${record.setNumber} is already in inventory.`;
       } else {
+        feedbackSetNumber = record.setNumber;
         feedback = `Set ${record.setNumber} added — ${brickRecords.length} unique parts catalogued.`;
       }
     }
@@ -46,6 +48,7 @@ if (Astro.request.method === "POST") {
       const setNumber = String(formData.get("setNumber") ?? "").trim();
       const brand = String(formData.get("brand") ?? "Other") as Exclude<Brand, "LEGO">;
       const totalPieces = Number(formData.get("totalPieces") ?? 0);
+      const image = String(formData.get("image") ?? "").trim();
       const homologatedToLego = formData.get("homologatedToLego") === "on";
       if (!name || !setNumber || !totalPieces) {
         throw new Error("Manual set requires name, set number and total pieces");
@@ -55,6 +58,7 @@ if (Astro.request.method === "POST") {
         setNumber,
         brand,
         totalPieces,
+        image: image || undefined,
         homologatedToLego
       });
       const saved = await addSetToInventory(record);
@@ -62,6 +66,7 @@ if (Astro.request.method === "POST") {
         feedbackTone = "error";
         feedback = `Set ${record.setNumber} is already in inventory.`;
       } else {
+        feedbackSetNumber = record.setNumber;
         feedback = `Manual set ${record.setNumber} added to inventory.`;
       }
     }
@@ -89,7 +94,12 @@ if (rebrickableSetNum) {
   </section>
 
   {feedback && (
-    <p class:list={["mb-6 rounded-lg p-3 text-sm font-medium", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>{feedback}</p>
+    <div class:list={["mb-6 rounded-lg p-3 text-sm font-medium", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>
+      <p>{feedback}</p>
+      {feedbackTone === "ok" && feedbackSetNumber && (
+        <a href={`/set-parts?set=${encodeURIComponent(feedbackSetNumber)}`} class="mt-2 inline-block font-bold underline">Edit set pieces now</a>
+      )}
+    </div>
   )}
 
   <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -137,6 +147,7 @@ if (rebrickableSetNum) {
           <div><label class="block text-xs font-bold uppercase tracking-widest text-secondary mb-2">Brand</label><select name="brand" class="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm"><option>CaDA</option><option>Mould King</option><option>Other</option></select></div>
           <div><label class="block text-xs font-bold uppercase tracking-widest text-secondary mb-2">Total Pieces</label><input name="totalPieces" required min="1" type="number" class="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm" /></div>
         </div>
+        <div><label class="block text-xs font-bold uppercase tracking-widest text-secondary mb-2">Image URL</label><input name="image" type="url" placeholder="https://..." class="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm" /></div>
         <label class="flex items-center gap-2 text-sm text-secondary"><input type="checkbox" name="homologatedToLego" class="rounded" />Homologate to LEGO equivalent pieces where possible</label>
         <button type="submit" class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm">Save Manual Set</button>
       </form>

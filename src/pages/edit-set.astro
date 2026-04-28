@@ -1,0 +1,69 @@
+---
+import AppLayout from "../layouts/AppLayout.astro";
+import type { Brand } from "../data/archiveData";
+import { getInventorySets, updateSetInInventory } from "../lib/inventoryStore";
+
+const url = new URL(Astro.request.url);
+const querySetNumber = (url.searchParams.get("set") ?? "").trim();
+let activeSetNumber = querySetNumber;
+let feedback = "";
+let feedbackTone: "ok" | "error" = "ok";
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const result = await updateSetInInventory({
+    originalSetNumber: String(formData.get("originalSetNumber") ?? "").trim(),
+    setNumber: String(formData.get("setNumber") ?? "").trim(),
+    name: String(formData.get("name") ?? "").trim(),
+    brand: String(formData.get("brand") ?? "Other") as Brand,
+    totalPieces: Number(formData.get("totalPieces") ?? 0),
+    image: String(formData.get("image") ?? "").trim(),
+    homologatedToLego: formData.get("homologatedToLego") === "on"
+  });
+  if (!result.updated) {
+    feedbackTone = "error";
+    if (result.reason === "duplicate-set-number") feedback = "Another set already uses that set number.";
+    else if (result.reason === "set-not-found") feedback = "Set not found in inventory.";
+    else feedback = "Could not update set. Check the form values.";
+  } else {
+    activeSetNumber = String(formData.get("setNumber") ?? "").trim();
+    feedback = "Set updated successfully.";
+  }
+}
+
+const allSets = await getInventorySets();
+const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? null;
+---
+
+<AppLayout title="Bricks Inventory | Edit Set" active="catalog">
+  <section class="mb-10">
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">Set Metadata</p>
+    <h1 class="text-4xl font-black tracking-tight">Edit Set Information</h1>
+  </section>
+  <section class="bg-surface-container-low rounded-xl p-6 mb-6">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
+      <div><label class="block text-[10px] uppercase font-bold text-secondary mb-2 px-2">Select Set</label><select name="set" class="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm"><option value="">Choose a set</option>{allSets.map((set) => <option value={set.setNumber} selected={set.setNumber === activeSetNumber}>{set.setNumber} — {set.name}</option>)}</select></div>
+      <button type="submit" class="bg-on-surface text-white px-6 py-3 rounded-lg font-bold text-sm">Open Set</button>
+    </form>
+  </section>
+  {feedback && <p class:list={["mb-6 rounded-lg p-3 text-sm font-medium", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>{feedback}</p>}
+  {!activeSetNumber ? (
+    <section class="bg-surface-container-lowest rounded-xl p-12 text-center text-secondary"><h2 class="text-2xl font-black mb-2">Select a set to continue</h2><p class="text-sm">Pick a set above to edit its metadata.</p></section>
+  ) : !selectedSet ? (
+    <section class="bg-error-container text-on-error-container rounded-xl p-6"><h2 class="text-xl font-black mb-2">Set not found</h2><p class="text-sm">The selected set does not exist in inventory. Go back to <a href="/catalog" class="font-bold underline">Set Catalog</a>.</p></section>
+  ) : (
+    <section class="bg-surface-container-lowest rounded-xl p-6">
+      <div class="flex flex-col md:flex-row gap-6 mb-6"><img src={selectedSet.image} alt={selectedSet.name} class="w-32 h-32 object-cover rounded-lg bg-surface-container-low" /><div class="space-y-2"><p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Set No. {selectedSet.setNumber}</p><h2 class="text-2xl font-black leading-tight">{selectedSet.name}</h2><p class="text-sm text-secondary">{selectedSet.source === "rebrickable" ? "Imported from Rebrickable" : "Manual set"}</p></div></div>
+      <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input type="hidden" name="originalSetNumber" value={selectedSet.setNumber} />
+        <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Set Number</label><input required name="setNumber" value={selectedSet.setNumber} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+        <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Set Name</label><input required name="name" value={selectedSet.name} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+        <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Brand</label><select name="brand" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm"><option value="LEGO" selected={selectedSet.brand === "LEGO"}>LEGO</option><option value="Mould King" selected={selectedSet.brand === "Mould King"}>Mould King</option><option value="CaDA" selected={selectedSet.brand === "CaDA"}>CaDA</option><option value="Other" selected={selectedSet.brand === "Other"}>Other</option></select></div>
+        <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Total Pieces</label><input required min="1" type="number" name="totalPieces" value={selectedSet.totalPieces} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+        <div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Image URL</label><input required type="url" name="image" value={selectedSet.image} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+        <label class="md:col-span-2 flex items-center gap-2 text-sm text-secondary"><input type="checkbox" name="homologatedToLego" checked={selectedSet.homologatedToLego} class="rounded" />Homologated to LEGO equivalent pieces</label>
+        <div class="md:col-span-2 flex gap-2"><button type="submit" class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm">Save Set Info</button><a href={`/set-parts?set=${encodeURIComponent(selectedSet.setNumber)}`} class="bg-surface-container-highest text-on-surface px-6 py-3 rounded-lg font-bold text-sm">Edit Pieces</a></div>
+      </form>
+    </section>
+  )}
+</AppLayout>
