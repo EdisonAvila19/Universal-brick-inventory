@@ -3,7 +3,8 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { BrickRecord, PurchaseStore, SetRecord } from "../data/archiveData";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+const APP_DATA_DIR = process.env.APP_DATA_DIR?.trim();
+const DATA_DIR = APP_DATA_DIR ? APP_DATA_DIR : path.join(process.cwd(), "data");
 const STORE_FILE = path.join(DATA_DIR, "inventory.json");
 const DB_FILE = path.join(DATA_DIR, "inventory.sqlite");
 
