@@ -6,6 +6,11 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, Instant};
 use tauri::Manager;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 struct SsrProcess(Mutex<Option<Child>>);
 
@@ -218,6 +223,11 @@ fn spawn_ssr_server(app: &tauri::AppHandle, port: u16) -> Result<Child, std::io:
     .stdin(Stdio::null())
     .stdout(Stdio::piped())
     .stderr(Stdio::piped());
+
+  #[cfg(windows)]
+  {
+    cmd.creation_flags(CREATE_NO_WINDOW);
+  }
 
   runtime_log(
     app,
