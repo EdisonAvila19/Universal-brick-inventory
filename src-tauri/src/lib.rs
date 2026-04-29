@@ -1,9 +1,10 @@
+use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tauri::Manager;
 
 struct SsrProcess(Mutex<Option<Child>>);
@@ -12,29 +13,59 @@ fn parse_port() -> u16 {
   std::env::var("TAURI_SSR_PORT")
     .ok()
     .and_then(|value| value.parse::<u16>().ok())
-    .unwrap_or(4321)
+    .unwrap_or(4322)
 }
 
-fn runtime_log(app: &tauri::AppHandle, message: &str) {
-  let log_path = app
+fn parse_startup_timeout_ms() -> u64 {
+  std::env::var("TAURI_SSR_TIMEOUT_MS")
+    .ok()
+    .and_then(|value| value.parse::<u64>().ok())
+    .unwrap_or(45_000)
+}
+
+fn normalize_windows_path(path: &Path) -> PathBuf {
+  #[cfg(windows)]
+  {
+    let raw = path.to_string_lossy();
+
+    if let Some(stripped) = raw.strip_prefix(r"\\?\UNC\") {
+      return PathBuf::from(format!(r"\\{}", stripped));
+    }
+
+    if let Some(stripped) = raw.strip_prefix(r"\\?\") {
+      return PathBuf::from(stripped);
+    }
+  }
+
+  path.to_path_buf()
+}
+
+fn runtime_log_path(app: &tauri::AppHandle) -> PathBuf {
+  app
     .path()
     .app_data_dir()
     .unwrap_or(std::env::temp_dir().join("Universal Brick Inventory"))
-    .join("runtime.log");
+    .join("runtime.log")
+}
+
+fn runtime_log(app: &tauri::AppHandle, message: &str) {
+  let log_path = runtime_log_path(app);
+
   if let Some(parent) = log_path.parent() {
     let _ = std::fs::create_dir_all(parent);
   }
+
   let line = format!("{}\n", message);
   let _ = std::fs::OpenOptions::new()
     .create(true)
     .append(true)
     .open(log_path)
-    .and_then(|mut file| std::io::Write::write_all(&mut file, line.as_bytes()));
+    .and_then(|mut file| file.write_all(line.as_bytes()));
 }
 
 fn show_startup_error(app: &tauri::AppHandle, message: &str) {
   if let Some(window) = app.get_webview_window("main") {
-    let safe = message.replace("\\", "\\\\").replace("'", "\\'");
+    let safe = message.replace("\\", "\\\\").replace('\'', "\\'");
     let script = format!(
       "document.documentElement.innerHTML = '<body style=\"font-family:Segoe UI,Arial,sans-serif;padding:24px\"><h2>No se pudo iniciar la aplicación</h2><p>{}</p><p>Revisa runtime.log en AppData de la app.</p></body>';",
       safe
@@ -43,25 +74,75 @@ fn show_startup_error(app: &tauri::AppHandle, message: &str) {
   }
 }
 
-fn wait_for_server(port: u16) -> bool {
-  for _ in 0..120 {
+fn relay_pipe_to_runtime_log<R: std::io::Read + Send + 'static>(
+  reader: R,
+  app: tauri::AppHandle,
+  stream_name: &'static str,
+) {
+  thread::spawn(move || {
+    let reader = BufReader::new(reader);
+    for line in reader.lines() {
+      match line {
+        Ok(content) => runtime_log(&app, &format!("[ssr:{}] {}", stream_name, content)),
+        Err(error) => {
+          runtime_log(
+            &app,
+            &format!("[ssr:{}] error leyendo stream: {}", stream_name, error),
+          );
+          break;
+        }
+      }
+    }
+  });
+}
+
+fn wait_for_server(app: &tauri::AppHandle, child: &mut Child, port: u16, timeout_ms: u64) -> bool {
+  let started = Instant::now();
+  let timeout = Duration::from_millis(timeout_ms);
+
+  while started.elapsed() < timeout {
     if TcpStream::connect(("127.0.0.1", port)).is_ok() {
+      runtime_log(app, &format!("server_ready port={}", port));
       return true;
     }
+
+    match child.try_wait() {
+      Ok(Some(status)) => {
+        runtime_log(
+          app,
+          &format!("server_exited_early status={} before binding port={}", status, port),
+        );
+        return false;
+      }
+      Ok(None) => {}
+      Err(error) => {
+        runtime_log(app, &format!("server_try_wait_error={}", error));
+      }
+    }
+
     thread::sleep(Duration::from_millis(250));
   }
+
+  runtime_log(
+    app,
+    &format!("server_not_ready_timeout timeout_ms={} port={}", timeout_ms, port),
+  );
+
   false
 }
 
 fn spawn_ssr_server(app: &tauri::AppHandle, port: u16) -> Result<Child, std::io::Error> {
-  let resource_dir = app
+  let resource_dir_raw = app
     .path()
     .resource_dir()
     .map_err(|e| std::io::Error::other(e.to_string()))?;
+  let resource_dir = normalize_windows_path(&resource_dir_raw);
+
   let exe_dir = std::env::current_exe()
     .ok()
-    .and_then(|p| p.parent().map(|d| d.to_path_buf()))
+    .and_then(|p| p.parent().map(normalize_windows_path))
     .unwrap_or_else(|| resource_dir.clone());
+
   let app_data_dir = app
     .path()
     .app_data_dir()
@@ -69,16 +150,32 @@ fn spawn_ssr_server(app: &tauri::AppHandle, port: u16) -> Result<Child, std::io:
 
   let resource_roots: [PathBuf; 4] = [
     resource_dir.clone(),
-    resource_dir.join("_up_"),
+    normalize_windows_path(&resource_dir.join("_up_")),
     exe_dir.clone(),
-    exe_dir.join("_up_"),
+    normalize_windows_path(&exe_dir.join("_up_")),
   ];
 
   let entry = resource_roots
     .iter()
-    .map(|root| root.join("dist").join("server").join("entry.mjs"))
+    .map(|root| normalize_windows_path(&root.join("dist").join("server").join("entry.mjs")))
     .find(|path| path.exists())
-    .unwrap_or_else(|| resource_dir.join("dist").join("server").join("entry.mjs"));
+    .ok_or_else(|| {
+      std::io::Error::new(
+        std::io::ErrorKind::NotFound,
+        format!(
+          "No se encontró entry.mjs en roots={:?}",
+          resource_roots
+            .iter()
+            .map(|p| p.to_string_lossy().to_string())
+            .collect::<Vec<_>>()
+        ),
+      )
+    })?;
+
+  let server_dir = entry
+    .parent()
+    .map(normalize_windows_path)
+    .ok_or_else(|| std::io::Error::other("entry.mjs no tiene directorio padre"))?;
 
   let bundled_node_exe = resource_roots
     .iter()
@@ -95,58 +192,66 @@ fn spawn_ssr_server(app: &tauri::AppHandle, port: u16) -> Result<Child, std::io:
   } else if let Some(path) = bundled_node {
     path
   } else {
-    "node".into()
+    PathBuf::from("node")
   };
 
   runtime_log(
     app,
     &format!(
-      "resource_dir={:?} exe_dir={:?} entry={:?} entry_exists={} command={:?}",
+      "spawn_ssr resource_dir={:?} exe_dir={:?} server_dir={:?} entry={:?} entry_exists={} command={:?}",
       resource_dir,
       exe_dir,
+      server_dir,
       entry,
       entry.exists(),
       command
     ),
   );
 
-  let stdout_log = std::fs::OpenOptions::new()
-    .create(true)
-    .append(true)
-    .open(app_data_dir.join("ssr-stdout.log"));
-  let stderr_log = std::fs::OpenOptions::new()
-    .create(true)
-    .append(true)
-    .open(app_data_dir.join("ssr-stderr.log"));
-
-  let mut cmd = Command::new(command);
-  cmd.arg(entry)
+  let mut cmd = Command::new(&command);
+  cmd
+    .arg(&entry)
+    .current_dir(&server_dir)
     .env("APP_DATA_DIR", &app_data_dir)
     .env("HOST", "127.0.0.1")
-    .env("PORT", port.to_string());
+    .env("PORT", port.to_string())
+    .stdin(Stdio::null())
+    .stdout(Stdio::piped())
+    .stderr(Stdio::piped());
 
-  if let Some(parent) = resource_roots
-    .iter()
-    .map(|root| root.join("dist").join("server"))
-    .find(|path| path.exists())
-  {
-    cmd.current_dir(parent);
+  runtime_log(
+    app,
+    &format!(
+      "spawn_ssr cmd={:?} arg0={:?} cwd={:?}",
+      command,
+      entry,
+      server_dir
+    ),
+  );
+
+  let mut child = cmd.spawn()?;
+
+  if let Some(stdout) = child.stdout.take() {
+    relay_pipe_to_runtime_log(stdout, app.clone(), "stdout");
+  } else {
+    runtime_log(app, "[ssr:stdout] no disponible");
   }
 
-  if let Ok(file) = stdout_log {
-    cmd.stdout(Stdio::from(file));
-  }
-  if let Ok(file) = stderr_log {
-    cmd.stderr(Stdio::from(file));
+  if let Some(stderr) = child.stderr.take() {
+    relay_pipe_to_runtime_log(stderr, app.clone(), "stderr");
+  } else {
+    runtime_log(app, "[ssr:stderr] no disponible");
   }
 
-  cmd.spawn()
+  Ok(child)
 }
 
 fn stop_ssr_server(app_handle: &tauri::AppHandle) {
   if let Ok(mut guard) = app_handle.state::<SsrProcess>().0.lock() {
     if let Some(mut child) = guard.take() {
       let _ = child.kill();
+      let _ = child.wait();
+      runtime_log(app_handle, "ssr_process_stopped");
     }
   }
 }
@@ -166,32 +271,35 @@ pub fn run() {
         return Ok(());
       }
 
+      let app_handle = app.handle().clone();
       let port = parse_port();
-      let child = match spawn_ssr_server(&app.handle().clone(), port) {
+      let timeout_ms = parse_startup_timeout_ms();
+
+      let mut child = match spawn_ssr_server(&app_handle, port) {
         Ok(child) => child,
         Err(error) => {
-          runtime_log(&app.handle().clone(), &format!("spawn_error={}", error));
-          show_startup_error(&app.handle().clone(), "Error iniciando servidor SSR");
+          runtime_log(&app_handle, &format!("spawn_error={}", error));
+          show_startup_error(&app_handle, "Error iniciando servidor SSR");
           return Ok(());
         }
       };
+
+      if !wait_for_server(&app_handle, &mut child, port, timeout_ms) {
+        let _ = child.kill();
+        let _ = child.wait();
+        show_startup_error(
+          &app_handle,
+          "El servidor SSR no respondió a tiempo. Revisa runtime.log para ver stdout/stderr.",
+        );
+        return Ok(());
+      }
 
       if let Ok(mut guard) = app.state::<SsrProcess>().0.lock() {
         *guard = Some(child);
       }
 
-      if !wait_for_server(port) {
-        runtime_log(&app.handle().clone(), "server_not_ready_timeout");
-        stop_ssr_server(&app.handle().clone());
-        show_startup_error(&app.handle().clone(), "El servidor SSR no respondió a tiempo");
-        return Ok(());
-      }
-
       if let Some(window) = app.get_webview_window("main") {
-        let _ = window.eval(&format!(
-          "window.location.replace('http://127.0.0.1:{}')",
-          port
-        ));
+        let _ = window.eval(&format!("window.location.replace('http://127.0.0.1:{}')", port));
       }
 
       Ok(())
