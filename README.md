@@ -13,6 +13,11 @@ Aplicación de inventario para bloques de construcción y sets de LEGO y tercero
 - Gestión de piezas por set (agregar, editar y eliminar piezas).
 - Edición de datos de set y edición de pieza individual.
 
+## Últimas mejoras
+
+- **Selección inteligente de piezas existentes**: Al agregar una pieza manualmente a un set, si se selecciona una pieza ya existente en la base de datos (mediante el buscador con datalist), se ocultan automáticamente los campos Reference, Name, Color, Color Hex e Image URL, mostrando solo los campos Required y Stock. Se muestra una vista previa con los datos de la pieza seleccionada.
+- **Actualización inmediata del listado de piezas**: Al agregar una pieza a un set, el listado de piezas se actualiza inmediatamente sin necesidad de refrescar la página, permitiendo al usuario ver la nueva pieza agregada en tiempo real.
+
 ## Stack
 
 - Astro `6.1.8`
@@ -91,3 +96,9 @@ El mapeo de datos a modelos internos se hace en `src/lib/setMapper.ts`.
 - Stock y cantidades planeadas se normalizan como enteros no negativos.
 - No se permiten sets duplicados por `setNumber`.
 - No se permiten piezas duplicadas en un mismo set por `reference + color`.
+
+## Créditos
+
+Esta aplicación fue desarrollada utilizando **vibe coding** con asistencia de:
+- **AbacusAI** - Asistente de desarrollo de código
+- **opencode** - Entorno de desarrollo interactivo con IA
