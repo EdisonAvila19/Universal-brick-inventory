@@ -33,6 +33,7 @@ export function mapRebrickablePartsToBricks(parts: RebrickablePart[], setNumber:
   return parts
     .filter((part) => !part.is_spare)
     .map((part) => ({
+      elementId: part.element_id ?? `${part.part.part_num}-${part.color.name}`,
       reference: part.part.part_num,
       name: part.part.name,
       color: part.color.name,

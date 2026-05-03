@@ -31,6 +31,7 @@ function getDb() {
         homologatedToLego INTEGER NOT NULL
       );
       CREATE TABLE IF NOT EXISTS bricks (
+        elementId TEXT NOT NULL,
         fromSet TEXT NOT NULL,
         reference TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -44,7 +45,7 @@ function getDb() {
         plannedQuantity INTEGER,
         plannedLegoQuantity INTEGER,
         plannedBricklinkQuantity INTEGER,
-        PRIMARY KEY (fromSet, reference, color)
+        PRIMARY KEY (fromSet, elementId)
       );
     `);
   }
@@ -86,7 +87,7 @@ async function readStore(): Promise<InventoryPayload> {
   await ensureStore();
   const db = getDb();
   const sets = db.prepare("SELECT id, setNumber, name, brand, totalPieces, ownedPieces, image, source, homologatedToLego FROM sets ORDER BY rowid ASC").all() as Array<Record<string, unknown>>;
-  const bricks = db.prepare("SELECT fromSet, reference, name, color, colorHex, image, required, stock, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity FROM bricks ORDER BY rowid ASC").all() as Array<Record<string, unknown>>;
+  const bricks = db.prepare("SELECT elementId, fromSet, reference, name, color, colorHex, image, required, stock, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity FROM bricks ORDER BY rowid ASC").all() as Array<Record<string, unknown>>;
   return {
     sets: sets.map((set) => ({ ...set, homologatedToLego: toBoolean(set.homologatedToLego) })) as SetRecord[],
     bricks: bricks.map((brick) => ({ ...brick, buyAt: parseBuyAt(String(brick.buyAt ?? "[]")) })) as BrickRecord[]
@@ -99,9 +100,9 @@ async function saveStore(payload: InventoryPayload) {
   try {
     db.exec("DELETE FROM bricks; DELETE FROM sets;");
     const insertSet = db.prepare("INSERT INTO sets (id, setNumber, name, brand, totalPieces, ownedPieces, image, source, homologatedToLego) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    const insertBrick = db.prepare("INSERT INTO bricks (fromSet, reference, name, color, colorHex, image, required, stock, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    const insertBrick = db.prepare("INSERT INTO bricks (elementId, fromSet, reference, name, color, colorHex, image, required, stock, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     for (const set of payload.sets) insertSet.run(set.id, set.setNumber, set.name, set.brand, set.totalPieces, set.ownedPieces, set.image, set.source, set.homologatedToLego ? 1 : 0);
-    for (const brick of payload.bricks) insertBrick.run(brick.fromSet, brick.reference, brick.name, brick.color, brick.colorHex, brick.image, brick.required, brick.stock, JSON.stringify(brick.buyAt), brick.plannedStore ?? null, brick.plannedQuantity ?? null, brick.plannedLegoQuantity ?? null, brick.plannedBricklinkQuantity ?? null);
+    for (const brick of payload.bricks) insertBrick.run(brick.elementId, brick.fromSet, brick.reference, brick.name, brick.color, brick.colorHex, brick.image, brick.required, brick.stock, JSON.stringify(brick.buyAt), brick.plannedStore ?? null, brick.plannedQuantity ?? null, brick.plannedLegoQuantity ?? null, brick.plannedBricklinkQuantity ?? null);
     db.exec("COMMIT");
   } catch (err) {
     db.exec("ROLLBACK");
@@ -155,12 +156,12 @@ export async function addSetToInventory(nextSet: SetRecord, bricks: BrickRecord[
   return { added: true };
 }
 
-export async function updateBrickStock(input: { reference: string; fromSet: string; color: string; stock: number }): Promise<{ updated: boolean }> {
+export async function updateBrickStock(input: { elementId: string; fromSet: string; stock: number }): Promise<{ updated: boolean }> {
   const store = await readStore();
   const nextStock = Number.isFinite(input.stock) ? Math.max(0, Math.floor(input.stock)) : 0;
   let updated = false;
   store.bricks = store.bricks.map((brick) => {
-    const isTarget = brick.reference === input.reference && brick.fromSet === input.fromSet && brick.color === input.color;
+    const isTarget = brick.elementId === input.elementId && brick.fromSet === input.fromSet;
     if (!isTarget) return brick;
     updated = true;
     return { ...brick, stock: nextStock };
@@ -173,14 +174,14 @@ export async function updateBrickStock(input: { reference: string; fromSet: stri
   return { updated: true };
 }
 
-export async function updateBrickPurchasePlan(input: { reference: string; fromSet: string; color: string; plannedLegoQuantity: number; plannedBricklinkQuantity: number }): Promise<{ updated: boolean }> {
+export async function updateBrickPurchasePlan(input: { elementId: string; fromSet: string; plannedLegoQuantity: number; plannedBricklinkQuantity: number }): Promise<{ updated: boolean }> {
   const store = await readStore();
   const nextLegoQuantity = Number.isFinite(input.plannedLegoQuantity) ? Math.max(0, Math.floor(input.plannedLegoQuantity)) : 0;
   const nextBricklinkQuantity = Number.isFinite(input.plannedBricklinkQuantity) ? Math.max(0, Math.floor(input.plannedBricklinkQuantity)) : 0;
   const nextTotal = nextLegoQuantity + nextBricklinkQuantity;
   let updated = false;
   store.bricks = store.bricks.map((brick) => {
-    const isTarget = brick.reference === input.reference && brick.fromSet === input.fromSet && brick.color === input.color;
+    const isTarget = brick.elementId === input.elementId && brick.fromSet === input.fromSet;
     if (!isTarget) return brick;
     updated = true;
     if (nextTotal === 0) {
@@ -265,7 +266,7 @@ export async function deleteSetFromInventory(setNumber: string): Promise<{ remov
   return { removed: true };
 }
 
-export async function addBrickToSet(input: { fromSet: string; reference: string; name: string; color: string; colorHex: string; image: string; required: number; stock: number }): Promise<{ added: boolean; reason?: string }> {
+export async function addBrickToSet(input: { fromSet: string; elementId: string; reference: string; name: string; color: string; colorHex: string; image: string; required: number; stock: number }): Promise<{ added: boolean; reason?: string }> {
   const store = await readStore();
   const setExists = store.sets.some((set) => set.setNumber === input.fromSet);
   if (!setExists) {
@@ -276,13 +277,14 @@ export async function addBrickToSet(input: { fromSet: string; reference: string;
   if (!reference || !color) {
     return { added: false, reason: "invalid-data" };
   }
-  const alreadyExists = store.bricks.some((brick) => brick.fromSet === input.fromSet && equalsIgnoreCase(brick.reference, reference) && equalsIgnoreCase(brick.color, color));
+  const alreadyExists = store.bricks.some((brick) => brick.fromSet === input.fromSet && equalsIgnoreCase(brick.elementId, input.elementId));
   if (alreadyExists) {
     return { added: false, reason: "duplicate-piece" };
   }
   store.bricks = [
     ...store.bricks,
     {
+      elementId: input.elementId.trim(),
       fromSet: input.fromSet,
       reference,
       name: input.name.trim() || reference,
@@ -299,23 +301,24 @@ export async function addBrickToSet(input: { fromSet: string; reference: string;
   return { added: true };
 }
 
-export async function updateBrickInSet(input: { fromSet: string; originalReference: string; originalColor: string; reference: string; name: string; color: string; colorHex: string; image: string; required: number; stock: number }): Promise<{ updated: boolean; reason?: string }> {
+export async function updateBrickInSet(input: { fromSet: string; originalElementId: string; elementId: string; reference: string; name: string; color: string; colorHex: string; image: string; required: number; stock: number }): Promise<{ updated: boolean; reason?: string }> {
   const store = await readStore();
   const reference = input.reference.trim();
   const color = input.color.trim();
   if (!reference || !color) {
     return { updated: false, reason: "invalid-data" };
   }
-  const targetIndex = store.bricks.findIndex((brick) => brick.fromSet === input.fromSet && equalsIgnoreCase(brick.reference, input.originalReference) && equalsIgnoreCase(brick.color, input.originalColor));
+  const targetIndex = store.bricks.findIndex((brick) => brick.fromSet === input.fromSet && equalsIgnoreCase(brick.elementId, input.originalElementId));
   if (targetIndex < 0) {
     return { updated: false, reason: "piece-not-found" };
   }
-  const hasCollision = store.bricks.some((brick, index) => index !== targetIndex && brick.fromSet === input.fromSet && equalsIgnoreCase(brick.reference, reference) && equalsIgnoreCase(brick.color, color));
+  const hasCollision = store.bricks.some((brick, index) => index !== targetIndex && brick.fromSet === input.fromSet && equalsIgnoreCase(brick.elementId, input.elementId));
   if (hasCollision) {
     return { updated: false, reason: "duplicate-piece" };
   }
   store.bricks[targetIndex] = {
     ...store.bricks[targetIndex],
+    elementId: input.elementId.trim(),
     reference,
     name: input.name.trim() || reference,
     color,
@@ -329,10 +332,10 @@ export async function updateBrickInSet(input: { fromSet: string; originalReferen
   return { updated: true };
 }
 
-export async function removeBrickFromSet(input: { fromSet: string; reference: string; color: string }): Promise<{ removed: boolean }> {
+export async function removeBrickFromSet(input: { fromSet: string; elementId: string }): Promise<{ removed: boolean }> {
   const store = await readStore();
   const previousLength = store.bricks.length;
-  store.bricks = store.bricks.filter((brick) => !(brick.fromSet === input.fromSet && equalsIgnoreCase(brick.reference, input.reference) && equalsIgnoreCase(brick.color, input.color)));
+  store.bricks = store.bricks.filter((brick) => !(brick.fromSet === input.fromSet && equalsIgnoreCase(brick.elementId, input.elementId)));
   if (store.bricks.length === previousLength) {
     return { removed: false };
   }

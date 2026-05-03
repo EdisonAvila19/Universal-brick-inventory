@@ -11,11 +11,9 @@ let feedbackTone: "ok" | "error" = "ok";
 const allSets = await getInventorySets();
 const allBricks = await getInventoryBricks();
 
-const normalizeKey = (reference: string, color: string) => `${reference.trim().toLowerCase()}|${color.trim().toLowerCase()}`;
 const existingBrickLookup = new Map<string, (typeof allBricks)[number]>();
 for (const brick of allBricks) {
-  const key = normalizeKey(brick.reference, brick.color);
-  if (!existingBrickLookup.has(key)) existingBrickLookup.set(key, brick);
+  if (!existingBrickLookup.has(brick.elementId)) existingBrickLookup.set(brick.elementId, brick);
 }
 
 if (Astro.request.method === "POST") {
@@ -29,10 +27,11 @@ if (Astro.request.method === "POST") {
     }
 
     if (action === "add-brick") {
-      const existingKey = String(formData.get("existingKey") ?? "").trim();
-      const existingBrick = existingBrickLookup.get(existingKey.toLowerCase());
+      const existingElementId = String(formData.get("existingElementId") ?? "").trim();
+      const existingBrick = existingBrickLookup.get(existingElementId);
       const result = await addBrickToSet({
         fromSet: setNumber,
+        elementId: existingBrick?.elementId ?? `${String(formData.get("reference") ?? "").trim()}-${String(formData.get("color") ?? "").trim()}`,
         reference: existingBrick?.reference ?? String(formData.get("reference") ?? "").trim(),
         name: existingBrick?.name ?? String(formData.get("name") ?? "").trim(),
         color: existingBrick?.color ?? String(formData.get("color") ?? "").trim(),
@@ -43,7 +42,7 @@ if (Astro.request.method === "POST") {
       });
       if (!result.added) {
         feedbackTone = "error";
-        if (result.reason === "duplicate-piece") feedback = "This piece already exists in the set (same reference and color).";
+        if (result.reason === "duplicate-piece") feedback = "This piece already exists in the set.";
         else if (result.reason === "set-not-found") feedback = "Set not found in inventory.";
         else feedback = "Could not add piece. Check the form values.";
       } else {
@@ -54,8 +53,8 @@ if (Astro.request.method === "POST") {
     if (action === "update-brick") {
       const result = await updateBrickInSet({
         fromSet: setNumber,
-        originalReference: String(formData.get("originalReference") ?? "").trim(),
-        originalColor: String(formData.get("originalColor") ?? "").trim(),
+        originalElementId: String(formData.get("originalElementId") ?? "").trim(),
+        elementId: String(formData.get("elementId") ?? "").trim(),
         reference: String(formData.get("reference") ?? "").trim(),
         name: String(formData.get("name") ?? "").trim(),
         color: String(formData.get("color") ?? "").trim(),
@@ -66,7 +65,7 @@ if (Astro.request.method === "POST") {
       });
       if (!result.updated) {
         feedbackTone = "error";
-        if (result.reason === "duplicate-piece") feedback = "Another piece already uses that reference and color in this set.";
+        if (result.reason === "duplicate-piece") feedback = "Another piece already uses that ID in this set.";
         else if (result.reason === "piece-not-found") feedback = "Piece not found.";
         else feedback = "Could not update piece. Check the form values.";
       } else {
@@ -77,8 +76,7 @@ if (Astro.request.method === "POST") {
     if (action === "remove-brick") {
       const result = await removeBrickFromSet({
         fromSet: setNumber,
-        reference: String(formData.get("reference") ?? "").trim(),
-        color: String(formData.get("color") ?? "").trim()
+        elementId: String(formData.get("elementId") ?? "").trim()
       });
       if (!result.removed) {
         feedbackTone = "error";
@@ -97,12 +95,12 @@ const selectedSet = allSets.find((set) => set.setNumber === querySetNumber) ?? n
 const selectedSetBricks = selectedSet
   ? allBricks
       .filter((brick) => brick.fromSet === selectedSet.setNumber)
-      .sort((left, right) => `${left.reference}-${left.color}`.localeCompare(`${right.reference}-${right.color}`))
+      .sort((left, right) => left.elementId.localeCompare(right.elementId))
   : [];
 const selectableExistingBricks = selectedSet
   ? Array.from(existingBrickLookup.values())
       .filter((brick) => brick.fromSet !== selectedSet.setNumber)
-      .sort((left, right) => `${left.reference}-${left.color}`.localeCompare(`${right.reference}-${right.color}`))
+      .sort((left, right) => left.elementId.localeCompare(right.elementId))
   : [];
 const totalRequired = selectedSetBricks.reduce((acc, brick) => acc + brick.required, 0);
 const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick.required, brick.stock), 0);
@@ -165,13 +163,13 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
               <div class="flex flex-col lg:flex-row gap-4 lg:items-center">
                 <div class="flex gap-4 min-w-0 lg:flex-1">
                   <img src={brick.image} alt={brick.name} class="w-16 h-16 rounded-lg bg-surface-container-low object-contain p-2" />
-                  <div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {brick.reference}</p><h3 class="font-black text-base leading-tight truncate">{brick.name}</h3><p class="text-xs text-secondary">{brick.color}</p></div>
+                  <div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {brick.reference}</p><p class="text-[9px] font-semibold text-tertiary tracking-wider">ID: {brick.elementId}</p><h3 class="font-black text-base leading-tight truncate">{brick.name}</h3><p class="text-xs text-secondary">{brick.color}</p></div>
                 </div>
                 <form method="post" class="grid grid-cols-2 md:grid-cols-4 gap-2 lg:items-end">
                   <input type="hidden" name="action" value="update-brick" />
                   <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
-                  <input type="hidden" name="originalReference" value={brick.reference} />
-                  <input type="hidden" name="originalColor" value={brick.color} />
+                  <input type="hidden" name="originalElementId" value={brick.elementId} />
+                  <input type="hidden" name="elementId" value={brick.elementId} />
                   <input type="hidden" name="reference" value={brick.reference} />
                   <input type="hidden" name="name" value={brick.name} />
                   <input type="hidden" name="color" value={brick.color} />
@@ -184,12 +182,11 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
                 <form method="post" class="lg:ml-2">
                   <input type="hidden" name="action" value="remove-brick" />
                   <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
-                  <input type="hidden" name="reference" value={brick.reference} />
-                  <input type="hidden" name="color" value={brick.color} />
+                  <input type="hidden" name="elementId" value={brick.elementId} />
                   <button type="submit" class="text-error text-xs font-bold uppercase tracking-widest">Remove Piece</button>
                 </form>
               </div>
-              <details class="mt-4"><summary class="cursor-pointer text-xs font-bold uppercase tracking-widest text-secondary">Edit Piece Details</summary><form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3"><input type="hidden" name="action" value="update-brick" /><input type="hidden" name="setNumber" value={selectedSet.setNumber} /><input type="hidden" name="originalReference" value={brick.reference} /><input type="hidden" name="originalColor" value={brick.color} /><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Reference</label><input required name="reference" value={brick.reference} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Name</label><input required name="name" value={brick.name} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color</label><input required name="color" value={brick.color} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color Hex</label><input name="colorHex" value={brick.colorHex} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Image URL</label><input type="url" name="image" value={brick.image} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Required</label><input required min="1" type="number" name="required" value={brick.required} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Stock</label><input required min="0" type="number" name="stock" value={brick.stock} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div class="md:col-span-2"><button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Save Full Details</button></div></form></details>
+              <details class="mt-4"><summary class="cursor-pointer text-xs font-bold uppercase tracking-widest text-secondary">Edit Piece Details</summary><form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3"><input type="hidden" name="action" value="update-brick" /><input type="hidden" name="setNumber" value={selectedSet.setNumber} /><input type="hidden" name="originalElementId" value={brick.elementId} /><input type="hidden" name="elementId" value={brick.elementId} /><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Reference</label><input required name="reference" value={brick.reference} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Name</label><input required name="name" value={brick.name} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color</label><input required name="color" value={brick.color} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color Hex</label><input name="colorHex" value={brick.colorHex} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Image URL</label><input type="url" name="image" value={brick.image} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Required</label><input required min="1" type="number" name="required" value={brick.required} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Stock</label><input required min="0" type="number" name="stock" value={brick.stock} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div class="md:col-span-2"><button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Save Full Details</button></div></form></details>
             </article>
           ))}
         </section>
@@ -200,7 +197,7 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
         <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input type="hidden" name="action" value="add-brick" />
           <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
-          <div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Search Existing Piece</label><input name="existingKey" list="existing-bricks" placeholder="Search by typing reference or color" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /><datalist id="existing-bricks">{selectableExistingBricks.map((brick) => <option value={`${brick.reference}|${brick.color}`}>{brick.reference} · {brick.color} · {brick.name}</option>)}</datalist></div>
+          <div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Search Existing Piece</label><input name="existingElementId" list="existing-bricks" placeholder="Search by typing reference or color" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /><datalist id="existing-bricks">{selectableExistingBricks.map((brick) => <option value={brick.elementId}>{brick.reference} · {brick.color} · {brick.name}</option>)}</datalist></div>
           <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Reference</label><input name="reference" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
           <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Name</label><input name="name" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
           <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color</label><input name="color" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>

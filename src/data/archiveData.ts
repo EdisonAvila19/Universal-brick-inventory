@@ -14,6 +14,7 @@ export interface SetRecord {
 }
 
 export interface BrickRecord {
+  elementId: string;
   reference: string;
   name: string;
   color: string;

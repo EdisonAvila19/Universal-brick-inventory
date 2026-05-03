@@ -31,6 +31,7 @@ if (Astro.request.method === "POST") {
         throw new Error("Set number is required");
       }
       const result = await fetchRebrickableSetWithParts(setNumber);
+      
       const record = mapRebrickableSetToRecord(result.set);
       const brickRecords = mapRebrickablePartsToBricks(result.parts, record.setNumber);
       const saved = await addSetToInventory(record, brickRecords);

@@ -30,9 +30,7 @@ if (Astro.request.method === "POST") {
   legoStoreEnabled = String(formData.get("legoStore") ?? (legoStoreEnabled ? "on" : "off")) !== "off";
 
   if (action === "update-purchase-plan") {
-    const reference = String(formData.get("reference") ?? "");
-    const fromSet = String(formData.get("fromSet") ?? "");
-    const color = String(formData.get("color") ?? "");
+    const elementId = String(formData.get("elementId") ?? "");
     const plannedLegoQuantity = Number(formData.get("plannedLegoQuantity") ?? "0");
     const plannedBricklinkQuantity = Number(formData.get("plannedBricklinkQuantity") ?? "0");
     const neededValue = Number(formData.get("neededValue") ?? "0");
@@ -42,7 +40,7 @@ if (Astro.request.method === "POST") {
     const effectiveLegoQuantity = legoStoreEnabled ? normalizedLegoQuantity : 0;
     const plannedTotalQuantity = effectiveLegoQuantity + normalizedBricklinkQuantity;
 
-    if (!reference || !fromSet || !color) {
+    if (!elementId) {
       if (wantsJson) {
         return createJsonResponse({ updated: false, message: "Invalid purchase plan data." }, 400);
       }
@@ -53,25 +51,30 @@ if (Astro.request.method === "POST") {
       }
       feedback = { type: "error", message: "Planned quantity cannot exceed needed quantity." };
     } else {
-      const result = await updateBrickPurchasePlan({
-        reference,
-        fromSet,
-        color,
-        plannedLegoQuantity: effectiveLegoQuantity,
-        plannedBricklinkQuantity: normalizedBricklinkQuantity
-      });
+      const allBricks = await getInventoryBricks();
+      const instances = allBricks.filter((b) => b.elementId === elementId);
+      let anyUpdated = false;
+      for (const instance of instances) {
+        const result = await updateBrickPurchasePlan({
+          elementId,
+          fromSet: instance.fromSet,
+          plannedLegoQuantity: effectiveLegoQuantity,
+          plannedBricklinkQuantity: normalizedBricklinkQuantity
+        });
+        if (result.updated) anyUpdated = true;
+      }
       if (wantsJson) {
         return createJsonResponse({
-          updated: result.updated,
-          message: result.updated ? "Purchase plan updated." : "Could not update purchase plan.",
+          updated: anyUpdated,
+          message: anyUpdated ? "Purchase plan updated." : "Could not update purchase plan.",
           plannedLegoQuantity: effectiveLegoQuantity,
           plannedBricklinkQuantity: normalizedBricklinkQuantity,
           plannedTotalQuantity,
           neededValue: normalizedNeededValue,
           isCompleted: plannedTotalQuantity === normalizedNeededValue
-        }, result.updated ? 200 : 404);
+        }, anyUpdated ? 200 : 404);
       }
-      feedback = result.updated
+      feedback = anyUpdated
         ? { type: "success", message: "Purchase plan updated." }
         : { type: "error", message: "Could not update purchase plan." };
     }
@@ -82,44 +85,90 @@ const bricks = await getInventoryBricks();
 const sets = await getInventorySets();
 const setNameMap = new Map(sets.map((set) => [set.setNumber, set.name]));
 
-const neededBricks = bricks
-  .map((brick) => ({ ...brick, needed: Math.max(0, brick.required - brick.stock) }))
-  .filter((brick) => brick.needed > 0)
+const brickGroups = new Map<string, (typeof bricks)[number][]>();
+for (const brick of bricks) {
+  const existing = brickGroups.get(brick.elementId);
+  if (existing) {
+    existing.push(brick);
+  } else {
+    brickGroups.set(brick.elementId, [brick]);
+  }
+}
+
+interface GroupedShoppingBrick {
+  elementId: string;
+  reference: string;
+  name: string;
+  color: string;
+  colorHex: string;
+  image: string;
+  needed: number;
+  totalRequired: number;
+  totalStock: number;
+  sets: string[];
+  plannedLegoQuantity: number;
+  plannedBricklinkQuantity: number;
+  plannedTotalQuantity: number;
+}
+
+const groupedShoppingBricks: GroupedShoppingBrick[] = [];
+for (const [elementId, group] of brickGroups) {
+  const first = group[0];
+  const totalRequired = group.reduce((acc, b) => acc + b.required, 0);
+  const totalStock = group.reduce((acc, b) => acc + b.stock, 0);
+  const needed = Math.max(0, totalRequired - totalStock);
+
+  const totalLego = group.reduce((acc, b) => {
+    const legacy = Number.isFinite(b.plannedQuantity) ? Math.max(0, Math.floor(b.plannedQuantity ?? 0)) : 0;
+    const effective = Number.isFinite(b.plannedLegoQuantity)
+      ? Math.max(0, Math.floor(b.plannedLegoQuantity ?? 0))
+      : b.plannedStore === "lego" ? legacy : 0;
+    return acc + effective;
+  }, 0);
+  const totalBricklink = group.reduce((acc, b) => {
+    const legacy = Number.isFinite(b.plannedQuantity) ? Math.max(0, Math.floor(b.plannedQuantity ?? 0)) : 0;
+    const effective = Number.isFinite(b.plannedBricklinkQuantity)
+      ? Math.max(0, Math.floor(b.plannedBricklinkQuantity ?? 0))
+      : b.plannedStore === "bricklink" ? legacy : 0;
+    return acc + effective;
+  }, 0);
+
+  groupedShoppingBricks.push({
+    elementId: first.elementId,
+    reference: first.reference,
+    name: first.name,
+    color: first.color,
+    colorHex: first.colorHex,
+    image: first.image,
+    needed,
+    totalRequired,
+    totalStock,
+    sets: group.map((b) => b.fromSet),
+    plannedLegoQuantity: legoStoreEnabled ? totalLego : 0,
+    plannedBricklinkQuantity: totalBricklink,
+    plannedTotalQuantity: (legoStoreEnabled ? totalLego : 0) + totalBricklink
+  });
+}
+
+const neededBricks = groupedShoppingBricks
+  .filter((group) => group.needed > 0)
   .sort((a, b) => b.needed - a.needed);
 
 const normalizedPieceFilter = pieceFilter.trim().toLowerCase();
 
-const filteredBricks = neededBricks.filter((brick) => {
-  const matchesPiece = !normalizedPieceFilter || brick.reference.toLowerCase().includes(normalizedPieceFilter) || brick.name.toLowerCase().includes(normalizedPieceFilter);
-  const matchesSet = setFilters.length === 0 || setFilters.includes(brick.fromSet);
+const filteredBricks = neededBricks.filter((group) => {
+  const matchesPiece = !normalizedPieceFilter || group.reference.toLowerCase().includes(normalizedPieceFilter) || group.name.toLowerCase().includes(normalizedPieceFilter) || group.elementId.toLowerCase().includes(normalizedPieceFilter);
+  const matchesSet = setFilters.length === 0 || group.sets.some((s) => setFilters.includes(s));
   const matchesNeeded =
     neededFilter === "all" ||
-    (neededFilter === "1-2" && brick.needed >= 1 && brick.needed <= 2) ||
-    (neededFilter === "3-5" && brick.needed >= 3 && brick.needed <= 5) ||
-    (neededFilter === "6+" && brick.needed >= 6);
+    (neededFilter === "1-2" && group.needed >= 1 && group.needed <= 2) ||
+    (neededFilter === "3-5" && group.needed >= 3 && group.needed <= 5) ||
+    (neededFilter === "6+" && group.needed >= 6);
   return matchesPiece && matchesSet && matchesNeeded;
-}).map((brick) => {
-  const legacyQuantity = Number.isFinite(brick.plannedQuantity) ? Math.max(0, Math.floor(brick.plannedQuantity ?? 0)) : 0;
-  const plannedLegoQuantityEffective = Number.isFinite(brick.plannedLegoQuantity)
-    ? Math.max(0, Math.floor(brick.plannedLegoQuantity ?? 0))
-    : brick.plannedStore === "lego"
-      ? legacyQuantity
-      : 0;
-  const plannedBricklinkQuantityEffective = Number.isFinite(brick.plannedBricklinkQuantity)
-    ? Math.max(0, Math.floor(brick.plannedBricklinkQuantity ?? 0))
-    : brick.plannedStore === "bricklink"
-      ? legacyQuantity
-      : 0;
-  return {
-    ...brick,
-    plannedLegoQuantityEffective: legoStoreEnabled ? plannedLegoQuantityEffective : 0,
-    plannedBricklinkQuantityEffective,
-    plannedTotalQuantity: (legoStoreEnabled ? plannedLegoQuantityEffective : 0) + plannedBricklinkQuantityEffective
-  };
 });
 
 const totalUnits = filteredBricks.reduce((acc, brick) => acc + brick.needed, 0);
-const setsAffected = new Set(filteredBricks.map((brick) => brick.fromSet)).size;
+const setsAffected = new Set(filteredBricks.flatMap((brick) => brick.sets)).size;
 ---
 
 <AppLayout title="Bricks Inventory | Shopping List" active="shopping">
@@ -137,7 +186,7 @@ const setsAffected = new Set(filteredBricks.map((brick) => brick.fromSet)).size;
   <form method="get" class="mb-8 grid grid-cols-1 md:grid-cols-5 gap-4 bg-surface-container-low rounded-xl p-4">
     <label class="text-xs font-bold uppercase tracking-wider text-secondary flex flex-col gap-2">
       Piece
-      <input type="text" name="piece" value={pieceFilter} placeholder="Reference or name" class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+      <input type="text" name="piece" value={pieceFilter} placeholder="Reference, name or element ID" class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
     </label>
     <label class="text-xs font-bold uppercase tracking-wider text-secondary flex flex-col gap-2">
       Set
@@ -188,7 +237,7 @@ const setsAffected = new Set(filteredBricks.map((brick) => brick.fromSet)).size;
           <thead>
             <tr class="text-secondary text-xs uppercase tracking-widest border-b border-outline-variant/20">
               <th class="px-6 py-4 font-bold">Piece</th>
-              <th class="px-6 py-4 font-bold">Set</th>
+              <th class="px-6 py-4 font-bold">Sets</th>
               <th class="px-6 py-4 font-bold text-center">Needed</th>
               {legoStoreEnabled && <th class="px-6 py-4 font-bold text-center">Tienda Lego</th>}
               <th class="px-6 py-4 font-bold text-center">Bricklink</th>
@@ -199,27 +248,25 @@ const setsAffected = new Set(filteredBricks.map((brick) => brick.fromSet)).size;
           <tbody class="divide-y divide-outline-variant/20">
             {filteredBricks.map((brick) => (
               <tr data-shopping-row data-needed={brick.needed} class={`transition-colors ${brick.plannedTotalQuantity === brick.needed ? "bg-primary-container/35 hover:bg-primary-container/45" : "hover:bg-surface-container-low"}`}>
-                <td class="px-6 py-4"><div class="flex items-center gap-4"><div class="w-12 h-12 bg-white rounded-md p-1 overflow-hidden flex-shrink-0"><img alt={brick.name} class="w-full h-full object-contain" src={brick.image} /></div><div><p class="font-bold text-sm leading-tight">{brick.name}</p><p class="text-secondary text-xs">Ref. {brick.reference} · {brick.color}</p></div></div></td>
-                <td class="px-6 py-4"><p class="text-sm font-medium">{setNameMap.get(brick.fromSet) ?? brick.fromSet}</p><p class="text-xs text-secondary">{brick.fromSet}</p></td>
+                <td class="px-6 py-4"><div class="flex items-center gap-4"><div class="w-12 h-12 bg-white rounded-md p-1 overflow-hidden flex-shrink-0"><img alt={brick.name} class="w-full h-full object-contain" src={brick.image} /></div><div><p class="font-bold text-sm leading-tight">{brick.name}</p><p class="text-secondary text-xs">Ref. {brick.reference} · ID: {brick.elementId} · {brick.color}</p></div></div></td>
+                <td class="px-6 py-4"><div class="flex flex-wrap gap-1">{brick.sets.map((s) => <span class="text-[10px] font-bold bg-surface-container-highest text-secondary px-2 py-0.5 rounded">{s}</span>)}</div></td>
                 <td class="px-6 py-4 text-center"><span class="bg-error-container text-on-error-container text-xs font-black px-3 py-1 rounded-full">{brick.needed}</span></td>
                 <td class="px-6 py-4" colspan={legoStoreEnabled ? 4 : 3}>
                   <form method="post" data-async-purchase-form class:list={["items-center gap-2", legoStoreEnabled ? "grid grid-cols-[96px_96px_auto_1fr] min-w-[420px]" : "grid grid-cols-[96px_auto_1fr] min-w-[320px]"]}>
                     <input type="hidden" name="action" value="update-purchase-plan" />
                     <input type="hidden" name="responseType" value="json" />
-                    <input type="hidden" name="reference" value={brick.reference} />
-                    <input type="hidden" name="fromSet" value={brick.fromSet} />
-                    <input type="hidden" name="color" value={brick.color} />
+                    <input type="hidden" name="elementId" value={brick.elementId} />
                     <input type="hidden" name="neededValue" value={brick.needed} />
                     <input type="hidden" name="piece" value={pieceFilter} />
                     {setFilters.map((setNumber) => <input type="hidden" name="set" value={setNumber} />)}
                     <input type="hidden" name="needed" value={neededFilter} />
                     <input type="hidden" name="legoStore" value={legoStoreEnabled ? "on" : "off"} />
                     {legoStoreEnabled ? (
-                      <input type="number" name="plannedLegoQuantity" min="0" max={brick.needed} value={brick.plannedLegoQuantityEffective} class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm w-24 text-center" />
+                      <input type="number" name="plannedLegoQuantity" min="0" max={brick.needed} value={brick.plannedLegoQuantity} class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm w-24 text-center" />
                     ) : (
                       <input type="hidden" name="plannedLegoQuantity" value="0" />
                     )}
-                    <input type="number" name="plannedBricklinkQuantity" min="0" max={brick.needed} value={brick.plannedBricklinkQuantityEffective} class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm w-24 text-center" />
+                    <input type="number" name="plannedBricklinkQuantity" min="0" max={brick.needed} value={brick.plannedBricklinkQuantity} class="bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm w-24 text-center" />
                     <p data-planned-display class={`text-xs text-center font-semibold ${brick.plannedTotalQuantity === brick.needed ? "text-primary" : "text-secondary"}`}>{brick.plannedTotalQuantity} / {brick.needed}{brick.plannedTotalQuantity === brick.needed ? " ✓" : ""}</p>
                     <div class="text-right">
                       <button type="submit" data-save-button class="bg-primary text-white rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider">Save</button>
