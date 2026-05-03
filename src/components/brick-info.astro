@@ -1,0 +1,77 @@
+---
+interface GroupedBrick {
+  elementId: string;
+  reference: string;
+  name: string;
+  color: string;
+  colorHex: string;
+  image: string;
+  totalRequired: number;
+  totalStock: number;
+  needed: number;
+  sets: { setNumber: string; required: number; stock: number }[];
+}
+
+const group: GroupedBrick = Astro.props.brick
+
+---
+<article class="bg-surface-container-lowest p-6 rounded-xl relative overflow-hidden flex flex-col h-full" data-brick-card>
+
+  <div data-status-pill class:list={["absolute top-4 right-4 text-[10px] font-bold px-3 py-1 rounded-full uppercase", group.needed > 0 ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>
+    {group.needed > 0 ? "Missing" : "In Stock"}
+  </div>
+
+  <div class="w-full aspect-square bg-surface-container-low rounded-md mb-6 overflow-hidden">
+    <img alt={group.name} class="w-full h-full object-contain p-8" src={group.image} />
+  </div>
+
+  <div class="flex flex-col justify-between items-start mb-4">
+    <div class='flex justify-between w-full'>
+      <div>
+        <p class="text-[10px] font-bold text-secondary tracking-widest uppercase">Ref. {group.reference}</p>
+        <p class="text-[9px] font-semibold text-tertiary tracking-wider">ID: {group.elementId}</p>
+      </div>
+      <div class="w-6 h-6 rounded-full shadow-inner" style={`background:${group.colorHex};`} title={`Color: ${group.color}`}></div>
+    </div>
+    <h3 class="font-bold text-lg leading-tight mt-1">{group.name}</h3>
+  </div>
+  
+  <p class="text-xs text-secondary mb-2">{group.color} · {group.sets.length} set{group.sets.length > 1 ? "s" : ""}</p>
+
+  <div class="flex flex-wrap gap-1 mb-4">
+    {group.sets.map((s) => <span class="text-[9px] font-bold bg-surface-container-highest text-secondary px-2 py-0.5 rounded">{s.setNumber}</span>)}
+  </div>
+
+  <div class="grid grid-cols-3 gap-2 border-t border-outline-variant/20 pt-4 mb-4 mt-auto">
+    <div class="text-center">
+      <p class="text-[10px] text-secondary font-bold uppercase mb-1">Required</p>
+      <p data-required-value class="font-black">{group.totalRequired}</p>
+    </div>
+    <div class="text-center">
+      <p class="text-[10px] text-secondary font-bold uppercase mb-1">Stock</p>
+      <p data-stock-value class="font-black">{group.totalStock}</p>
+    </div>
+    <div class="text-center">
+      <p class="text-[10px] text-error font-bold uppercase mb-1">Needed</p>
+      <p data-needed-value class="font-black text-error">{group.needed}</p>
+    </div>
+  </div>
+  <details class="group mb-0">
+    <summary class="list-none cursor-pointer bg-surface-container-highest rounded-lg px-3 py-2 mx-auto w-fit text-xs font-bold uppercase tracking-wider text-secondary">Edit Stock</summary>
+    <div data-stock-list class="mt-3 space-y-2">
+      {group.sets.map((s) => (
+        <div class="flex items-center gap-2">
+          <label class="text-[10px] font-bold text-secondary uppercase tracking-wider w-16 truncate">{s.setNumber}</label>
+          <span class="text-[10px] text-secondary">Req: {s.required}</span>
+          <input type="number" data-stock-input={s.setNumber} name={`stock_${s.setNumber}`} min="0" value={s.stock} class="w-20 bg-surface-container-highest border-none rounded-lg px-2 py-1 text-sm" />
+        </div>
+      ))}
+    </div>
+    <form method="post" data-async-stock-form class="mt-3">
+      <input type="hidden" name="action" value="update-stock" />
+      <input type="hidden" name="responseType" value="json" />
+      <input type="hidden" name="elementId" value={group.elementId} />
+      <button type="submit" data-save-button class="w-full bg-primary text-white rounded-lg py-2 text-xs font-bold uppercase tracking-wider">Save Stock</button>
+    </form>
+  </details>
+</article>
