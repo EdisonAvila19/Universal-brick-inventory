@@ -1,19 +1,7 @@
 ---
-interface GroupedBrick {
-  elementId: string;
-  reference: string;
-  name: string;
-  color: string;
-  colorHex: string;
-  image: string;
-  totalRequired: number;
-  totalStock: number;
-  needed: number;
-  sets: { setNumber: string; required: number; stock: number }[];
-}
+import type { GroupedBrick } from "../data/archiveData";
 
 const group: GroupedBrick = Astro.props.brick
-
 ---
 <article class="bg-surface-container-lowest p-6 rounded-xl relative overflow-hidden flex flex-col h-full" data-brick-card>
 

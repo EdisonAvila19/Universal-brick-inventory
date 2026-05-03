@@ -1,6 +1,7 @@
 ---
 import AppLayout from "../layouts/AppLayout.astro";
 import { getInventoryBricks, getInventorySets, updateBrickStock } from "../lib/inventoryStore";
+import type { GroupedBrick } from "../data/archiveData";
 import BrickInfo from '../components/brick-info.astro';
 
 const createJsonResponse = (payload: Record<string, unknown>, status = 200) => {
@@ -83,19 +84,6 @@ if (Astro.request.method === "POST") {
 
 const bricks = await getInventoryBricks();
 const sets = await getInventorySets();
-
-interface GroupedBrick {
-  elementId: string;
-  reference: string;
-  name: string;
-  color: string;
-  colorHex: string;
-  image: string;
-  totalRequired: number;
-  totalStock: number;
-  needed: number;
-  sets: { setNumber: string; required: number; stock: number }[];
-}
 
 const brickGroups = new Map<string, (typeof bricks)[number][]>();
 for (const brick of bricks) {

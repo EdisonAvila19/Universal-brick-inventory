@@ -38,3 +38,16 @@ export interface ManualSetInput {
   image?: string;
   homologatedToLego: boolean;
 }
+
+export interface GroupedBrick {
+  elementId: string;
+  reference: string;
+  name: string;
+  color: string;
+  colorHex: string;
+  image: string;
+  totalRequired: number;
+  totalStock: number;
+  needed: number;
+  sets: { setNumber: string; required: number; stock: number }[];
+}
