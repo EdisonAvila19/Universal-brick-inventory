@@ -196,42 +196,12 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
     </form>
   </section>
 
-       <p id="feedback-msg" class:list={["mb-6 rounded-lg p-3 text-sm font-medium", feedback ? "" : "hidden", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>{feedback}</p>
-
-        {
-        Astro.locals.externalPart && (
-          <section class="bg-surface-container-highest rounded-xl p-6 mb-6">
-            <h4 class="text-lg font-black mb-2">External Part Found</h4>
-            <div class="flex gap-4 items-start mb-4">
-              <img src={Astro.locals.externalPart.part.part_img_url ?? "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=900&q=80"} alt={Astro.locals.externalPart.part.name} class="w-24 h-24 object-contain bg-surface-container-low p-2 rounded-lg" />
-              <div>
-                <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {Astro.locals.externalPart.part.part_num}</p>
-                <h5 class="font-black text-base">{Astro.locals.externalPart.part.name}</h5>
-                <p class="text-xs text-secondary">Select a color to add:</p>
-              </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {Astro.locals.externalPart.colors
-                .map((colorData: RebrickablePartColorDetails) => (
-                <form method="post" class="bg-surface-container-lowest p-3 rounded-lg flex items-center gap-3">
-                  <input type="hidden" name="action" value="add-brick" />
-                  <input type="hidden" name="setNumber" value={selectedSet?.setNumber} />
-                  <input type="hidden" name="reference" value={Astro.locals.externalPart.part.part_num} />
-                  <input type="hidden" name="name" value={Astro.locals.externalPart.part.name} />
-                  <input type="hidden" name="colorId" value={colorData.color_id} />
-                  <input type="hidden" name="elementId" value={(colorData.elements && colorData.elements[0]) ? colorData.elements[0] : `${Astro.locals.externalPart.part.part_num}-${colorData.color_id}`} />
-                  <input type="hidden" name="image" value={colorData.part_img_url ?? ""} />
-                  <div class="w-6 h-6 rounded-full shadow-inner" style={`background:${colorData.colorRgb}`}></div>
-                  <div class="flex-1">
-                    <p class="text-xs font-bold">{colorData.color_name}</p>
-                    <p class="text-[9px] text-secondary">ID: {(colorData.elements && colorData.elements[0]) ? colorData.elements[0] : "N/A"}</p>
-                  </div>
-                  <button type="submit" class="bg-primary text-white px-3 py-1 rounded text-xs font-bold">Add</button>
-                </form>
-              ))}
-            </div>
-          </section>
-        )}
+        <div id="feedback-msg" class:list={["fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-2xl w-full mx-auto px-4 rounded-lg p-4 text-sm font-medium shadow-lg transition-all duration-300", feedback ? "opacity-100 visible" : "opacity-0 invisible", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>
+          <div class="flex items-center justify-between gap-4">
+            <span>{feedback}</span>
+            <button type="button" onclick="document.getElementById('feedback-msg').classList.add('opacity-0', 'invisible')" class="text-lg leading-none font-bold opacity-70 hover:opacity-100 transition-opacity">&times;</button>
+          </div>
+        </div>
 
   {!querySetNumber ? (
     <section class="bg-surface-container-lowest rounded-xl p-12 text-center text-secondary">
@@ -298,6 +268,40 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
         </section>
       )}
       </div>
+
+      {Astro.locals.externalPart && (
+        <section class="bg-surface-container-highest rounded-xl p-6 mb-6">
+          <h4 class="text-lg font-black mb-2">External Part Found</h4>
+          <div class="flex gap-4 items-start mb-4">
+            <img src={Astro.locals.externalPart.part.part_img_url ?? "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=900&q=80"} alt={Astro.locals.externalPart.part.name} class="w-24 h-24 object-contain bg-surface-container-low p-2 rounded-lg" />
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {Astro.locals.externalPart.part.part_num}</p>
+              <h5 class="font-black text-base">{Astro.locals.externalPart.part.name}</h5>
+              <p class="text-xs text-secondary">Select a color to add:</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {Astro.locals.externalPart.colors
+              .map((colorData: RebrickablePartColorDetails) => (
+              <form method="post" class="bg-surface-container-lowest p-3 rounded-lg flex items-center gap-3">
+                <input type="hidden" name="action" value="add-brick" />
+                <input type="hidden" name="setNumber" value={selectedSet?.setNumber} />
+                <input type="hidden" name="reference" value={Astro.locals.externalPart.part.part_num} />
+                <input type="hidden" name="name" value={Astro.locals.externalPart.part.name} />
+                <input type="hidden" name="colorId" value={colorData.color_id} />
+                <input type="hidden" name="elementId" value={(colorData.elements && colorData.elements[0]) ? colorData.elements[0] : `${Astro.locals.externalPart.part.part_num}-${colorData.color_id}`} />
+                <input type="hidden" name="image" value={colorData.part_img_url ?? ""} />
+                <div class="w-6 h-6 rounded-full shadow-inner" style={`background:${colorData.colorRgb}`}></div>
+                <div class="flex-1">
+                  <p class="text-xs font-bold">{colorData.color_name}</p>
+                  <p class="text-[9px] text-secondary">ID: {(colorData.elements && colorData.elements[0]) ? colorData.elements[0] : "N/A"}</p>
+                </div>
+                <button type="submit" class="bg-primary text-white px-3 py-1 rounded text-xs font-bold">Add</button>
+              </form>
+            ))}
+          </div>
+        </section>
+      )}
 
        <section class="bg-surface-container-low rounded-xl p-6">
          <h3 class="text-xl font-black mb-4">Add Piece to Set</h3>

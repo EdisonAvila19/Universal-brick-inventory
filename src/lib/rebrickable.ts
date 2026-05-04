@@ -50,13 +50,16 @@ export interface RebrickablePagedResponse<T> {
   results: T[];
 }
 
-export interface RebrickableColorElement {
-  color_id: number,
-  color_name: string,
-  num_sets: number,
-  num_set_parts: number,
-  part_img_url: number,
-  elements: string[]
+export interface RebrickablePartColor {
+  color: {
+    id: number;
+    name: string;
+    rgb: string;
+    is_trans: boolean;
+  };
+  elements: string[];
+  set_count: number;
+  part_count: number;
 }
 
 function getApiKey() {
