@@ -105,11 +105,27 @@ const selectedSet = allSets.find((set) => set.setNumber === querySetNumber) ?? n
 const selectedSetBricks = selectedSet
   ? finalBricks
       .filter((brick) => brick.fromSet === selectedSet.setNumber)
+      .map((brick) => {
+        const record: Record<string, unknown> = brick as any;
+        return {
+          ...brick,
+          colorName: String(record.colorName ?? "Unknown"),
+          colorHex: String(record.colorHex ?? "#000000")
+        };
+      })
       .sort((left, right) => left.elementId.localeCompare(right.elementId))
   : [];
 const selectableExistingBricks = selectedSet
   ? Array.from(finalLookup.values())
       .filter((brick) => brick.fromSet !== selectedSet.setNumber)
+      .map((brick) => {
+        const record: Record<string, unknown> = brick as any;
+        return {
+          ...brick,
+          colorName: String(record.colorName ?? "Unknown"),
+          colorHex: String(record.colorHex ?? "#000000")
+        };
+      })
       .sort((left, right) => left.elementId.localeCompare(right.elementId))
   : [];
 const totalRequired = selectedSetBricks.reduce((acc, brick) => acc + brick.required, 0);
@@ -174,7 +190,7 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
               <div class="flex flex-col lg:flex-row gap-4 lg:items-center">
                 <div class="flex gap-4 min-w-0 lg:flex-1">
                   <img src={brick.image} alt={brick.name} class="w-16 h-16 rounded-lg bg-surface-container-low object-contain p-2" />
-                  <div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {brick.reference}</p><p class="text-[9px] font-semibold text-tertiary tracking-wider">ID: {brick.elementId}</p><h3 class="font-black text-base leading-tight truncate">{brick.name}</h3><p class="text-xs text-secondary">{(brick as Record<string, unknown>).colorName ?? "Unknown"} · <span class="inline-block w-3 h-3 rounded" style={`background:${(brick as Record<string, unknown>).colorHex ?? "#000000"}`}></span></p></div>
+                  <div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {brick.reference}</p><p class="text-[9px] font-semibold text-tertiary tracking-wider">ID: {brick.elementId}</p><h3 class="font-black text-base leading-tight truncate">{brick.name}</h3><p class="text-xs text-secondary">{brick.colorName} · <span class="inline-block w-3 h-3 rounded" style={`background:${brick.colorHex}`}></span></p></div>
                 </div>
                 <form method="post" class="grid grid-cols-2 md:grid-cols-4 gap-2 lg:items-end">
                   <input type="hidden" name="action" value="update-brick" />
@@ -208,7 +224,7 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
         <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4" id="add-brick-form">
           <input type="hidden" name="action" value="add-brick" />
           <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
-          <div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Search Existing Piece</label><input name="existingElementId" list="existing-bricks" placeholder="Search by typing reference or color" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /><datalist id="existing-bricks">{selectableExistingBricks.map((brick) => <option value={brick.elementId}>{brick.reference} · {(brick as Record<string, unknown>).colorName ?? brick.colorId} · {brick.name}</option>)}</datalist></div>
+          <div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Search Existing Piece</label><input name="existingElementId" list="existing-bricks" placeholder="Search by typing reference or color" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /><datalist id="existing-bricks">{selectableExistingBricks.map((brick) => <option value={brick.elementId}>{brick.reference} · {brick.colorName} · {brick.name}</option>)}</datalist></div>
           <div id="manual-fields" style="display: contents;">
             <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Reference</label><input name="reference" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
             <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Name</label><input name="name" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>

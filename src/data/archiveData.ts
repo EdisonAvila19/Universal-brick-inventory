@@ -18,6 +18,8 @@ export interface BrickRecord {
   reference: string;
   name: string;
   colorId: number;
+  colorName?: string;
+  colorHex?: string;
   image: string;
   required: number;
   stock: number;
