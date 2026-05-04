@@ -19,12 +19,12 @@ const group: GroupedBrick = Astro.props.brick
         <p class="text-[10px] font-bold text-secondary tracking-widest uppercase">Ref. {group.reference}</p>
         <p class="text-[9px] font-semibold text-tertiary tracking-wider">ID: {group.elementId}</p>
       </div>
-      <div class="w-6 h-6 rounded-full shadow-inner" style={`background:${group.colorHex};`} title={`Color: ${group.color}`}></div>
+      <div class="w-6 h-6 rounded-full shadow-inner" style={`background:${group.colorHex};`} title={`Color: ${group.colorName}`}></div>
     </div>
     <h3 class="font-bold text-lg leading-tight mt-1">{group.name}</h3>
   </div>
   
-  <p class="text-xs text-secondary mb-2">{group.color} · {group.sets.length} set{group.sets.length > 1 ? "s" : ""}</p>
+  <p class="text-xs text-secondary mb-2">{group.colorName} · {group.sets.length} set{group.sets.length > 1 ? "s" : ""}</p>
 
   <div class="flex flex-wrap gap-1 mb-4">
     {group.sets.map((s) => <span class="text-[9px] font-bold bg-surface-container-highest text-secondary px-2 py-0.5 rounded">{s.setNumber}</span>)}

@@ -17,8 +17,7 @@ export interface BrickRecord {
   elementId: string;
   reference: string;
   name: string;
-  color: string;
-  colorHex: string;
+  colorId: number;
   image: string;
   required: number;
   stock: number;
@@ -43,7 +42,8 @@ export interface GroupedBrick {
   elementId: string;
   reference: string;
   name: string;
-  color: string;
+  colorId: number;
+  colorName: string;
   colorHex: string;
   image: string;
   totalRequired: number;

@@ -99,7 +99,8 @@ interface GroupedShoppingBrick {
   elementId: string;
   reference: string;
   name: string;
-  color: string;
+  colorId: number;
+  colorName: string;
   colorHex: string;
   image: string;
   needed: number;
@@ -137,8 +138,9 @@ for (const [elementId, group] of brickGroups) {
     elementId: first.elementId,
     reference: first.reference,
     name: first.name,
-    color: first.color,
-    colorHex: first.colorHex,
+    colorId: first.colorId,
+    colorName: (first as Record<string, unknown>).colorName as string ?? "Unknown",
+    colorHex: (first as Record<string, unknown>).colorHex as string ?? "#000000",
     image: first.image,
     needed,
     totalRequired,

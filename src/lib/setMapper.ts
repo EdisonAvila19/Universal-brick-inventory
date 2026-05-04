@@ -33,11 +33,10 @@ export function mapRebrickablePartsToBricks(parts: RebrickablePart[], setNumber:
   return parts
     .filter((part) => !part.is_spare)
     .map((part) => ({
-      elementId: part.element_id ?? `${part.part.part_num}-${part.color.name}`,
+      elementId: part.element_id ?? `${part.part.part_num}-${part.color.id}`,
       reference: part.part.part_num,
       name: part.part.name,
-      color: part.color.name,
-      colorHex: `#${part.color.rgb}`,
+      colorId: part.color.id,
       image: part.part.part_img_url ?? "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=900&q=80",
       required: part.quantity,
       stock: 0,

@@ -9,7 +9,15 @@ const activeSets = sets.length;
 const missingPieces = bricks.reduce((acc, b) => acc + Math.max(0, b.required - b.stock), 0);
 const recentSets = sets.slice(0, 2);
 const priorityParts = [...bricks]
-  .map((b) => ({ ...b, needed: Math.max(0, b.required - b.stock) }))
+  .map((b) => {
+    const record = b as Record<string, unknown>;
+    return {
+      ...b,
+      needed: Math.max(0, b.required - b.stock),
+      colorHex: (record.colorHex as string) ?? "#000000",
+      colorName: (record.colorName as string) ?? "Unknown"
+    };
+  })
   .filter((b) => b.needed > 0)
   .sort((a, b) => b.needed - a.needed)
   .slice(0, 3);
@@ -49,10 +57,10 @@ const priorityParts = [...bricks]
     <aside class="bg-surface-container-low p-6 rounded-xl">
       <h2 class="text-xl font-black tracking-tight">Priority Parts</h2>
       <p class="text-xs text-secondary mt-1 mb-4">Needed for current builds</p>
-      {priorityParts.length === 0 
-        ? <p class="text-sm text-secondary">No missing parts right now.</p> 
+       {priorityParts.length === 0
+        ? <p class="text-sm text-secondary">No missing parts right now.</p>
         : <div class="space-y-3">{
-          priorityParts.map((part) => (<div class="bg-surface-container-lowest p-3 rounded-lg flex items-center gap-3"><div class="w-10 h-10 rounded-md" style={`background:${part.colorHex};`}></div><div class="flex-1"><p class="text-xs font-bold">{part.name}</p><p class="text-[10px] text-secondary">{part.color}</p></div><p class="font-black text-error">x{part.needed}</p></div>))}
+          priorityParts.map((part) => (<div class="bg-surface-container-lowest p-3 rounded-lg flex items-center gap-3"><div class="w-10 h-10 rounded-md" style={`background:${part.colorHex};`}></div><div class="flex-1"><p class="text-xs font-bold">{part.name}</p><p class="text-[10px] text-secondary">{part.colorName}</p></div><p class="font-black text-error">x{part.needed}</p></div>))}
           </div>}
     </aside>
   </section>

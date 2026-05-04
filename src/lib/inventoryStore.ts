@@ -36,8 +36,7 @@ function getDb() {
         fromSet TEXT NOT NULL,
         reference TEXT NOT NULL,
         name TEXT NOT NULL,
-        color TEXT NOT NULL,
-        colorHex TEXT NOT NULL,
+        colorId INTEGER NOT NULL,
         image TEXT NOT NULL,
         required INTEGER NOT NULL,
         stock INTEGER NOT NULL,
@@ -46,7 +45,8 @@ function getDb() {
         plannedQuantity INTEGER,
         plannedLegoQuantity INTEGER,
         plannedBricklinkQuantity INTEGER,
-        PRIMARY KEY (fromSet, elementId)
+        PRIMARY KEY (fromSet, elementId),
+        FOREIGN KEY (colorId) REFERENCES colors(id)
       );
       CREATE TABLE IF NOT EXISTS colors (
         id INTEGER PRIMARY KEY,
@@ -126,7 +126,14 @@ async function readStore(): Promise<InventoryPayload> {
   await ensureStore();
   const db = getDb();
   const sets = db.prepare("SELECT id, setNumber, name, brand, totalPieces, ownedPieces, image, source, homologatedToLego FROM sets ORDER BY rowid ASC").all() as Array<Record<string, unknown>>;
-  const bricks = db.prepare("SELECT elementId, fromSet, reference, name, color, colorHex, image, required, stock, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity FROM bricks ORDER BY rowid ASC").all() as Array<Record<string, unknown>>;
+  const bricks = db.prepare(`
+    SELECT b.elementId, b.fromSet, b.reference, b.name, b.colorId, b.image, b.required, b.stock, b.buyAt,
+           b.plannedStore, b.plannedQuantity, b.plannedLegoQuantity, b.plannedBricklinkQuantity,
+           c.name as colorName, c.rgb as colorHex
+    FROM bricks b
+    LEFT JOIN colors c ON b.colorId = c.id
+    ORDER BY b.rowid ASC
+  `).all() as Array<Record<string, unknown>>;
   return {
     sets: sets.map((set) => ({ ...set, homologatedToLego: toBoolean(set.homologatedToLego) })) as SetRecord[],
     bricks: bricks.map((brick) => ({ ...brick, buyAt: parseBuyAt(String(brick.buyAt ?? "[]")) })) as BrickRecord[]
@@ -139,9 +146,9 @@ async function saveStore(payload: InventoryPayload) {
   try {
     db.exec("DELETE FROM bricks; DELETE FROM sets;");
     const insertSet = db.prepare("INSERT INTO sets (id, setNumber, name, brand, totalPieces, ownedPieces, image, source, homologatedToLego) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    const insertBrick = db.prepare("INSERT INTO bricks (elementId, fromSet, reference, name, color, colorHex, image, required, stock, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    const insertBrick = db.prepare("INSERT INTO bricks (elementId, fromSet, reference, name, colorId, image, required, stock, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     for (const set of payload.sets) insertSet.run(set.id, set.setNumber, set.name, set.brand, set.totalPieces, set.ownedPieces, set.image, set.source, set.homologatedToLego ? 1 : 0);
-    for (const brick of payload.bricks) insertBrick.run(brick.elementId, brick.fromSet, brick.reference, brick.name, brick.color, brick.colorHex, brick.image, brick.required, brick.stock, JSON.stringify(brick.buyAt), brick.plannedStore ?? null, brick.plannedQuantity ?? null, brick.plannedLegoQuantity ?? null, brick.plannedBricklinkQuantity ?? null);
+    for (const brick of payload.bricks) insertBrick.run(brick.elementId, brick.fromSet, brick.reference, brick.name, brick.colorId, brick.image, brick.required, brick.stock, JSON.stringify(brick.buyAt), brick.plannedStore ?? null, brick.plannedQuantity ?? null, brick.plannedLegoQuantity ?? null, brick.plannedBricklinkQuantity ?? null);
     db.exec("COMMIT");
   } catch (err) {
     db.exec("ROLLBACK");
@@ -151,12 +158,6 @@ async function saveStore(payload: InventoryPayload) {
 
 function normalizeNonNegativeInt(value: number, fallback = 0) {
   return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback;
-}
-
-function normalizeHexColor(value: string) {
-  const raw = value.trim();
-  if (!raw) return "#000000";
-  return raw.startsWith("#") ? raw : `#${raw}`;
 }
 
 function equalsIgnoreCase(left: string, right: string) {
@@ -305,15 +306,14 @@ export async function deleteSetFromInventory(setNumber: string): Promise<{ remov
   return { removed: true };
 }
 
-export async function addBrickToSet(input: { fromSet: string; elementId: string; reference: string; name: string; color: string; colorHex: string; image: string; required: number; stock: number }): Promise<{ added: boolean; reason?: string }> {
+export async function addBrickToSet(input: { fromSet: string; elementId: string; reference: string; name: string; colorId: number; image: string; required: number; stock: number }): Promise<{ added: boolean; reason?: string }> {
   const store = await readStore();
   const setExists = store.sets.some((set) => set.setNumber === input.fromSet);
   if (!setExists) {
     return { added: false, reason: "set-not-found" };
   }
   const reference = input.reference.trim();
-  const color = input.color.trim();
-  if (!reference || !color) {
+  if (!reference) {
     return { added: false, reason: "invalid-data" };
   }
   const alreadyExists = store.bricks.some((brick) => brick.fromSet === input.fromSet && equalsIgnoreCase(brick.elementId, input.elementId));
@@ -327,8 +327,7 @@ export async function addBrickToSet(input: { fromSet: string; elementId: string;
       fromSet: input.fromSet,
       reference,
       name: input.name.trim() || reference,
-      color,
-      colorHex: normalizeHexColor(input.colorHex),
+      colorId: input.colorId,
       image: input.image.trim() || "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=900&q=80",
       required: Math.max(1, normalizeNonNegativeInt(input.required, 1)),
       stock: normalizeNonNegativeInt(input.stock, 0),
@@ -340,11 +339,10 @@ export async function addBrickToSet(input: { fromSet: string; elementId: string;
   return { added: true };
 }
 
-export async function updateBrickInSet(input: { fromSet: string; originalElementId: string; elementId: string; reference: string; name: string; color: string; colorHex: string; image: string; required: number; stock: number }): Promise<{ updated: boolean; reason?: string }> {
+export async function updateBrickInSet(input: { fromSet: string; originalElementId: string; elementId: string; reference: string; name: string; colorId: number; image: string; required: number; stock: number }): Promise<{ updated: boolean; reason?: string }> {
   const store = await readStore();
   const reference = input.reference.trim();
-  const color = input.color.trim();
-  if (!reference || !color) {
+  if (!reference) {
     return { updated: false, reason: "invalid-data" };
   }
   const targetIndex = store.bricks.findIndex((brick) => brick.fromSet === input.fromSet && equalsIgnoreCase(brick.elementId, input.originalElementId));
@@ -360,8 +358,7 @@ export async function updateBrickInSet(input: { fromSet: string; originalElement
     elementId: input.elementId.trim(),
     reference,
     name: input.name.trim() || reference,
-    color,
-    colorHex: normalizeHexColor(input.colorHex),
+    colorId: input.colorId,
     image: input.image.trim() || store.bricks[targetIndex].image,
     required: Math.max(1, normalizeNonNegativeInt(input.required, 1)),
     stock: normalizeNonNegativeInt(input.stock, 0)
