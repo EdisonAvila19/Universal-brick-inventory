@@ -36,6 +36,13 @@ export interface RebrickablePart {
   num_sets: number;
 }
 
+export interface RebrickableColor {
+  id: number;
+  name: string;
+  rgb: string;
+  is_trans: boolean;
+}
+
 export interface RebrickablePagedResponse<T> {
   count: number;
   next: string | null;
@@ -91,4 +98,16 @@ export async function fetchRebrickableSetParts(setNumber: string): Promise<Rebri
 export async function fetchRebrickableSetWithParts(setNumber: string): Promise<{ set: RebrickableSet; parts: RebrickablePart[] }> {
   const [set, parts] = await Promise.all([fetchRebrickableSet(setNumber), fetchRebrickableSetParts(setNumber)]);
   return { set, parts };
+}
+
+export async function fetchRebrickableColors(): Promise<RebrickableColor[]> {
+  const firstPage = await rebrickableFetch<RebrickablePagedResponse<RebrickableColor>>(`/colors`);
+  const colors: RebrickableColor[] = [...firstPage.results];
+  let next = firstPage.next;
+  while (next) {
+    const page = await rebrickableFetchAbsolute<RebrickablePagedResponse<RebrickableColor>>(next);
+    colors.push(...page.results);
+    next = page.next;
+  }
+  return colors;
 }

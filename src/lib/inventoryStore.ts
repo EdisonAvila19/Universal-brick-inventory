@@ -2,6 +2,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { BrickRecord, PurchaseStore, SetRecord } from "../data/archiveData";
+import { fetchRebrickableColors } from "./rebrickable";
 
 const APP_DATA_DIR = process.env.APP_DATA_DIR?.trim();
 const DATA_DIR = APP_DATA_DIR ? APP_DATA_DIR : path.join(process.cwd(), "data");
@@ -47,6 +48,11 @@ function getDb() {
         plannedBricklinkQuantity INTEGER,
         PRIMARY KEY (fromSet, elementId)
       );
+      CREATE TABLE IF NOT EXISTS colors (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        rgb TEXT NOT NULL
+      );
     `);
   }
   return database;
@@ -70,7 +76,10 @@ async function ensureStore() {
   const db = getDb();
   const setCount = Number((db.prepare("SELECT COUNT(*) AS total FROM sets").get() as { total: number }).total);
   const brickCount = Number((db.prepare("SELECT COUNT(*) AS total FROM bricks").get() as { total: number }).total);
-  if (setCount > 0 || brickCount > 0) return;
+  if (setCount > 0 || brickCount > 0) {
+    await ensureColors();
+    return;
+  }
   try {
     const raw = await readFile(STORE_FILE, "utf-8");
     const parsed = JSON.parse(raw) as Partial<InventoryPayload>;
@@ -81,6 +90,36 @@ async function ensureStore() {
   } catch {
     await saveStore({ sets: [], bricks: [] });
   }
+  await ensureColors();
+}
+
+async function ensureColors() {
+  const db = getDb();
+  const colorCount = Number((db.prepare("SELECT COUNT(*) AS total FROM colors").get() as { total: number }).total);
+  if (colorCount > 0) return;
+  try {
+    const colors = await fetchRebrickableColors();
+    if (colors.length === 0) return;
+    const insertColor = db.prepare("INSERT INTO colors (id, name, rgb) VALUES (?, ?, ?)");
+    db.exec("BEGIN");
+    try {
+      for (const color of colors) {
+        insertColor.run(color.id, color.name, `#${color.rgb}`);
+      }
+      db.exec("COMMIT");
+    } catch (err) {
+      db.exec("ROLLBACK");
+      throw err;
+    }
+  } catch (error) {
+    console.error("Failed to fetch and store colors from Rebrickable:", error);
+  }
+}
+
+export async function getColors(): Promise<Array<{ id: number; name: string; rgb: string }>> {
+  await ensureColors();
+  const db = getDb();
+  return db.prepare("SELECT id, name, rgb FROM colors ORDER BY name ASC").all() as Array<{ id: number; name: string; rgb: string }>;
 }
 
 async function readStore(): Promise<InventoryPayload> {
