@@ -50,6 +50,15 @@ export interface RebrickablePagedResponse<T> {
   results: T[];
 }
 
+export interface RebrickableColorElement {
+  color_id: number,
+  color_name: string,
+  num_sets: number,
+  num_set_parts: number,
+  part_img_url: number,
+  elements: string[]
+}
+
 function getApiKey() {
   return import.meta.env.REBRICKABLE_API_KEY ?? "";
 }
@@ -106,6 +115,49 @@ export async function fetchRebrickableColors(): Promise<RebrickableColor[]> {
   let next = firstPage.next;
   while (next) {
     const page = await rebrickableFetchAbsolute<RebrickablePagedResponse<RebrickableColor>>(next);
+    colors.push(...page.results);
+    next = page.next;
+  }
+  return colors;
+}
+
+export interface RebrickablePartDetails {
+  part_num: string;
+  name: string;
+  part_cat_id: number;
+  part_url: string;
+  part_img_url: string | null;
+  external_ids: Record<string, string[] | number[] | null>;
+  print_of: string | null;
+}
+
+export interface RebrickablePartColor {
+  color: RebrickableColor;
+  elements: string[];
+  set_count: number;
+  part_count: number;
+}
+
+export interface RebrickablePartColorDetails {
+  color_id: number,
+  color_name: string,
+  num_sets: number,
+  num_set_parts: number,
+  part_img_url: string,
+  elements: string[],
+  colorRgb: string
+}
+
+export async function fetchRebrickablePart(partNum: string): Promise<RebrickablePartDetails> {
+  return rebrickableFetch<RebrickablePartDetails>(`/parts/${partNum}/`);
+}
+
+export async function fetchRebrickablePartColors(partNum: string): Promise<RebrickablePartColor[]> {
+  const firstPage = await rebrickableFetch<RebrickablePagedResponse<RebrickablePartColor>>(`/parts/${partNum}/colors`);
+  const colors: RebrickablePartColor[] = [...firstPage.results];
+  let next = firstPage.next;
+  while (next) {
+    const page = await rebrickableFetchAbsolute<RebrickablePagedResponse<RebrickablePartColor>>(next);
     colors.push(...page.results);
     next = page.next;
   }
