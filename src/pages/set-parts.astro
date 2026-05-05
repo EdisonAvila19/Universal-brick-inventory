@@ -17,10 +17,21 @@ for (const brick of allBricks) {
   if (!existingBrickLookup.has(brick.elementId)) existingBrickLookup.set(brick.elementId, brick);
 }
 
+let finalBricks = allBricks;
+let finalLookup = existingBrickLookup;
+
 if (Astro.request.method === "POST") {
+  console.log('POST_1');
+  
   const formData = await Astro.request.formData();
   const action = String(formData.get("action") ?? "");
   const setNumber = String(formData.get("setNumber") ?? querySetNumber).trim();
+
+  finalBricks = await getInventoryBricks();
+  finalLookup = new Map<string, (typeof finalBricks)[number]>();
+  for (const brick of finalBricks) {
+    if (!finalLookup.has(brick.elementId)) finalLookup.set(brick.elementId, brick);
+  }
 
   try {
     if (!setNumber) {
@@ -127,17 +138,6 @@ if (Astro.request.method === "POST") {
   } catch (error) {
     feedbackTone = "error";
     feedback = error instanceof Error ? error.message : "Unknown error";
-  }
-}
-
-let finalBricks = allBricks;
-let finalLookup = existingBrickLookup;
-
-if (Astro.request.method === "POST") {
-  finalBricks = await getInventoryBricks();
-  finalLookup = new Map<string, (typeof finalBricks)[number]>();
-  for (const brick of finalBricks) {
-    if (!finalLookup.has(brick.elementId)) finalLookup.set(brick.elementId, brick);
   }
 }
 
@@ -340,7 +340,7 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
       <section class="bg-surface-container-low rounded-xl p-6">
         <h3 class="text-xl font-black mb-4">Add Piece to Set</h3>
 
-        <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4" id='search-rebrickable'>
           <input type="hidden" name="action" value="search-external-part" />
           <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
           <div class="md:col-span-2">
