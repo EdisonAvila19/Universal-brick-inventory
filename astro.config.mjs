@@ -17,6 +17,16 @@ export default defineConfig({
   vite: {
     server: {
       strictPort: true
+    },
+    build: {
+      rollupOptions: {
+        external: ['sharp']
+      }
+    }
+  },
+  image: {
+    service: {
+      entrypoint: 'astro/assets/services/noop'
     }
   }
 });

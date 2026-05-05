@@ -73,7 +73,9 @@ const selectedBrick = allBricks.find((brick) => brick.fromSet === activeFromSet 
             <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {selectedBrick.reference}</p>
             <p class="text-[9px] font-semibold text-tertiary tracking-wider">ID: {selectedBrick.elementId}</p>
             <h2 class="text-2xl font-black leading-tight">{selectedBrick.name}</h2>
-            <p class="text-sm text-secondary">{(selectedBrick as Record<string, unknown>).colorName ?? "Unknown"} · From set {selectedBrick.fromSet}</p>
+            <p class="text-sm text-secondary">
+              {selectedBrick?.colorName ?? "Unknown"} · From set {selectedBrick?.fromSet ?? "?"}
+            </p>
           </div>
         </div>
 
