@@ -42,10 +42,6 @@ if (Astro.request.method === "POST") {
             feedbackTone = "error";
             feedback = "Part found, but no colors available.";
           } else {
-            // console.log(localColors);
-            
-            // console.log(partColors[0]);
-            
             const enrichedColors = partColors
               .filter(pc => pc && typeof pc.color_id === 'number')
               .map(pc => {
@@ -60,7 +56,6 @@ if (Astro.request.method === "POST") {
               part: partDetails,
               colors: enrichedColors
             };
-            console.log(Astro.locals.externalPart)
             feedback = `Part "${partDetails.name}" found! Select a color below.`;
           }
         } catch (err) {
@@ -196,12 +191,12 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
     </form>
   </section>
 
-        <div id="feedback-msg" class:list={["fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-2xl w-full mx-auto px-4 rounded-lg p-4 text-sm font-medium shadow-lg transition-all duration-300", feedback ? "opacity-100 visible" : "opacity-0 invisible", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>
-          <div class="flex items-center justify-between gap-4">
-            <span>{feedback}</span>
-            <button type="button" onclick="document.getElementById('feedback-msg').classList.add('opacity-0', 'invisible')" class="text-lg leading-none font-bold opacity-70 hover:opacity-100 transition-opacity">&times;</button>
-          </div>
-        </div>
+  <div id="feedback-msg" class:list={["fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-2xl w-full mx-auto px-4 rounded-lg p-4 text-sm font-medium shadow-lg transition-all duration-300", feedback ? "opacity-100 visible" : "opacity-0 invisible", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>
+    <div class="flex items-center justify-between gap-4">
+      <span>{feedback}</span>
+      <button type="button" onclick="document.getElementById('feedback-msg').classList.add('opacity-0', 'invisible')" class="text-lg leading-none font-bold opacity-70 hover:opacity-100 transition-opacity">&times;</button>
+    </div>
+  </div>
 
   {!querySetNumber ? (
     <section class="bg-surface-container-lowest rounded-xl p-12 text-center text-secondary">
@@ -228,45 +223,84 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
       </section>
 
       <div id="brick-list">
-      {selectedSetBricks.length === 0 ? (
-        <section class="bg-surface-container-lowest rounded-xl p-8 text-center text-secondary mb-8">
-          <h3 class="text-xl font-black mb-2">No pieces in this set yet</h3>
-          <p class="text-sm">Use the form below to add your first piece.</p>
-        </section>
-      ) : (
-        <section class="space-y-4 mb-10">
-          {selectedSetBricks.map((brick) => (
-            <article class="bg-surface-container-lowest rounded-xl p-5">
-              <div class="flex flex-col lg:flex-row gap-4 lg:items-center">
-                <div class="flex gap-4 min-w-0 lg:flex-1">
-                  <img src={brick.image} alt={brick.name} class="w-16 h-16 rounded-lg bg-surface-container-low object-contain p-2" />
-                  <div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {brick.reference}</p><p class="text-[9px] font-semibold text-tertiary tracking-wider">ID: {brick.elementId}</p><h3 class="font-black text-base leading-tight truncate">{brick.name}</h3><p class="text-xs text-secondary">{brick.colorName} · <span class="inline-block w-3 h-3 rounded" style={`background:${brick.colorHex}`}></span></p></div>
+        {selectedSetBricks.length === 0 ? (
+          <section class="bg-surface-container-lowest rounded-xl p-8 text-center text-secondary mb-8">
+            <h3 class="text-xl font-black mb-2">No pieces in this set yet</h3>
+            <p class="text-sm">Use the form below to add your first piece.</p>
+          </section>
+        ) : (
+          <section class="space-y-4 mb-10">
+            {selectedSetBricks.map((brick) => (
+              <article class="bg-surface-container-lowest rounded-xl p-5">
+                <div class="flex flex-col lg:flex-row gap-4 lg:items-center">
+                  <div class="flex gap-4 min-w-0 lg:flex-1">
+                    <img src={brick.image} alt={brick.name} class="w-16 h-16 rounded-lg bg-surface-container-low object-contain p-2" />
+                    <div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {brick.reference}</p><p class="text-[9px] font-semibold text-tertiary tracking-wider">ID: {brick.elementId}</p><h3 class="font-black text-base leading-tight truncate">{brick.name}</h3><p class="text-xs text-secondary">{brick.colorName} · <span class="inline-block w-3 h-3 rounded" style={`background:${brick.colorHex}`}></span></p></div>
+                  </div>
+                  <form method="post" class="grid grid-cols-2 md:grid-cols-4 gap-2 lg:items-end">
+                    <input type="hidden" name="action" value="update-brick" />
+                    <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
+                    <input type="hidden" name="originalElementId" value={brick.elementId} />
+                    <input type="hidden" name="elementId" value={brick.elementId} />
+                    <input type="hidden" name="reference" value={brick.reference} />
+                    <input type="hidden" name="name" value={brick.name} />
+                    <input type="hidden" name="colorId" value={brick.colorId} />
+                    <input type="hidden" name="image" value={brick.image} />
+                    <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Required</label><input required min="1" type="number" name="required" value={brick.required} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+                    <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Stock</label><input required min="0" type="number" name="stock" value={brick.stock} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+                    <button type="submit" class="bg-primary text-white px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Save Qty</button>
+                  </form>
+                  <form method="post" class="lg:ml-2">
+                    <input type="hidden" name="action" value="remove-brick" />
+                    <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
+                    <input type="hidden" name="elementId" value={brick.elementId} />
+                    <button type="submit" class="text-error text-xs font-bold uppercase tracking-widest">Remove Piece</button>
+                  </form>
                 </div>
-                <form method="post" class="grid grid-cols-2 md:grid-cols-4 gap-2 lg:items-end">
-                  <input type="hidden" name="action" value="update-brick" />
-                  <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
-                  <input type="hidden" name="originalElementId" value={brick.elementId} />
-                  <input type="hidden" name="elementId" value={brick.elementId} />
-                  <input type="hidden" name="reference" value={brick.reference} />
-                  <input type="hidden" name="name" value={brick.name} />
-                  <input type="hidden" name="colorId" value={brick.colorId} />
-                  <input type="hidden" name="image" value={brick.image} />
-                  <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Required</label><input required min="1" type="number" name="required" value={brick.required} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
-                  <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Stock</label><input required min="0" type="number" name="stock" value={brick.stock} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
-                  <button type="submit" class="bg-primary text-white px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Save Qty</button>
-                </form>
-                <form method="post" class="lg:ml-2">
-                  <input type="hidden" name="action" value="remove-brick" />
-                  <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
-                  <input type="hidden" name="elementId" value={brick.elementId} />
-                  <button type="submit" class="text-error text-xs font-bold uppercase tracking-widest">Remove Piece</button>
-                </form>
-              </div>
-              <details class="mt-4"><summary class="cursor-pointer text-xs font-bold uppercase tracking-widest text-secondary">Edit Piece Details</summary><form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3"><input type="hidden" name="action" value="update-brick" /><input type="hidden" name="setNumber" value={selectedSet.setNumber} /><input type="hidden" name="originalElementId" value={brick.elementId} /><input type="hidden" name="elementId" value={brick.elementId} /><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Reference</label><input required name="reference" value={brick.reference} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Name</label><input required name="name" value={brick.name} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color</label><input required name="color" value={brick.color} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color Hex</label><input name="colorHex" value={brick.colorHex} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Image URL</label><input type="url" name="image" value={brick.image} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Required</label><input required min="1" type="number" name="required" value={brick.required} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Stock</label><input required min="0" type="number" name="stock" value={brick.stock} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div><div class="md:col-span-2"><button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Save Details</button></div></form></details>
-            </article>
-          ))}
-        </section>
-      )}
+                <details class="mt-4">
+                  <summary class="cursor-pointer text-xs font-bold uppercase tracking-widest text-secondary">Edit Piece Details</summary>
+                  <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                    <input type="hidden" name="action" value="update-brick" />
+                    <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
+                    <input type="hidden" name="originalElementId" value={brick.elementId} />
+                    <input type="hidden" name="elementId" value={brick.elementId} />
+                    <div>
+                      <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Reference</label>
+                      <input required name="reference" value={brick.reference} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                      <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Name</label>
+                      <input required name="name" value={brick.name} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+                      </div>
+                    <div>
+                      <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color</label>
+                      <input required name="color" value={brick.colorId} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                      <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color Hex</label>
+                      <input name="colorHex" value={brick.colorHex} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div class="md:col-span-2">
+                      <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Image URL</label>
+                      <input type="url" name="image" value={brick.image} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                      <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Required</label>
+                      <input required min="1" type="number" name="required" value={brick.required} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                      <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Stock</label>
+                      <input required min="0" type="number" name="stock" value={brick.stock} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div class="md:col-span-2">
+                      <button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Save Details</button>
+                    </div>
+                  </form>
+                </details>
+              </article>
+            ))}
+          </section>
+        )}
       </div>
 
       {Astro.locals.externalPart && (
@@ -303,66 +337,142 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
         </section>
       )}
 
-       <section class="bg-surface-container-low rounded-xl p-6">
-         <h3 class="text-xl font-black mb-4">Add Piece to Set</h3>
-         
-         <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-           <input type="hidden" name="action" value="search-external-part" />
-           <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
-           <div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Search External Part (Rebrickable)</label><input name="reference" placeholder="Enter part number (e.g. 3001)" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
-           <div class="md:col-span-2"><button type="submit" class="bg-tertiary text-on-tertiary px-6 py-3 rounded-lg font-bold text-sm">Search Part</button></div>
-         </form>
+      <section class="bg-surface-container-low rounded-xl p-6">
+        <h3 class="text-xl font-black mb-4">Add Piece to Set</h3>
 
-         <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4" id="add-brick-form">
-           <input type="hidden" name="action" value="add-brick" />
-           <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
-           <div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Search Existing Piece</label><input name="existingElementId" list="existing-bricks" placeholder="Search by typing reference or color" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /><datalist id="existing-bricks">{selectableExistingBricks.map((brick) => <option value={brick.elementId}>{brick.reference} · {brick.colorName} · {brick.name}</option>)}</datalist></div>
-           <div id="manual-fields" style="display: contents;">
-             <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Reference</label><input name="reference" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
-             <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Name</label><input name="name" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
-             <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color ID</label><input type="number" name="colorId" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
-             <div class="md:col-span-2"><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Image URL</label><input type="url" name="image" placeholder="https://..." class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
-           </div>
-           <div id="existing-preview" class="md:col-span-2" style="display:none;"></div>
-           <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Required</label><input required min="1" type="number" name="required" value="1" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
-           <div><label class="block text-[10px] uppercase font-bold text-secondary mb-1">Stock</label><input required min="0" type="number" name="stock" value="0" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
-           <div class="md:col-span-2"><button type="submit" class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm">Add Piece</button></div>
-         </form>
-       </section>
+        <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <input type="hidden" name="action" value="search-external-part" />
+          <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
+          <div class="md:col-span-2">
+            <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Search External Part (Rebrickable)</label>
+            <input name="reference" placeholder="Enter part number (e.g. 3001)" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div class="md:col-span-2">
+            <button type="submit" class="bg-tertiary text-on-tertiary px-6 py-3 rounded-lg font-bold text-sm">Search Part</button>
+          </div>
+        </form>
+
+        <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4" id="add-brick-form">
+          <input type="hidden" name="action" value="add-brick" />
+          <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
+          <div class="md:col-span-2 relative">
+            <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Search Existing Piece</label>
+            <input name="existingElementId" id="existingElementId" placeholder="Search by typing reference, name or color" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <div id="existing-bricks-suggestions" class="hidden absolute z-10 w-full bg-surface-container-highest rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1"></div>
+          </div>
+          <div id="manual-fields" style="display: contents;">
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Reference</label>
+              <input name="reference" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Name</label>
+              <input name="name" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" /></div>
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Color ID</label>
+              <input type="number" name="colorId" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Image URL</label>
+              <input type="url" name="image" placeholder="https://..." class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            </div>
+          </div>
+          <div id="existing-preview" class="md:col-span-2" style="display:none;"></div>
+          <div>
+            <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Required</label>
+            <input required min="1" type="number" name="required" value="1" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Stock</label>
+            <input required min="0" type="number" name="stock" value="0" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div class="md:col-span-2">
+            <button type="submit" class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm">Add Piece</button>
+          </div>
+        </form>
+      </section>
     </>
   )}
 </AppLayout>
 
-<script define:vars={{ selectableExistingBricks: JSON.stringify(selectableExistingBricks), querySetNumber }}>
-  const bricks = JSON.parse(selectableExistingBricks);
-  const brickLookup = new Map(bricks.map(b => [b.elementId, b]));
+<script is:inline define:vars={{ existingBricks: selectableExistingBricks, querySetNumber }}>
+  const brickLookup = new Map(existingBricks.map(b => [b.elementId, b]));
 
-  const input = document.querySelector('input[name="existingElementId"]');
+  const input = document.getElementById('existingElementId');
+  const suggestions = document.getElementById('existing-bricks-suggestions');
   const manualFields = document.getElementById('manual-fields');
   const preview = document.getElementById('existing-preview');
 
-  if (input && manualFields && preview) {
+  function showPreview(brick) {
+    manualFields.style.display = 'none';
+    preview.style.display = 'block';
+    const colorName = brick.colorName ?? "Unknown";
+    const colorHex = brick.colorHex ?? "#000000";
+    preview.innerHTML = `
+      <div class="bg-surface-container-highest rounded-lg p-4 flex gap-4 items-center">
+        <img src="${brick.image}" alt="${brick.name}" class="w-16 h-16 rounded-lg object-contain p-2 bg-surface-container-low" />
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. ${brick.reference}</p>
+          <h4 class="font-black text-base">${brick.name}</h4>
+          <p class="text-xs text-secondary">${colorName} · <span class="inline-block w-3 h-3 rounded" style="background:${colorHex}"></span> ${colorHex}</p>
+        </div>
+      </div>`;
+  }
+
+  function hidePreview() {
+    manualFields.style.display = 'contents';
+    preview.style.display = 'none';
+    preview.innerHTML = '';
+  }
+
+  if (input && suggestions) {
     input.addEventListener('input', () => {
-      const brick = brickLookup.get(input.value);
-      if (brick) {
-        manualFields.style.display = 'none';
-        preview.style.display = 'block';
-        const colorName = brick.colorName ?? "Unknown";
-        const colorHex = brick.colorHex ?? "#000000";
-        preview.innerHTML = `
-          <div class="bg-surface-container-highest rounded-lg p-4 flex gap-4 items-center">
-            <img src="${brick.image}" alt="${brick.name}" class="w-16 h-16 rounded-lg object-contain p-2 bg-surface-container-low" />
-            <div>
-              <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. ${brick.reference}</p>
-              <h4 class="font-black text-base">${brick.name}</h4>
-              <p class="text-xs text-secondary">${colorName} · <span class="inline-block w-3 h-3 rounded" style="background:${colorHex}"></span> ${colorHex}</p>
-            </div>
-          </div>`;
-      } else {
-        manualFields.style.display = 'contents';
-        preview.style.display = 'none';
-        preview.innerHTML = '';
+      const query = input.value.toLowerCase().trim();
+      if (!query) {
+        suggestions.classList.add('hidden');
+        suggestions.innerHTML = '';
+        hidePreview();
+        return;
       }
+      const matches = existingBricks.filter(b =>
+        b.elementId.toLowerCase().includes(query) ||
+        b.reference.toLowerCase().includes(query) ||
+        b.name.toLowerCase().includes(query) ||
+        (b.colorName && b.colorName.toLowerCase().includes(query))
+      ).slice(0, 20);
+      if (matches.length === 0) {
+        suggestions.classList.add('hidden');
+        hidePreview();
+        return;
+      }
+      suggestions.innerHTML = matches.map(b => {
+        const colorHex = b.colorHex ?? "#000000";
+        return `<div class="px-3 py-2 cursor-pointer hover:bg-surface-container-low flex items-center gap-3" data-element-id="${b.elementId}">
+          <img src="${b.image}" alt="${b.name}" class="w-8 h-8 rounded object-contain bg-surface-container-low p-1" />
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-bold truncate">${b.name}</p>
+            <p class="text-[9px] text-secondary">${b.reference} · ${b.colorName ?? 'Unknown'} · <span class="inline-block w-2 h-2 rounded" style="background:${colorHex}"></span></p>
+          </div>
+        </div>`;
+      }).join('');
+      suggestions.classList.remove('hidden');
+    });
+
+    suggestions.addEventListener('click', (e) => {
+      const item = e.target.closest('[data-element-id]');
+      if (!item) return;
+      const elementId = item.dataset.elementId;
+      input.value = elementId;
+      suggestions.classList.add('hidden');
+      const brick = brickLookup.get(elementId);
+      if (brick) showPreview(brick);
+    });
+
+    input.addEventListener('blur', () => {
+      setTimeout(() => suggestions.classList.add('hidden'), 150);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') suggestions.classList.add('hidden');
     });
   }
 
