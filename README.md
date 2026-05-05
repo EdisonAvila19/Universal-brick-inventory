@@ -18,6 +18,10 @@ Aplicación de inventario para bloques de construcción y sets de LEGO y tercero
 - **Selección inteligente de piezas existentes**: Al agregar una pieza manualmente a un set, si se selecciona una pieza ya existente en la base de datos (mediante el buscador con datalist), se ocultan automáticamente los campos Reference, Name, Color, Color Hex e Image URL, mostrando solo los campos Required y Stock. Se muestra una vista previa con los datos de la pieza seleccionada.
 - **Actualización inmediata del listado de piezas**: Al agregar una pieza a un set, el listado de piezas se actualiza inmediatamente sin necesidad de refrescar la página, permitiendo al usuario ver la nueva pieza agregada en tiempo real.
 
+## Advertencia
+
+⚠️ **El ejecutable de Tauri presenta fallos y no funciona correctamente.** Se recomienda utilizar la aplicación en modo web (con `pnpm run dev` o `pnpm run preview`) hasta que los problemas con el empaquetado de Tauri sean resueltos.
+
 ## Stack
 
 - Astro `6.1.8`
