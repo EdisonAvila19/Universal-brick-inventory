@@ -1,5 +1,6 @@
 ---
 import AppLayout from "../layouts/AppLayout.astro";
+import SetCard  from "../components/set-card.astro";
 import { deleteSetFromInventory, getInventorySets } from "../lib/inventoryStore";
 
 const url = new URL(Astro.request.url);
@@ -29,7 +30,8 @@ const completion = totalSets === 0 ? 0 : Math.round(sets.reduce((acc, set) => ac
 ---
 
 <AppLayout title="Bricks Inventory | Set Catalog" active="catalog">
-  <section class="flex flex-col md:flex-row justify-between items-end gap-6 mb-10">
+  <!-- Header -->
+  <header class="flex flex-col md:flex-row justify-between items-end gap-6 mb-10">
     <div>
       <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">Your Collection</p>
       <h1 class="text-4xl md:text-5xl font-black tracking-tighter">Set Catalog</h1>
@@ -39,10 +41,12 @@ const completion = totalSets === 0 ? 0 : Math.round(sets.reduce((acc, set) => ac
       <div class="h-12 w-px bg-outline-variant opacity-20"></div>
       <div><p class="text-[0.65rem] font-bold text-secondary uppercase tracking-widest mb-1">Completion</p><p class="text-4xl font-black tracking-tighter">{completion}%</p></div>
     </div>
-  </section>
+  </header>
 
+  <!-- Feedback message -->
   {feedback && <p class:list={["mb-6 rounded-lg p-3 text-sm font-medium", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>{feedback}</p>}
 
+  <!-- Filters -->
   <section class="flex flex-wrap items-center gap-4 mb-8">
     <a href="/catalog?brand=all" class:list={["px-6 py-2 rounded-full text-xs font-bold tracking-wide", brandFilter === "all" ? "bg-on-surface text-white" : "bg-white text-secondary"]}>All Brands</a>
     <a href="/catalog?brand=lego" class:list={["px-6 py-2 rounded-full text-xs font-bold tracking-wide", brandFilter === "lego" ? "bg-on-surface text-white" : "bg-white text-secondary"]}>Lego Only</a>
@@ -56,40 +60,7 @@ const completion = totalSets === 0 ? 0 : Math.round(sets.reduce((acc, set) => ac
     </section>
   ) : (
     <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      {sets.map((set) => {
-        const progress = Math.round((set.ownedPieces / set.totalPieces) * 100);
-        return (
-          <article class="group bg-surface-container-lowest rounded-xl p-4 flex flex-col">
-            <div class="relative aspect-square mb-6 overflow-hidden rounded-md bg-surface-container-low">
-              <img src={set.image} alt={set.name} class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-              <div class="absolute top-3 left-3 flex gap-2"><span class="bg-primary-container text-[#6a5700] text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-widest">{set.brand}</span>{set.homologatedToLego && <span class="bg-tertiary-container text-on-tertiary-container text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-widest">Homologated</span>}</div>
-            </div>
-            <p class="text-[10px] font-bold text-secondary uppercase tracking-[0.1em]">Set No. {set.setNumber}</p>
-            <h3 class="text-lg font-bold leading-tight mt-1">{set.name}</h3>
-            <div class="mt-4 space-y-1"><div class="flex justify-between text-[10px] font-bold text-secondary uppercase tracking-widest"><span>Completion</span><span>{progress}%</span></div><div class="h-1.5 w-full bg-surface-container-low rounded-full overflow-hidden"><div class:list={["h-full", progress === 100 ? "bg-tertiary-container" : "bg-primary-container"]} style={`width:${progress}%`}></div></div></div>
-            <div class="pt-4 mt-auto">
-              <div class="flex gap-2 mb-3">
-                <a href={`/bricks?set=${encodeURIComponent(set.setNumber)}`} class="flex-1 text-center bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">Brick Inventory</a>
-                <a href={`/shopping?set=${encodeURIComponent(set.setNumber)}`} class="flex-1 text-center bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">Shopping List</a>
-              </div>
-              <div class="mb-3">
-                <a href={`/set-parts?set=${encodeURIComponent(set.setNumber)}`} class="w-full inline-flex justify-center bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">View/Edit Pieces</a>
-              </div>
-              <div class="mb-3">
-                <a href={`/edit-set?set=${encodeURIComponent(set.setNumber)}`} class="w-full inline-flex justify-center bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">Edit Set Info</a>
-              </div>
-              <div class="flex items-center justify-between gap-2">
-                <span class="text-xs font-medium text-secondary">{set.totalPieces.toLocaleString()} Pieces</span>
-                <form method="post">
-                  <input type="hidden" name="action" value="delete-set" />
-                  <input type="hidden" name="setNumber" value={set.setNumber} />
-                  <button type="submit" class="text-error text-xs font-bold uppercase tracking-widest">Delete Set</button>
-                </form>
-              </div>
-            </div>
-          </article>
-        );
-      })}
+      {sets.map((set) => <SetCard set={set} />)}
     </section>
   )}
 </AppLayout>
