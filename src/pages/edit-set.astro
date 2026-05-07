@@ -1,7 +1,7 @@
 ---
-import AppLayout from "../layouts/AppLayout.astro";
-import type { Brand } from "../data/archiveData";
-import { getInventorySets, updateSetInInventory } from "../lib/inventoryStore";
+import AppLayout from "@layouts/AppLayout.astro";
+import type { Brand } from "@data/archiveData";
+import { getInventorySets, updateSetInInventory } from "@lib/inventoryStore";
 
 const url = new URL(Astro.request.url);
 const querySetNumber = (url.searchParams.get("set") ?? "").trim();

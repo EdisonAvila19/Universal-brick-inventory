@@ -1,7 +1,7 @@
 ---
-import AppLayout from "../layouts/AppLayout.astro";
-import { addBrickToSet, getColors, getInventoryBricks, getInventorySets, removeBrickFromSet, updateBrickInSet } from "../lib/inventoryStore";
-import { fetchRebrickablePart, fetchRebrickablePartColors, type RebrickablePartColorDetails } from "../lib/rebrickable";
+import AppLayout from "@layouts/AppLayout.astro";
+import { addBrickToSet, getColors, getInventoryBricks, getInventorySets, removeBrickFromSet, updateBrickInSet } from "@lib/inventoryStore";
+import { fetchRebrickablePart, fetchRebrickablePartColors, type RebrickablePartColorDetails } from "@lib/rebrickable";
 
 const url = new URL(Astro.request.url);
 const querySetNumber = (url.searchParams.get("set") ?? "").trim();

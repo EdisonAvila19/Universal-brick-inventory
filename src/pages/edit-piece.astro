@@ -1,6 +1,6 @@
 ---
-import AppLayout from "../layouts/AppLayout.astro";
-import { getInventoryBricks, updateBrickInSet } from "../lib/inventoryStore";
+import AppLayout from "@layouts/AppLayout.astro";
+import { getInventoryBricks, updateBrickInSet } from "@lib/inventoryStore";
 
 const url = new URL(Astro.request.url);
 const queryFromSet = (url.searchParams.get("fromSet") ?? "").trim();

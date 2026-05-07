@@ -1,4 +1,4 @@
-import { increment, decrement } from '../stores/counter';
+import { increment, decrement } from '@stores/counter';
 
 export function CounterControls () {
   return (

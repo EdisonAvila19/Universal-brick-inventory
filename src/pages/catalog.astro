@@ -1,7 +1,7 @@
 ---
-import AppLayout from "../layouts/AppLayout.astro";
-import SetCard  from "../components/set-card.astro";
-import { deleteSetFromInventory, getInventorySets } from "../lib/inventoryStore";
+import AppLayout from "@layouts/AppLayout.astro";
+import SetCard  from "@components/set-card.astro";
+import { deleteSetFromInventory, getInventorySets } from "@lib/inventoryStore";
 
 const url = new URL(Astro.request.url);
 const brandFilter = url.searchParams.get("brand") ?? "all";

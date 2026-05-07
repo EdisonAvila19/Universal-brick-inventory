@@ -20,6 +20,19 @@ export default defineConfig({
     server: {
       strictPort: true
     },
+    resolve: {
+      alias: {
+        '@': './src',
+        '@styles': './src/styles',
+        '@lib': './src/lib',
+        '@data': './src/data',
+        '@components': './src/components',
+        '@layouts': './src/layouts',
+        '@pages': './src/pages',
+        '@stores': './src/stores',
+        '@utils': './src/utils'
+      }
+    },
     build: {
       rollupOptions: {
         external: ['sharp']

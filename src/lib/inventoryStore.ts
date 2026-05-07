@@ -1,7 +1,7 @@
 import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { BrickRecord, PurchaseStore, SetRecord } from "../data/archiveData";
+import type { BrickRecord, PurchaseStore, SetRecord } from "@data/archiveData";
 import { fetchRebrickableColors } from "./rebrickable";
 
 const APP_DATA_DIR = process.env.APP_DATA_DIR?.trim();

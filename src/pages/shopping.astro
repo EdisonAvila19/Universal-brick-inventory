@@ -1,6 +1,6 @@
 ---
-import AppLayout from "../layouts/AppLayout.astro";
-import { getInventoryBricks, getInventorySets, updateBrickPurchasePlan } from "../lib/inventoryStore";
+import AppLayout from "@layouts/AppLayout.astro";
+import { getInventoryBricks, getInventorySets, updateBrickPurchasePlan } from "@lib/inventoryStore";
 
 const createJsonResponse = (payload: Record<string, unknown>, status = 200) => {
   return new Response(JSON.stringify(payload), {
