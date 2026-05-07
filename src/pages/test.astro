@@ -1,7 +1,9 @@
 ---
-import { CounterDisplay } from '../components/CounterDisplay'
+import { CounterDisplay } from '../components/CounterDisplay';
+import { CounterControls } from '../components/CounterControls';
 ---
 
 <h2>Counter Display</h2>
 
-<CounterDisplay />
+<CounterDisplay client:load/>
+<CounterControls client:load/>
