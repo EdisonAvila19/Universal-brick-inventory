@@ -1,20 +1,16 @@
 ---
 import "@styles/tailwind.css";
+import Aside from "@components/Aside.astro";
+import type { ActiveView } from "@data/archiveData";
+// type ActiveView = "dashboard" | "catalog" | "bricks" | "shopping" | "";
 
 interface Props {
   title: string;
-  active: "dashboard" | "catalog" | "bricks" | "shopping";
+  active?: ActiveView;
 }
 
-const { title, active } = Astro.props;
-const nav = [
-  { id: "dashboard", href: "/", icon: "dashboard", label: "Dashboard" },
-  { id: "bricks", href: "/bricks", icon: "view_in_ar", label: "Brick Inventory" },
-  { id: "catalog", href: "/catalog", icon: "shelves", label: "Set Catalog" },
-  { id: "shopping", href: "/shopping", icon: "shopping_basket", label: "Shopping List" }
-];
+const { title, active = "" } = Astro.props;
 ---
-
 <html lang="es">
   <head>
     <meta charset="utf-8" />
@@ -30,28 +26,11 @@ const nav = [
     </style>
   </head>
   <body class="bg-surface text-on-surface min-h-screen">
-    <aside class="hidden md:flex h-screen w-64 fixed left-0 top-0 overflow-y-auto bg-surface-container-low flex-col justify-between py-8">
-      <div class="flex flex-col gap-8">
-        <div class="px-8"><h1 class="text-xl font-black">Bricks Inventory</h1></div>
-        <nav class="flex flex-col gap-1">
-          {nav.map((item) => (
-            <a href={item.href} class:list={[
-              "rounded-l-full ml-4 py-3 transition-all flex items-center gap-3 text-sm tracking-tight",
-              active === item.id ? "bg-white text-on-surface font-bold pl-6 shadow-sm" : "text-secondary hover:text-on-surface hover:bg-surface-container-high pl-10"
-            ]}>
-              <span class="material-symbols-outlined">{item.icon}</span>{item.label}
-            </a>
-          ))}
-        </nav>
-        <div class="px-6"><a href="/add-set" class="w-full bg-primary-container text-[#6a5700] font-bold py-3 rounded-full inline-flex justify-center">Catalog New Set</a></div>
-      </div>
-      <div class="flex flex-col gap-1">
-        <a class="text-secondary hover:text-on-surface hover:bg-surface-container-high rounded-l-full ml-4 pl-10 py-3 flex items-center gap-3" href="#"><span class="material-symbols-outlined">help_outline</span>Support</a>
-        <a class="text-secondary hover:text-on-surface hover:bg-surface-container-high rounded-l-full ml-4 pl-10 py-3 flex items-center gap-3" href="#"><span class="material-symbols-outlined">tune</span>Settings</a>
-      </div>
-    </aside>
+    <Aside active={active} />
     <main class="md:ml-64 min-h-screen">
-      <div class="p-6 max-w-7xl mx-auto"><slot /></div>
+      <div class="p-6 max-w-7xl mx-auto">
+        <slot />
+      </div>
     </main>
   </body>
 </html>
