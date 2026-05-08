@@ -3,6 +3,7 @@ import AppLayout from "@layouts/AppLayout.astro";
 import { getInventoryBricks, getInventorySets } from "@lib/inventoryStore";
 
 const sets = await getInventorySets();
+
 const bricks = await getInventoryBricks();
 const totalArtifacts = sets.reduce((acc, set) => acc + set.totalPieces, 0);
 const activeSets = sets.length;
@@ -24,13 +25,23 @@ const priorityParts = [...bricks]
 ---
 
 <AppLayout title="Bricks Inventory | Dashboard" active="dashboard">
+  
   <section class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
     <div class="md:col-span-2 bg-surface-container-lowest p-8 rounded-xl min-h-[220px] flex flex-col justify-between">
-      <div><p class="text-xs font-bold tracking-widest uppercase text-secondary">Total Artifacts</p><h2 class="text-5xl md:text-6xl font-black tracking-tighter">{totalArtifacts.toLocaleString()}</h2></div>
+      <div>
+        <p class="text-xs font-bold tracking-widest uppercase text-secondary">Total Artifacts</p>
+        <h2 class="text-5xl md:text-6xl font-black tracking-tighter">{totalArtifacts.toLocaleString()}</h2>
+      </div>
       <p class="text-primary text-sm font-bold">Universal inventory overview</p>
     </div>
-    <div class="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-primary-container"><p class="text-xs font-bold uppercase tracking-widest text-secondary">Active Sets</p><h3 class="text-4xl font-black mt-2">{activeSets}</h3></div>
-    <div class="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-error"><p class="text-xs font-bold uppercase tracking-widest text-secondary">Missing Pieces</p><h3 class="text-4xl font-black mt-2 text-error">{missingPieces}</h3></div>
+    <div class="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-primary-container">
+      <p class="text-xs font-bold uppercase tracking-widest text-secondary">Active Sets</p>
+      <h3 class="text-4xl font-black mt-2">{activeSets}</h3>
+    </div>
+    <div class="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-error">
+      <p class="text-xs font-bold uppercase tracking-widest text-secondary">Missing Pieces</p>
+      <h3 class="text-4xl font-black mt-2 text-error">{missingPieces}</h3>
+    </div>
   </section>
 
   <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -43,11 +54,16 @@ const priorityParts = [...bricks]
           {recentSets.map((set) => {
             const completion = Math.round((set.ownedPieces / set.totalPieces) * 100);
             return (
-              <article class="bg-surface-container-lowest p-4 rounded-xl">
-                <div class="aspect-[4/3] rounded-md overflow-hidden bg-surface-container-low mb-4"><img src={set.image} alt={set.name} class="w-full h-full object-cover" /></div>
-                <div class="flex justify-between items-start gap-2"><h3 class="text-sm font-bold">{set.name}</h3><span class:list={["text-[10px] px-2 py-0.5 rounded-full font-bold", completion === 100 ? "bg-tertiary-container text-on-tertiary-container" : "bg-error-container text-on-error-container"]}>{completion}% Complete</span></div>
+              <a href={`/edit-set?set=${set.setNumber}`} class="bg-surface-container-lowest p-4 rounded-xl">
+                <div class="aspect-[4/3] rounded-md overflow-hidden bg-surface-container-low mb-4">
+                  <img src={set.image} alt={set.name} class="w-full h-full object-cover" />
+                </div>
+                <div class="flex justify-between items-start gap-2">
+                  <h3 class="text-sm font-bold">{set.name}</h3>
+                  <span class:list={["text-[10px] px-2 py-0.5 rounded-full font-bold", completion === 100 ? "bg-tertiary-container text-on-tertiary-container" : "bg-error-container text-on-error-container"]}>{completion}% Complete</span>
+                </div>
                 <p class="text-xs text-secondary mt-1">Set No. {set.setNumber}</p>
-              </article>
+              </a>
             );
           })}
         </div>
@@ -57,10 +73,20 @@ const priorityParts = [...bricks]
     <aside class="bg-surface-container-low p-6 rounded-xl">
       <h2 class="text-xl font-black tracking-tight">Priority Parts</h2>
       <p class="text-xs text-secondary mt-1 mb-4">Needed for current builds</p>
-       {priorityParts.length === 0
+      {priorityParts.length === 0
         ? <p class="text-sm text-secondary">No missing parts right now.</p>
-        : <div class="space-y-3">{
-          priorityParts.map((part) => (<div class="bg-surface-container-lowest p-3 rounded-lg flex items-center gap-3"><div class="w-10 h-10 rounded-md" style={`background:${part.colorHex};`}></div><div class="flex-1"><p class="text-xs font-bold">{part.name}</p><p class="text-[10px] text-secondary">{part.colorName}</p></div><p class="font-black text-error">x{part.needed}</p></div>))}
+        : <div class="space-y-3">
+          {priorityParts.map((part) => (
+              <div class="bg-surface-container-lowest p-3 rounded-lg flex items-center gap-3">
+                <div class="w-10 h-10 rounded-md" style={`background:${part.colorHex};`}></div>
+                <img src={part.image} alt="" srcset="" class='w-10 h-10 object-cover rounded-md' />
+                <div class="flex-1">
+                  <p class="text-xs font-bold">{part.name}</p>
+                  <p class="text-[10px] text-secondary">{part.colorName}</p>
+                </div>
+                <p class="font-black text-error">x{part.needed}</p>
+              </div>
+          ))}
           </div>}
     </aside>
   </section>
