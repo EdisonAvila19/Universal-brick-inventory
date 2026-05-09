@@ -2,6 +2,7 @@
 import AppLayout from "@layouts/AppLayout.astro";
 import { addBrickToSet, getColors, getInventoryBricks, getInventorySets, removeBrickFromSet, updateBrickInSet } from "@lib/inventoryStore";
 import { fetchRebrickablePart, fetchRebrickablePartColors, type RebrickablePartColorDetails } from "@lib/rebrickable";
+import { Feedback2 } from '@components/Feedback2';
 
 const url = new URL(Astro.request.url);
 const querySetNumber = (url.searchParams.get("set") ?? "").trim();
@@ -21,8 +22,6 @@ let finalBricks = allBricks;
 let finalLookup = existingBrickLookup;
 
 if (Astro.request.method === "POST") {
-  console.log('POST_1');
-  
   const formData = await Astro.request.formData();
   const action = String(formData.get("action") ?? "");
   const setNumber = String(formData.get("setNumber") ?? querySetNumber).trim();
@@ -497,4 +496,37 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
       }
     });
   }
+
+  window.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    if (form.tagName !== 'FORM') return;
+    if (form.closest('#brick-list') || form.id === 'add-brick-form' || form.id === 'search-rebrickable') {
+      
+      try {
+          const formData = new FormData(form);
+          formData.append("feedback", "custom-feedback-placeholder");
+          const response = await fetch(form.getAttribute("action") || window.location.href, {
+            method: "POST",
+            body: formData,
+            headers: {
+              Accept: "application/json"
+            }
+          });
+          const payload = await response.json();
+          if (!response.ok || !payload.updated) {
+            // setFeedback("error", payload.message || "Could not update stock for the selected piece.");
+            return;
+          }
+          
+          
+        } catch (error) {
+          console.error("Error submitting form:", error);
+          
+        } finally {
+        }
+
+      return;
+    }
+  });
 </script>

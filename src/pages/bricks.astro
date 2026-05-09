@@ -1,8 +1,10 @@
 ---
 import AppLayout from "@layouts/AppLayout.astro";
 import { getInventoryBricks, getInventorySets, updateBrickStock } from "@lib/inventoryStore";
-import type { GroupedBrick } from "@data/archiveData";
-import BrickInfo from '@components/brick-info.astro';
+import type { GroupedBrick } from "@/types/archiveData";
+import { Feedback } from "@components/Feedback";
+import PieceCountIndicator from "@components/PieceCountIndicator";
+import BricksResults from '@/components/Bricks-results'
 
 const createJsonResponse = (payload: Record<string, unknown>, status = 200) => {
   return new Response(JSON.stringify(payload), {
@@ -96,7 +98,7 @@ for (const brick of bricks) {
 }
 
 const groupedBricks: GroupedBrick[] = [];
-for (const [elementId, group] of brickGroups) {
+for (const [_, group] of brickGroups) {
   const first = group[0];
   const totalRequired = group.reduce((acc, b) => acc + b.required, 0);
   const totalStock = group.reduce((acc, b) => acc + b.stock, 0);
@@ -124,25 +126,27 @@ const filteredBricks = groupedBricks.filter((group) => {
   return matchesPiece && matchesSet && matchesStatus;
 });
 
-const totalUniquePieces = groupedBricks.length;
-const missingBricks = groupedBricks.reduce((acc, g) => acc + (g.needed > 0 ? 1 : 0), 0);
+
 const setOptions = sets.map((set) => ({ label: `${set.setNumber} — ${set.name}`, value: set.setNumber }));
 ---
 
 <AppLayout title="Bricks Inventory | Brick Inventory" active="bricks">
+  <!-- Feedback Message -->
+  <Feedback client:load/>
+  
+  <!-- Inventory Overview -->
   <section class="mb-10 flex flex-col md:flex-row justify-between items-end gap-6">
     <div>
       <h1 class="text-4xl font-black tracking-tight mb-2">Brick Inventory</h1>
       <p class="text-secondary font-medium uppercase text-xs tracking-[0.2em]">Pieces and stock overview</p>
     </div>
     <div class="flex gap-12 text-right">
-      <div class="flex flex-col"><span class="text-4xl font-black tracking-tighter">{totalUniquePieces}</span><span class="text-[10px] uppercase font-bold text-secondary tracking-widest">Total Unique Pieces</span></div>
-      <div class="flex flex-col"><span id="missing-bricks-value" class="text-4xl font-black text-error tracking-tighter">{missingBricks}</span><span class="text-[10px] uppercase font-bold text-error tracking-widest">Missing Bricks</span></div>
+      <PieceCountIndicator Count="Unique" Label="Total Unique Pieces" FontColors={{ Count: "font-black", Label: "text-secondary" }} client:load/>
+      <PieceCountIndicator Count="Missing" Label="Missing Bricks" FontColors={{ Count: "font-black text-error", Label: "text-error" }} client:load/>
     </div>
   </section>
 
-  <p id="bricks-feedback" class:list={["mb-6 rounded-lg p-3 text-sm font-medium", feedback ? "" : "hidden", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>{feedback}</p>
-
+  <!-- Filters Form -->
   <form method="get" class="bg-surface-container-low p-6 rounded-xl mb-10 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
     <div>
       <label class="block text-[10px] uppercase font-bold text-secondary mb-2 px-2">Piece Number or Name</label>
@@ -166,122 +170,7 @@ const setOptions = sets.map((set) => ({ label: `${set.setNumber} — ${set.name}
     <button type="submit" class="bg-on-surface text-white py-3 px-8 rounded-lg font-bold text-sm">Apply Filters</button>
   </form>
 
-  {filteredBricks.length === 0 ? (
-    <div class="text-center py-24 text-secondary">
-      <h2 class="text-2xl font-black mb-2">No bricks found</h2>
-      <p class="text-sm">Adjust filters or add a set via <a href="/add-set" class="text-primary font-bold">Catalog New Set</a>.</p>
-    </div>
-  ) : (
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-      {filteredBricks.map((group) => (
-        <BrickInfo brick={group} />      
-      ))}
-    </section>
-  )}
-  <script is:inline>
-    const feedbackEl = document.getElementById("bricks-feedback");
-    const missingBricksEl = document.getElementById("missing-bricks-value");
-    const successClasses = ["bg-tertiary-container", "text-on-tertiary-container"];
-    const errorClasses = ["bg-error-container", "text-on-error-container"];
-
-    const setFeedback = (type, message) => {
-      if (!feedbackEl) return;
-      feedbackEl.classList.remove("hidden", ...successClasses, ...errorClasses);
-      feedbackEl.classList.add(...(type === "success" ? successClasses : errorClasses));
-      feedbackEl.textContent = message;
-    };
-
-    const recalculateMissingBricks = () => {
-      if (!missingBricksEl) return;
-      const total = Array.from(document.querySelectorAll("[data-needed-value]")).reduce((acc, el) => acc + (Number(el.textContent || "0") > 0 ? 1 : 0), 0);
-      missingBricksEl.textContent = String(total);
-    };
-
-    const updateTotals = (card, setStockMap) => {
-      if (!card) return;
-      const stockValueEl = card.querySelector("[data-stock-value]");
-      const neededValueEl = card.querySelector("[data-needed-value]");
-      const requiredValueEl = card.querySelector("[data-required-value]");
-      const statusPill = card.querySelector("[data-status-pill]");
-
-      let totalStock = 0;
-      let totalRequired = 0;
-      if (setStockMap && Array.isArray(setStockMap)) {
-        totalStock = setStockMap.reduce((acc, s) => acc + (Number(s.stock) || 0), 0);
-        totalRequired = setStockMap.reduce((acc, s) => acc + (Number(s.required) || 0), 0);
-      }
-      const needed = Math.max(0, totalRequired - totalStock);
-
-      if (stockValueEl) stockValueEl.textContent = String(totalStock);
-      if (requiredValueEl) requiredValueEl.textContent = String(totalRequired);
-      if (neededValueEl) neededValueEl.textContent = String(needed);
-
-      if (statusPill) {
-        statusPill.classList.remove("bg-error-container", "text-on-error-container", "bg-tertiary-container", "text-on-tertiary-container");
-        if (needed > 0) {
-          statusPill.classList.add("bg-error-container", "text-on-error-container");
-          statusPill.textContent = "Missing";
-        } else {
-          statusPill.classList.add("bg-tertiary-container", "text-on-tertiary-container");
-          statusPill.textContent = "In Stock";
-        }
-      }
-
-      if (setStockMap && Array.isArray(setStockMap)) {
-        for (const s of setStockMap) {
-          const input = card.querySelector(`[data-stock-input="${s.fromSet}"]`);
-          if (input) input.value = String(s.stock);
-        }
-      }
-    };
-
-    document.querySelectorAll("form[data-async-stock-form]").forEach((form) => {
-      form.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const saveButton = form.querySelector("[data-save-button]");
-        const card = form.closest("[data-brick-card]");
-        const detailsEl = form.closest("details");
-        const buttonText = saveButton?.textContent ?? "Save";
-
-        if (saveButton) {
-          saveButton.disabled = true;
-          saveButton.textContent = "Saving...";
-        }
-
-        const stockInputs = card?.querySelectorAll("[data-stock-input]") || [];
-        const formData = new FormData(form);
-        for (const input of stockInputs) {
-          const setNumber = input.getAttribute("data-stock-input");
-          formData.set(`stock_${setNumber}`, String(input.value));
-        }
-
-        try {
-          const response = await fetch(form.getAttribute("action") || window.location.href, {
-            method: "POST",
-            body: formData,
-            headers: {
-              Accept: "application/json"
-            }
-          });
-          const payload = await response.json();
-          if (!response.ok || !payload.updated) {
-            setFeedback("error", payload.message || "Could not update stock for the selected piece.");
-            return;
-          }
-
-          updateTotals(card, payload.setStockMap);
-          recalculateMissingBricks();
-          setFeedback("success", payload.message || "Stock updated successfully.");
-          detailsEl?.removeAttribute("open");
-        } catch {
-          setFeedback("error", "Could not update stock for the selected piece.");
-        } finally {
-          if (saveButton) {
-            saveButton.disabled = false;
-            saveButton.textContent = buttonText;
-          }
-        }
-      });
-    });
-  </script>
+  <!-- Results Section -->
+  <BricksResults initialBricks={bricks} client:load/>
+  
 </AppLayout>

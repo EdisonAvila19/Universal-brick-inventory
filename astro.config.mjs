@@ -30,7 +30,8 @@ export default defineConfig({
         '@layouts': './src/layouts',
         '@pages': './src/pages',
         '@stores': './src/stores',
-        '@utils': './src/utils'
+        '@utils': './src/utils',
+        '@mocks': './src/mocks'
       }
     },
     build: {

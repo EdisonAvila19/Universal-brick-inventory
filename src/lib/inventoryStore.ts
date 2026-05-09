@@ -1,7 +1,7 @@
 import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { BrickRecord, PurchaseStore, SetRecord } from "@data/archiveData";
+import type { BrickRecord, PurchaseStore, SetRecord } from "@/types/archiveData";
 import { fetchRebrickableColors } from "./rebrickable";
 
 const APP_DATA_DIR = process.env.APP_DATA_DIR?.trim();
@@ -197,6 +197,7 @@ export async function addSetToInventory(nextSet: SetRecord, bricks: BrickRecord[
 }
 
 export async function updateBrickStock(input: { elementId: string; fromSet: string; stock: number }): Promise<{ updated: boolean }> {
+  
   const store = await readStore();
   const nextStock = Number.isFinite(input.stock) ? Math.max(0, Math.floor(input.stock)) : 0;
   let updated = false;

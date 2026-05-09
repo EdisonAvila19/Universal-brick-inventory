@@ -1,5 +1,5 @@
-import type { BrickRecord, ManualSetInput, SetRecord } from "@data/archiveData";
-import type { RebrickablePart, RebrickableSet } from "@lib/rebrickable";
+import type { BrickRecord, ManualSetInput, SetRecord } from "@/types/archiveData";
+import type { RebrickablePart, RebrickableSet } from "@/types/rebrickable";
 
 export function mapRebrickableSetToRecord(set: RebrickableSet): SetRecord {
   return {
