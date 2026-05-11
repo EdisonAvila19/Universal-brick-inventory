@@ -50,7 +50,7 @@ const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? 
   {!activeSetNumber ? (
     <section class="bg-surface-container-lowest rounded-xl p-12 text-center text-secondary"><h2 class="text-2xl font-black mb-2">Select a set to continue</h2><p class="text-sm">Pick a set above to edit its metadata.</p></section>
   ) : !selectedSet ? (
-    <section class="bg-error-container text-on-error-container rounded-xl p-6"><h2 class="text-xl font-black mb-2">Set not found</h2><p class="text-sm">The selected set does not exist in inventory. Go back to <a href="/catalog" class="font-bold underline">Set Catalog</a>.</p></section>
+    <section class="bg-error-container text-on-error-container rounded-xl p-6"><h2 class="text-xl font-black mb-2">Set not found</h2><p class="text-sm">The selected set does not exist in inventory. Go back to <a href="/sets" class="font-bold underline">Set Catalog</a>.</p></section>
   ) : (
     <section class="bg-surface-container-lowest rounded-xl p-6">
       <div class="flex flex-col md:flex-row gap-6 mb-6"><img src={selectedSet.image} alt={selectedSet.name} class="w-32 h-32 object-cover rounded-lg bg-surface-container-low" /><div class="space-y-2"><p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Set No. {selectedSet.setNumber}</p><h2 class="text-2xl font-black leading-tight">{selectedSet.name}</h2><p class="text-sm text-secondary">{selectedSet.source === "rebrickable" ? "Imported from Rebrickable" : "Manual set"}</p></div></div>

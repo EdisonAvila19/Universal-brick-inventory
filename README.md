@@ -82,7 +82,7 @@ El mapeo de datos a modelos internos se hace en `src/lib/setMapper.ts`.
 
 - `src/layouts/AppLayout.astro`
 - `src/pages/index.astro`
-- `src/pages/catalog.astro`
+- `src/pages/sets.astro`
 - `src/pages/add-set.astro`
 - `src/pages/bricks.astro`
 - `src/pages/shopping.astro`
