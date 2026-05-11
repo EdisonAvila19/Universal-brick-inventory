@@ -1,0 +1,179 @@
+---
+import AppLayout from "@layouts/AppLayout.astro";
+import type { Brand } from "@/types/archiveData";
+import { getInventorySets, updateSetInInventory } from "@lib/inventoryStore";
+
+const { setID: querySetNumber } = Astro.params;
+
+let activeSetNumber = querySetNumber;
+let feedback = "";
+let feedbackTone: "ok" | "error" = "ok";
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const result = await updateSetInInventory({
+    originalSetNumber: String(formData.get("originalSetNumber") ?? "").trim(),
+    setNumber: String(formData.get("setNumber") ?? "").trim(),
+    name: String(formData.get("name") ?? "").trim(),
+    brand: String(formData.get("brand") ?? "Other") as Brand,
+    totalPieces: Number(formData.get("totalPieces") ?? 0),
+    image: String(formData.get("image") ?? "").trim(),
+    homologatedToLego: formData.get("homologatedToLego") === "on"
+  });
+  if (!result.updated) {
+    feedbackTone = "error";
+    if (result.reason === "duplicate-set-number") feedback = "Another set already uses that set number.";
+    else if (result.reason === "set-not-found") feedback = "Set not found in inventory.";
+    else feedback = "Could not update set. Check the form values.";
+  } else {
+    activeSetNumber = String(formData.get("setNumber") ?? "").trim();
+    feedback = "Set updated successfully.";
+  }
+}
+
+const allSets = await getInventorySets();
+const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? null;
+---
+
+<AppLayout title="Bricks Inventory | Edit Set" active="catalog">
+
+  <section class="mb-10">
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">Set Metadata</p>
+    <h1 class="text-4xl font-black tracking-tight">Edit Set Information</h1>
+  </section>
+
+  <!-- Filter -->
+  <section class="text-left bg-surface-container-low rounded-xl p-6 mb-6  ">
+    <div class='relative'>
+
+      <!-- Botón del dropdown -->
+      <div>
+        <label class="block text-[10px] uppercase font-bold text-secondary mb-2 px-2">Select Set</label>
+        <button 
+          type="button" 
+          class="inline-flex w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none justify-between items-center"
+          id="options-menu"
+          aria-haspopup="true"
+          aria-expanded="true"
+        >
+          { selectedSet ? (
+            <>
+              {selectedSet.setNumber} — {selectedSet.name}
+            </>
+          ) : (
+            "Select a valid set from the dropdown"
+          )}
+          <!-- Icono de flecha hacia abajo -->
+          <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Menú del dropdown -->
+      <div 
+        class="origin-top-right absolute right-0 mt-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden"
+        role="menu"
+        aria-orientation="vertical"
+        aria-labelledby="options-menu"
+      >
+        <div role="none">
+          {allSets.map((set) => (
+            set.setNumber !== activeSetNumber && (
+              <a href={`/sets/${set.setNumber}`} class={`block px-4 py-2 rounded-lg text-sm bg-white text-secondary hover:bg-secondary hover:text-white`} role="menuitem">{set.setNumber} — {set.name}</a>
+            )
+          ))}
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Feedback -->
+  {feedback && <p class:list={["mb-6 rounded-lg p-3 text-sm font-medium", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>{feedback}</p>}
+
+  <!-- Result -->
+  {!activeSetNumber ? (
+    <section class="bg-surface-container-lowest rounded-xl p-12 text-center text-secondary">
+      <h2 class="text-2xl font-black mb-2">Select a set to continue</h2>
+      <p class="text-sm">Pick a set above to edit its metadata.</p>
+    </section>
+  ) : !selectedSet ? (
+    <section class="bg-error-container text-on-error-container rounded-xl p-6">
+      <h2 class="text-xl font-black mb-2">Set not found</h2>
+      <p class="text-sm">The selected set does not exist in inventory. Go back to <a href="/sets" class="font-bold underline">Set Catalog</a>.</p>
+    </section>
+  ) : (
+    <section class="bg-surface-container-lowest rounded-xl p-6">
+
+      {/* Set Info */}
+      <div class="flex flex-col md:flex-row gap-6 mb-6">
+        <img src={selectedSet.image} alt={selectedSet.name} class="w-32 h-32 object-cover rounded-lg bg-surface-container-low" />
+        <div class="space-y-2">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Set No. {selectedSet.setNumber}</p>
+          <h2 class="text-2xl font-black leading-tight">{selectedSet.name}</h2>
+          <p class="text-sm text-secondary">{selectedSet.source === "rebrickable" ? "Imported from Rebrickable" : "Manual set"}</p>
+        </div>
+      </div>
+
+      {/* Set Info Form */}
+      <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input type="hidden" name="originalSetNumber" value={selectedSet.setNumber} />
+        <div>
+          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Set Number</label>
+          <input required name="setNumber" value={selectedSet.setNumber} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Set Name</label>
+          <input required name="name" value={selectedSet.name} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Brand</label>
+          <select name="brand" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm">
+            <option value="LEGO" selected={selectedSet.brand === "LEGO"}>LEGO</option>
+            <option value="Mould King" selected={selectedSet.brand === "Mould King"}>Mould King</option>
+            <option value="CaDA" selected={selectedSet.brand === "CaDA"}>CaDA</option>
+            <option value="Other" selected={selectedSet.brand === "Other"}>Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Total Pieces</label>
+          <input required min="1" type="number" name="totalPieces" value={selectedSet.totalPieces} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm"/> 
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">Image URL</label>
+          <input required type="url" name="image" value={selectedSet.image} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+        </div>
+        <label class="md:col-span-2 flex items-center gap-2 text-sm text-secondary">
+          <input type="checkbox" name="homologatedToLego" checked={selectedSet.homologatedToLego} class="rounded" />
+          Homologated to LEGO equivalent pieces
+        </label>
+        <div class="md:col-span-2 flex gap-2">
+          <button type="submit" class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm">Save Set Info</button>
+          <a href={`/set-parts?set=${encodeURIComponent(selectedSet.setNumber)}`} class="bg-surface-container-highest text-on-surface px-6 py-3 rounded-lg font-bold text-sm">Edit Pieces</a>
+        </div>
+      </form>
+    </section>
+  )}
+</AppLayout>
+
+<script type="module">
+  document.addEventListener('DOMContentLoaded', function () {
+    const button = document.querySelector('[aria-haspopup="true"]');
+    const menu = document.querySelector('[role="menu"]');
+
+    button.addEventListener('click', function () {
+      const isExpanded = button.getAttribute('aria-expanded') === 'true';
+      button.setAttribute('aria-expanded', !isExpanded);
+      menu.classList.toggle('hidden');
+    });
+
+    // Cerrar el menú si se hace clic fuera de él
+    document.addEventListener('click', function (event) {
+      if (!button.contains(event.target) && !menu.contains(event.target)) {
+        button.setAttribute('aria-expanded', 'false');
+        menu.classList.add('hidden');
+      }
+    });
+  });
+</script>
