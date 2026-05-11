@@ -1,0 +1,37 @@
+---
+import AppLayout from "@layouts/AppLayout.astro";
+import { getInventorySets } from "@lib/inventoryStore";
+import { SetsResults } from '@/components/Sets-results'
+import { Feedback } from '@/components/Feedback';
+import SetsFilters from '@/components/SetsFilters'
+import SetsCounterIndicator from '@/components/SetsCounterIndicator'
+
+const url = new URL(Astro.request.url);
+const brandFilter = url.searchParams.get("brand") ?? "all";
+
+const allSets = await getInventorySets();
+const sets = allSets.filter((set) => brandFilter === "all" || (brandFilter === "lego" ? set.brand === "LEGO" : set.brand !== "LEGO"));
+const totalSets = sets.length;
+---
+
+<AppLayout title="Bricks Inventory | Set Catalog" active="catalog">
+  <!-- Header -->
+  <header class="flex flex-col md:flex-row justify-between items-end gap-6 mb-10">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">Your Collection</p>
+      <h1 class="text-4xl md:text-5xl font-black tracking-tighter">Set Catalog</h1>
+    </div>
+    <div class="flex items-center gap-8 text-right">
+      <SetsCounterIndicator client:load/>
+    </div>
+  </header>
+
+  <!-- Feedback message -->
+  <Feedback client:load/>
+
+  <!-- Filters -->
+  <SetsFilters client:load/>
+
+  <!-- Sets List -->
+  <SetsResults initialSets={allSets} initialFilters={{ brand: brandFilter }} client:load/>
+</AppLayout>
