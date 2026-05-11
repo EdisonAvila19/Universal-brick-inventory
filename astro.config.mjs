@@ -31,7 +31,9 @@ export default defineConfig({
         '@pages': './src/pages',
         '@stores': './src/stores',
         '@utils': './src/utils',
-        '@mocks': './src/mocks'
+        '@mocks': './src/mocks',
+        '@hooks': './src/hooks',
+        '@types': './src/types'
       }
     },
     build: {
