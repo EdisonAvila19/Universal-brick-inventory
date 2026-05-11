@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/preact';
 import { $filters, setFilters } from '@stores/storage-sets';
 
-export default function SetsFilters() {
+export default function BrandSetsFilters() {
   const { brand: brandFilter } = useStore($filters);
 
   const handleClick = (event: Event) => {
