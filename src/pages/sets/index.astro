@@ -10,8 +10,6 @@ const url = new URL(Astro.request.url);
 const brandFilter = url.searchParams.get("brand") ?? "all";
 
 const allSets = await getInventorySets();
-const sets = allSets.filter((set) => brandFilter === "all" || (brandFilter === "lego" ? set.brand === "LEGO" : set.brand !== "LEGO"));
-const totalSets = sets.length;
 ---
 
 <AppLayout title="Bricks Inventory | Set Catalog" active="catalog">
