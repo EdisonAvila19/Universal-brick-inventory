@@ -3,6 +3,7 @@ import type { BrickRecord, GroupedBrick } from '@/types/archiveData';
 
 export const $bricks = atom<BrickRecord[]>([]);
 export const $brickStats = atom({ Unique: 0, Missing: 0 });
+export const $filters = atom<{ piece: string, set: string[], status: string }>({ piece: "", set: [], status: "all" });
 
 export async function setBricks(bricks: BrickRecord[]) {
   $bricks.set(bricks);
@@ -51,4 +52,8 @@ export async function updateBrick (formData: FormData) {
       return ({ status: "error", message: String(error) });
     }
   }
+}
+
+export async function updateFilters(filters: { piece: string, set: string[], status: string }) {
+  $filters.set(filters);
 }

@@ -1,133 +1,23 @@
 ---
 import AppLayout from "@layouts/AppLayout.astro";
-import { getInventoryBricks, getInventorySets, updateBrickStock } from "@lib/inventoryStore";
-import type { GroupedBrick } from "@/types/archiveData";
+import { getInventoryBricks, getInventorySets } from "@lib/inventoryStore";
 import { Feedback } from "@components/Feedback";
 import PieceCountIndicator from "@components/PieceCountIndicator";
 import BricksResults from '@/components/Bricks-results'
-
-const createJsonResponse = (payload: Record<string, unknown>, status = 200) => {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8"
-    }
-  });
-};
+import BricksFilters from '@/components/BricksFilters'
 
 const url = new URL(Astro.request.url);
-const pieceFilter = (url.searchParams.get("piece") ?? "").trim();
-const setFilters = url.searchParams.getAll("set").map((value) => value.trim()).filter(Boolean);
-const statusFilter = url.searchParams.get("status") ?? "all";
-
-let feedback = "";
-let feedbackTone: "ok" | "error" = "ok";
-
-if (Astro.request.method === "POST") {
-  const formData = await Astro.request.formData();
-  const action = String(formData.get("action") ?? "");
-  const wantsJson =
-    String(formData.get("responseType") ?? "") === "json" ||
-    (Astro.request.headers.get("accept") ?? "").includes("application/json");
-
-  if (action === "update-stock") {
-    const elementId = String(formData.get("elementId") ?? "");
-    if (!elementId) {
-      if (wantsJson) {
-        return createJsonResponse({ updated: false, message: "Invalid stock data." }, 400);
-      }
-      feedbackTone = "error";
-      feedback = "Could not update stock for the selected piece.";
-    } else {
-      const allBricks = await getInventoryBricks();
-      const instances = allBricks.filter((b) => b.elementId === elementId);
-      let anyUpdated = false;
-
-      const individualStockEntries = Array.from(formData.entries())
-        .filter(([key]) => key.startsWith("stock_"))
-        .map(([key, value]) => ({ fromSet: key.replace("stock_", ""), stock: Number(value) }));
-
-      if (individualStockEntries.length > 0) {
-        for (const entry of individualStockEntries) {
-          const normalized = Number.isFinite(entry.stock) ? Math.max(0, Math.floor(entry.stock)) : 0;
-          const instance = instances.find((b) => b.fromSet === entry.fromSet);
-          if (instance) {
-            const result = await updateBrickStock({ elementId, fromSet: entry.fromSet, stock: normalized });
-            if (result.updated) anyUpdated = true;
-          }
-        }
-      }
-
-      if (wantsJson) {
-        const bricks = await getInventoryBricks();
-        const updatedInstances = bricks.filter((b) => b.elementId === elementId);
-        const totalRequired = updatedInstances.reduce((acc, b) => acc + b.required, 0);
-        const totalStock = updatedInstances.reduce((acc, b) => acc + b.stock, 0);
-        const needed = Math.max(0, totalRequired - totalStock);
-        const setStockMap = updatedInstances.map((b) => ({ fromSet: b.fromSet, stock: b.stock, required: b.required }));
-        return createJsonResponse({
-          updated: anyUpdated,
-          message: anyUpdated ? "Stock updated successfully." : "Could not update stock for the selected piece.",
-          totalRequired,
-          totalStock,
-          needed,
-          setStockMap
-        }, anyUpdated ? 200 : 404);
-      }
-      if (anyUpdated) {
-        feedback = "Stock updated successfully.";
-      } else {
-        feedbackTone = "error";
-        feedback = "Could not update stock for the selected piece.";
-      }
-    }
-  }
+const filters = {
+  piece: url.searchParams.get("piece") ?? "",
+  set: url.searchParams.getAll("set").map((value) => value.trim()).filter(Boolean),
+  status: url.searchParams.get("status") ?? "all"
 }
 
 const bricks = await getInventoryBricks();
 const sets = await getInventorySets();
 
-const brickGroups = new Map<string, (typeof bricks)[number][]>();
-for (const brick of bricks) {
-  const existing = brickGroups.get(brick.elementId);
-  if (existing) {
-    existing.push(brick);
-  } else {
-    brickGroups.set(brick.elementId, [brick]);
-  }
-}
-
-const groupedBricks: GroupedBrick[] = [];
-for (const [_, group] of brickGroups) {
-  const first = group[0];
-  const totalRequired = group.reduce((acc, b) => acc + b.required, 0);
-  const totalStock = group.reduce((acc, b) => acc + b.stock, 0);
-  const needed = Math.max(0, totalRequired - totalStock);
-  groupedBricks.push({
-    elementId: first.elementId,
-    reference: first.reference,
-    name: first.name,
-    colorId: first.colorId,
-    colorName: (first as Record<string, unknown>).colorName as string ?? "Unknown",
-    colorHex: (first as Record<string, unknown>).colorHex as string ?? "#000000",
-    image: first.image,
-    totalRequired,
-    totalStock,
-    needed,
-    sets: group.map((b) => ({ setNumber: b.fromSet, required: b.required, stock: b.stock }))
-  });
-}
-
-const normalizedPieceFilter = pieceFilter.toLowerCase();
-const filteredBricks = groupedBricks.filter((group) => {
-  const matchesPiece = !normalizedPieceFilter || group.reference.toLowerCase().includes(normalizedPieceFilter) || group.name.toLowerCase().includes(normalizedPieceFilter) || group.elementId.toLowerCase().includes(normalizedPieceFilter);
-  const matchesSet = setFilters.length === 0 || group.sets.some((s) => setFilters.includes(s.setNumber));
-  const matchesStatus = statusFilter === "all" || (statusFilter === "missing" ? group.needed > 0 : group.needed === 0);
-  return matchesPiece && matchesSet && matchesStatus;
-});
-
-
 const setOptions = sets.map((set) => ({ label: `${set.setNumber} — ${set.name}`, value: set.setNumber }));
+
 ---
 
 <AppLayout title="Bricks Inventory | Brick Inventory" active="bricks">
@@ -147,28 +37,7 @@ const setOptions = sets.map((set) => ({ label: `${set.setNumber} — ${set.name}
   </section>
 
   <!-- Filters Form -->
-  <form method="get" class="bg-surface-container-low p-6 rounded-xl mb-10 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-    <div>
-      <label class="block text-[10px] uppercase font-bold text-secondary mb-2 px-2">Piece Number or Name</label>
-      <input class="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm" placeholder="e.g. 3001" type="text" name="piece" value={pieceFilter} />
-    </div>
-    <div>
-      <label class="block text-[10px] uppercase font-bold text-secondary mb-2 px-2">Set Source</label>
-      <select class="w-full h-[46px] bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm" name="set" multiple size="1">
-        <option value="" selected={setFilters.length === 0}>All Sets</option>
-        {setOptions.map((option) => <option value={option.value} selected={setFilters.includes(option.value)}>{option.label}</option>)}
-      </select>
-    </div>
-    <div>
-      <label class="block text-[10px] uppercase font-bold text-secondary mb-2 px-2">Status</label>
-      <select class="w-full bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm" name="status">
-        <option value="all" selected={statusFilter === "all"}>All</option>
-        <option value="missing" selected={statusFilter === "missing"}>Missing</option>
-        <option value="in-stock" selected={statusFilter === "in-stock"}>In Stock</option>
-      </select>
-    </div>
-    <button type="submit" class="bg-on-surface text-white py-3 px-8 rounded-lg font-bold text-sm">Apply Filters</button>
-  </form>
+  <BricksFilters initialFilters={filters} sets={setOptions} client:load/>
 
   <!-- Results Section -->
   <BricksResults initialBricks={bricks} client:load/>

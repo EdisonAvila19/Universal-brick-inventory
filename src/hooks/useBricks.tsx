@@ -1,10 +1,11 @@
 import { useStore } from '@nanostores/preact';
 import { useState, useEffect } from 'preact/hooks'
-import { $bricks, refreshBrickStats, setBricks } from '@stores/storage-bricks';
+import { $bricks, $filters,refreshBrickStats, setBricks } from '@stores/storage-bricks';
 import type { GroupedBrick, BrickRecord } from '@/types/archiveData'
 
 export function useBricks( initialBricks: BrickRecord[] ) {
   const bricks = useStore($bricks);
+  const filters = useStore($filters)
   const [filteredBricks, setFilteredBricks] = useState<GroupedBrick[]>([]);
 
   useEffect(() => {
@@ -13,6 +14,7 @@ export function useBricks( initialBricks: BrickRecord[] ) {
 
   useEffect(() => {
     const brickGroups = new Map<string, (typeof bricks)[number][]>();
+    const { piece, set: setFilters, status: statusFilter } = filters
 
     for (const brick of bricks) {
       const existing = brickGroups.get(brick.elementId);
@@ -44,10 +46,17 @@ export function useBricks( initialBricks: BrickRecord[] ) {
       });
     }
 
-    const filteredBricks = groupedBricks.filter((b) => true);
+    const normalizedPieceFilter = piece.toLowerCase();
+    const filteredBricks = groupedBricks.filter((group) => {
+      const matchesPiece = !normalizedPieceFilter || group.reference.toLowerCase().includes(normalizedPieceFilter) || group.name.toLowerCase().includes(normalizedPieceFilter) || group.elementId.toLowerCase().includes(normalizedPieceFilter);
+      const matchesSet = setFilters.length === 0 || group.sets.some((s) => setFilters.includes(s.setNumber));
+      const matchesStatus = statusFilter === "all" || (statusFilter === "missing" ? group.needed > 0 : group.needed === 0);
+      return matchesPiece && matchesSet && matchesStatus;
+    });
+
     setFilteredBricks(filteredBricks);
     refreshBrickStats(filteredBricks);
-  }, [bricks])
+  }, [bricks, filters])
 
   return filteredBricks;
 }

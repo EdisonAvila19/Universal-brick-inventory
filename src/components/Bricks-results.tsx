@@ -1,9 +1,8 @@
 import type { BrickRecord } from '@/types/archiveData'
-import BrickInfo from '@/components/BrickInfo';
-import { useBricks } from '@/hooks/useBricks'
+import BrickInfo from '@components/BrickInfo';
+import { useBricks } from '@hooks/useBricks';
 
 export default function BricksResults({initialBricks}: {initialBricks: BrickRecord[]}) {
-  
   const filteredBricks = useBricks(initialBricks);
 
   return (
