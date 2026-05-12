@@ -38,7 +38,10 @@ export async function fetchSets() {
 // Update one set
 export async function updateSet (formData: FormData) {
   try {
-    const response = await fetch(`/api/sets`, {
+    const entries = Object.fromEntries(formData.entries());
+    const setNumber = entries.originalSetNumber as string;
+    
+    const response = await fetch(`/api/sets/${setNumber}`, {
       method: "POST",
       body: formData
     });

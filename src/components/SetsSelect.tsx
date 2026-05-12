@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/preact';
 import type { SetRecord } from '@/types/archiveData'
-import { useState, useEffect } from 'preact/compat'
+import { useState, useEffect } from 'preact/hooks'
 import { $sets, setSets } from '@/stores/storage-sets';
 
 export default function SetsSelect({initialSets, activeSetNumber}: Readonly<{initialSets: SetRecord[], activeSetNumber: string}> ) {
