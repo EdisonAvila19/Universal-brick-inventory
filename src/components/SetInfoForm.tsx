@@ -5,8 +5,6 @@ import { updateFeedback } from '@/stores/feedback';
 
 export default function SetInfoForm({ selectedSet }: Readonly<{ selectedSet: SetRecord }>) {
 
-
-
   const handleSubmit = async (event: Event) => {
     event.preventDefault();
     const form = event.target as HTMLFormElement;
@@ -67,7 +65,6 @@ export default function SetInfoForm({ selectedSet }: Readonly<{ selectedSet: Set
       </label>
       <div className="md:col-span-2 flex gap-2">
         <button type="submit" className="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm">Save Set Info</button>
-        <a href={`/set-parts?set=${encodeURIComponent(selectedSet.setNumber)}`} className="bg-surface-container-highest text-on-surface px-6 py-3 rounded-lg font-bold text-sm">Edit Pieces</a>
       </div>
     </form>
   )

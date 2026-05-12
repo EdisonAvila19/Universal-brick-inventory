@@ -183,6 +183,11 @@ export async function getInventoryBricks(): Promise<BrickRecord[]> {
   return store.bricks;
 }
 
+export async function getInventoryBricksSet(setNumber: string): Promise<BrickRecord[]> {
+  const store = await readStore();
+  return store.bricks.filter((brick) => brick.fromSet === setNumber);
+}
+
 export async function addSetToInventory(nextSet: SetRecord, bricks: BrickRecord[] = []): Promise<{ added: boolean }> {
   const store = await readStore();
   const alreadyExists = store.sets.some((set) => set.setNumber.toLowerCase() === nextSet.setNumber.toLowerCase());

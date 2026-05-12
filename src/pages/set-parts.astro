@@ -2,7 +2,6 @@
 import AppLayout from "@layouts/AppLayout.astro";
 import { addBrickToSet, getColors, getInventoryBricks, getInventorySets, removeBrickFromSet, updateBrickInSet } from "@lib/inventoryStore";
 import { fetchRebrickablePart, fetchRebrickablePartColors, type RebrickablePartColorDetails } from "@lib/rebrickable";
-import { Feedback2 } from '@components/Feedback2';
 
 const url = new URL(Astro.request.url);
 const querySetNumber = (url.searchParams.get("set") ?? "").trim();
@@ -177,6 +176,7 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
     <h1 class="text-4xl font-black tracking-tight">View and Edit Set Pieces</h1>
   </section>
 
+  <!-- Filter -->
   <section class="bg-surface-container-low rounded-xl p-6 mb-6">
     <form method="get" class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
       <div>
@@ -190,6 +190,7 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
     </form>
   </section>
 
+  <!-- Feedback Message -->
   <div id="feedback-msg" class:list={["fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-2xl w-full mx-auto px-4 rounded-lg p-4 text-sm font-medium shadow-lg transition-all duration-300", feedback ? "opacity-100 visible" : "opacity-0 invisible", feedbackTone === "error" ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"]}>
     <div class="flex items-center justify-between gap-4">
       <span>{feedback}</span>
@@ -197,6 +198,7 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
     </div>
   </div>
 
+  {/* Results */}
   {!querySetNumber ? (
     <section class="bg-surface-container-lowest rounded-xl p-12 text-center text-secondary">
       <h2 class="text-2xl font-black mb-2">Select a set to continue</h2>

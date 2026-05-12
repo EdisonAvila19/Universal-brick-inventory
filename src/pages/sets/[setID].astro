@@ -1,6 +1,6 @@
 ---
 import AppLayout from "@layouts/AppLayout.astro";
-import { getInventorySets } from "@lib/inventoryStore";
+import { getInventoryBricksSet, getInventorySets } from "@lib/inventoryStore";
 import { Feedback } from "@components/Feedback";
 import SetsSelect from "@components/SetsSelect";
 import SetInfo from "@components/SetInfo";
@@ -10,6 +10,8 @@ const { setID: querySetNumber } = Astro.params;
 let activeSetNumber = querySetNumber || "";
 
 const allSets = await getInventorySets();
+const bricks = await getInventoryBricksSet(activeSetNumber);
+
 const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? null;
 ---
 
@@ -27,7 +29,5 @@ const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? 
   <Feedback client:load/>
 
   <!-- Result -->
-  <SetInfo activeSetNumber={activeSetNumber} initialSelectedSet={selectedSet} client:load/>
-
-  
+  <SetInfo activeSetNumber={activeSetNumber} initialSelectedSet={selectedSet} initialBricks={bricks} client:load/>
 </AppLayout>
