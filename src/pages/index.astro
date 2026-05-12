@@ -54,7 +54,7 @@ const priorityParts = [...bricks]
           {recentSets.map((set) => {
             const completion = Math.round((set.ownedPieces / set.totalPieces) * 100);
             return (
-              <a href={`/edit-set?set=${set.setNumber}`} class="bg-surface-container-lowest p-4 rounded-xl">
+              <a href={`/sets/${set.setNumber}`} class="bg-surface-container-lowest p-4 rounded-xl">
                 <div class="aspect-[4/3] rounded-md overflow-hidden bg-surface-container-low mb-4">
                   <img src={set.image} alt={set.name} class="w-full h-full object-cover" />
                 </div>
