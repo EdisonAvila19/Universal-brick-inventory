@@ -1,29 +1,34 @@
 import type { BrickRecord, SetRecord } from '@/types/archiveData'
+import { DeleteBrick, UpdateBrickData, UpdateBrickStock } from '@/utils/bricksData'
 import { useState } from 'preact/hooks'
+import { updateFeedback } from '@stores/feedback'
 
-function UpdateStockForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord }>) {
+function UpdateStockForm ({ selectedSet, brick, updateBricks }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, updateBricks: () => void }>) {
 
-  const handleSubmit = (event: Event) => {
+  const handleSubmit = async (event: Event) => {
     event.preventDefault();
     const formData = new FormData(event.target as HTMLFormElement);
     // Handle form submission logic here
-    console.log("Updating stock with data:", Object.fromEntries(formData.entries()));
-    
+
+    const response = await UpdateBrickStock(selectedSet.setNumber, formData)
+    if (!response.updated) {
+      console.error("Failed to update brick stock");
+      updateFeedback( "Failed to update brick stock. Please try again.", "error" );
+      return;
+    }
+
+    updateBricks();
+    updateFeedback( "Brick stock updated successfully!", "info" );
   }
 
   return (
     <form class="grid grid-cols-1 md:grid-cols-1 gap-2 lg:items-end" onSubmit={handleSubmit}>
       <input type="hidden" name="action" value="update-brick" />
       <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
-      <input type="hidden" name="originalElementId" value={brick.elementId} />
       <input type="hidden" name="elementId" value={brick.elementId} />
-      <input type="hidden" name="reference" value={brick.reference} />
-      <input type="hidden" name="name" value={brick.name} />
-      <input type="hidden" name="colorId" value={brick.colorId} />
-      <input type="hidden" name="image" value={brick.image} />
       <label class="block text-[10px] uppercase font-bold text-secondary">
         Required{" "}
-        <input required min="1" type="number" name="required" value={brick.required} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" />
+        <input required min="1" type="number" name="required" value={brick.required} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" disabled/>
       </label>
       <label class="block text-[10px] uppercase font-bold text-secondary">
         Stock{" "}
@@ -34,14 +39,21 @@ function UpdateStockForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRec
   )
 }
 
-function DeleteBrickForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord }>) {
+function DeleteBrickForm ({ selectedSet, brick, updateBricks }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, updateBricks: () => void }>) {
 
-  const handleSubmit = (event: Event) => {
+  const handleSubmit = async (event: Event) => {
     event.preventDefault();
-    const formData = new FormData(event.target as HTMLFormElement);
     // Handle form submission logic here
-    console.log("Updating stock with data:", Object.fromEntries(formData.entries()));
-    
+    const response = await DeleteBrick(brick.elementId, selectedSet.setNumber);
+
+    if (!response.deleted) {
+      console.error("Failed to delete brick");
+      updateFeedback( "Failed to remove brick. Please try again.", "error" );
+      return;
+    }
+
+    updateBricks();
+    updateFeedback( "Brick removed successfully!", "info" );
   }
 
   return (
@@ -54,19 +66,27 @@ function DeleteBrickForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRec
   )
 }
 
-function SetInfoForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord }>) {
+function UpdateInfoForm ({ selectedSet, brick, updateBricks }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, updateBricks: () => void }>) {
   const [isOpen, setIsOpen] = useState(false)
 
   const handleToggle = (event: Event) => {
     setIsOpen((event.target as HTMLDetailsElement).open);
   }
 
-  const handleSubmit = (event: Event) => {
+  const handleSubmit = async (event: Event) => {
     event.preventDefault();
     const formData = new FormData(event.target as HTMLFormElement);
     // Handle form submission logic here
-    console.log("Updating stock with data:", Object.fromEntries(formData.entries()));
+    const response = await UpdateBrickData(brick, formData);
+
+    if (!response) {
+      console.error("Failed to update brick");
+      updateFeedback( "Failed to update brick details. Please try again.", "error" );
+    }
+
+    updateBricks();
     handleToggle({ target: { open: false }} as unknown as Event);
+    updateFeedback( "Brick details updated successfully!", "info" );
   }
 
   return (
@@ -92,7 +112,7 @@ function SetInfoForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord,
         <div>
           <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
             Color{" "}
-            <input required name="color" value={brick.colorId} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input required name="color" type='number' value={brick.colorId} min={-1} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div>
         <div>
@@ -128,10 +148,11 @@ function SetInfoForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord,
 }
 
 
-export default function BricksxSetList({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord }>) {
-  // console.log("Rendering BricksxSetList with brick:", brick);
-  // console.log("Selected set:", selectedSet);
-  
+export default function BricksxSetList({ selectedSet, brick, updateBricks }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, updateBricks: () => Promise<void> }>) {
+
+  const handleBrickUpdate = async () => {
+    updateBricks();
+  }
   
   return (
     <article class="bg-surface-container-lowest rounded-xl p-5">
@@ -145,10 +166,10 @@ export default function BricksxSetList({ selectedSet, brick }: Readonly<{ select
             <p class="text-xs text-secondary">{brick.colorName} · <span class="inline-block w-4 h-w-4 rounded aspect-square shadow-md border" style={`background:${brick.colorHex}`}></span></p>
           </div>
         </div>
-        <UpdateStockForm selectedSet={selectedSet} brick={brick} />
-        <DeleteBrickForm selectedSet={selectedSet} brick={brick} />
+        <UpdateStockForm selectedSet={selectedSet} brick={brick} updateBricks={handleBrickUpdate}/>
+        <DeleteBrickForm selectedSet={selectedSet} brick={brick} updateBricks={handleBrickUpdate}/>
       </div>
-        <SetInfoForm selectedSet={selectedSet} brick={brick} />
+        <UpdateInfoForm selectedSet={selectedSet} brick={brick} updateBricks={handleBrickUpdate}/>
     </article>
   )
 }

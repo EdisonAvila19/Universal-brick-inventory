@@ -24,6 +24,8 @@ export default function SetInfoForm({ selectedSet }: Readonly<{ selectedSet: Set
     <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
       <input type="hidden" name="action" value="update-info" />
       <input type="hidden" name="originalSetNumber" value={selectedSet.setNumber} />
+      <input type="hidden" name="totalPieces" value={selectedSet.totalPieces} />
+      <input type="hidden" name="homologatedToLego" value={String(selectedSet.homologatedToLego)} />
       <div>
         <label className="block text-[10px] uppercase font-bold text-secondary">
           Set Number{" "}
@@ -49,20 +51,14 @@ export default function SetInfoForm({ selectedSet }: Readonly<{ selectedSet: Set
       </div>
       <div>
         <label className="block text-[10px] uppercase font-bold text-secondary">
-          Total Pieces{" "}
-          <input required min="1" type="number" name="totalPieces" value={selectedSet.totalPieces} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" />
-        </label>
-      </div>
-      <div className="md:col-span-2">
-        <label className="block text-[10px] uppercase font-bold text-secondary">
           Image URL{" "}
           <input required type="url" name="image" value={selectedSet.image} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" />
         </label>
       </div>
-      <label className="md:col-span-2 flex items-center gap-2 text-sm text-secondary">
+      {/* <label className="md:col-span-2 flex items-center gap-2 text-sm text-secondary">
         <input type="checkbox" name="homologatedToLego" checked={selectedSet.homologatedToLego} className="rounded" />
         {" "}Homologated to LEGO equivalent pieces
-      </label>
+      </label> */}
       <div className="md:col-span-2 flex gap-2">
         <button type="submit" className="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm">Save Set Info</button>
       </div>
