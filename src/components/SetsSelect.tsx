@@ -23,11 +23,11 @@ export default function SetsSelect({initialSets, activeSetNumber}: Readonly<{ini
 
         {/* <!-- Botón del dropdown --> */}
         <div>
-          <label className="block text-[10px] uppercase font-bold text-secondary mb-2">
+          <label className="block text-[10px] uppercase font-bold text-secondary">
             Select Set{" "}
             <button
               type="button"
-              className="inline-flex w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none justify-between items-center"
+              className="inline-flex w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 mt-4 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none justify-between items-center"
               id="options-menu"
               aria-haspopup="true"
               aria-expanded="true"
@@ -52,7 +52,7 @@ export default function SetsSelect({initialSets, activeSetNumber}: Readonly<{ini
         {
           isOpen && (
             <div 
-              className="origin-top-right absolute right-0 mt-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
+              className="origin-top-right absolute right-0 mt-1 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
               role="menu"
               aria-orientation="vertical"
               aria-labelledby="options-menu"
