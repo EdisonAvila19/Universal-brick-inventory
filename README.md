@@ -26,6 +26,9 @@ Aplicación de inventario para bloques de construcción y sets de LEGO y tercero
 
 - Astro `6.1.8`
 - `@astrojs/node` `10.0.6` (adapter `standalone`)
+- `@astrojs/preact` `5.1.2`
+- Preact `10.29.1` + `@nanostores/preact` `1.1.0`
+- nanostores `1.3.0`
 - TypeScript estricto (`astro/tsconfigs/strict`)
 - Tailwind CSS v3 + PostCSS + Autoprefixer
 - `@tailwindcss/forms` y `@tailwindcss/container-queries`
@@ -66,7 +69,7 @@ Desde `Universal-brick-inventory/`:
 La persistencia principal está en SQLite:
 
 - DB: `data/inventory.sqlite`
-- Tablas: `sets`, `bricks`
+- Tablas: `sets`, `bricks`, `colors`
 
 ## Integración Rebrickable
 
@@ -75,6 +78,8 @@ La capa `src/lib/rebrickable.ts` implementa:
 - `fetchRebrickableSet`
 - `fetchRebrickableSetParts` (con paginación completa por `next`)
 - `fetchRebrickableSetWithParts`
+- `fetchRebrickableColors`
+- `fetchRebrickablePartColors`
 
 El mapeo de datos a modelos internos se hace en `src/lib/setMapper.ts`.
 
@@ -82,24 +87,51 @@ El mapeo de datos a modelos internos se hace en `src/lib/setMapper.ts`.
 
 - `src/layouts/AppLayout.astro`
 - `src/pages/index.astro`
-- `src/pages/sets.astro`
+- `src/pages/sets/index.astro`
+- `src/pages/sets/[setID].astro`
 - `src/pages/add-set.astro`
 - `src/pages/bricks.astro`
 - `src/pages/shopping.astro`
 - `src/pages/set-parts.astro`
 - `src/pages/edit-set.astro`
 - `src/pages/edit-piece.astro`
+- `src/pages/test.astro`
+- `src/pages/api/bricks.ts`
+- `src/pages/api/sets.ts`
+- `src/pages/api/sets/[setID].ts`
 - `src/lib/inventoryStore.ts`
 - `src/lib/rebrickable.ts`
 - `src/lib/setMapper.ts`
-- `src/data/archiveData.ts`
+- `src/types/archiveData.ts`
+- `src/types/rebrickable.ts`
+- `src/stores/` (counter, feedback, storage-bricks, storage-sets)
+- `src/components/` (17 componentes: filtros, tarjetas, formularios, etc.)
+- `src/hooks/useBricks.tsx`
+- `src/styles/tailwind.css`
+- `src/mocks/bricks.json`
+- `src-tauri/`
+
+## Store API (`src/lib/inventoryStore.ts`)
+
+- `getInventorySets`
+- `getInventoryBricks`
+- `getColors`
+- `addSetToInventory`
+- `updateBrickStock`
+- `updateBrickPurchasePlan`
+- `updateSetInInventory`
+- `deleteSetFromInventory`
+- `addBrickToSet`
+- `updateBrickInSet`
+- `removeBrickFromSet`
 
 ## Reglas de dominio implementadas
 
 - `ownedPieces` por set se recalcula como suma de `min(stock, required)` y se limita por `totalPieces`.
 - Stock y cantidades planeadas se normalizan como enteros no negativos.
 - No se permiten sets duplicados por `setNumber`.
-- No se permiten piezas duplicadas en un mismo set por `reference + color`.
+- No se permiten piezas duplicadas en un mismo set por `elementId`.
+- Tabla `colors` poblada desde API de Rebrickable al iniciar la aplicación.
 
 ## Créditos
 
