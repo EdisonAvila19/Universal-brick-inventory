@@ -8,8 +8,8 @@ export const $filteredSets = atom<SetRecord[]>([]);
 function filterSets() {
   const { brand } = $filters.get();
   const sets = $sets.get();
+  if (!sets) return;
   const filtered = sets.filter((set) => brand === "all" || (brand === "lego" ? set.brand === "LEGO" : set.brand !== "LEGO"));
-  
   $filteredSets.set(filtered);
 }
 
