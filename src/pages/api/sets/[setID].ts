@@ -2,8 +2,8 @@ import {updateSetInInventory } from "@lib/inventoryStore";
 import type { Brand } from "@/types/archiveData";
 
 // Update set details in db
-export async function POST({ request }: { request: Request }) {
-  const setID = new URL(request.url).pathname.split("/").pop();
+export async function POST({ params, request }: { params: { setID: string }, request: Request }) {
+  const setID = params.setID;
 
   try {
     const formDataRaw = await request.formData();
