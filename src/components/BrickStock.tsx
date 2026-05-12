@@ -34,7 +34,7 @@ export function BrickStock({ group }: Readonly<{ group: GroupedBrick }>) {
   }
 
   return (
-    <section class="mb-0">
+    <section class="mb-0 mt-auto">
       <BrickStats group={group} />
 
       <div class="mb-0 flex justify-center flex-col items-center gap-1">
