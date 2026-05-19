@@ -48,18 +48,6 @@ export interface RebrickablePagedResponse<T> {
   results: T[];
 }
 
-export interface RebrickablePartColor {
-  color: {
-    id: number;
-    name: string;
-    rgb: string;
-    is_trans: boolean;
-  };
-  elements: string[];
-  set_count: number;
-  part_count: number;
-}
-
 export interface RebrickablePartDetails {
   part_num: string;
   name: string;
