@@ -1,4 +1,4 @@
-import type { RebrickableColor, RebrickablePagedResponse, RebrickablePart, RebrickablePartColor, RebrickablePartDetails, RebrickableSet } from '@/types/rebrickable'
+import type { RebrickableColor, RebrickablePagedResponse, RebrickablePart, RebrickablePartColorDetails, RebrickablePartDetails, RebrickableSet } from '@/types/rebrickable'
 
 const API_BASE = "https://rebrickable.com/api/v3/lego";
 
@@ -68,12 +68,12 @@ export async function fetchRebrickablePart(partNum: string): Promise<Rebrickable
   return rebrickableFetch<RebrickablePartDetails>(`/parts/${partNum}/`);
 }
 
-export async function fetchRebrickablePartColors(partNum: string): Promise<RebrickablePartColor[]> {
-  const firstPage = await rebrickableFetch<RebrickablePagedResponse<RebrickablePartColor>>(`/parts/${partNum}/colors`);
-  const colors: RebrickablePartColor[] = [...firstPage.results];
+export async function fetchRebrickablePartColors(partNum: string): Promise<RebrickablePartColorDetails[]> {
+  const firstPage = await rebrickableFetch<RebrickablePagedResponse<RebrickablePartColorDetails>>(`/parts/${partNum}/colors`);
+  const colors: RebrickablePartColorDetails[] = [...firstPage.results];
   let next = firstPage.next;
   while (next) {
-    const page = await rebrickableFetchAbsolute<RebrickablePagedResponse<RebrickablePartColor>>(next);
+    const page = await rebrickableFetchAbsolute<RebrickablePagedResponse<RebrickablePartColorDetails>>(next);
     colors.push(...page.results);
     next = page.next;
   }
