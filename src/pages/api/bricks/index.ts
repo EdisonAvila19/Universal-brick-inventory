@@ -1,5 +1,6 @@
 import { getInventoryBricks, updateBrickStock } from "@lib/inventoryStore";
 
+// Update Brick
 export async function POST({ request }: { request: Request }) {
   const body = await request.formData();
 
@@ -45,6 +46,7 @@ export async function POST({ request }: { request: Request }) {
   });
 }
 
+// Get Bricks
 export async function GET({ request, }: { request: Request }) {
   const bricks = await getInventoryBricks();
 

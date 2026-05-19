@@ -1,5 +1,28 @@
 import { removeBrickFromSet, updateBrickInSet } from '@lib/inventoryStore'
 
+// Add new External Brick
+export async function GET({ params, request }: { params: { brickID: string }, request: Request }) {
+  const body = await request.formData();
+  
+  const newBrick = {
+    elementId: body.get("elementId"),
+    name: body.get("name"),
+    color: body.get("color"),
+    // Add any other fields you need
+  };
+
+  console.log(newBrick);
+  
+
+  // Call your function to add the new brick
+  // await addNewBrick(newBrick);
+
+  return new Response(JSON.stringify({ ok: true }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+// Update existing Brick
 export async function PUT({ params, request }: { params: { brickID: string }, request: Request }) {
   
   const brickID = params.brickID;
@@ -88,6 +111,7 @@ export async function PUT({ params, request }: { params: { brickID: string }, re
   }
 }
 
+// Delete Brick from Set
 export async function DELETE({ params, request }: { params: { brickID: string }, request: Request }) {
   const brickID = params.brickID;
   const setId = await request.json().then(data => {
