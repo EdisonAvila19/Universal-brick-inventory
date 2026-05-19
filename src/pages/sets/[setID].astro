@@ -1,6 +1,6 @@
 ---
 import AppLayout from "@layouts/AppLayout.astro";
-import { getInventoryBricksSet, getInventorySets } from "@lib/inventoryStore";
+import { getInventoryBricks, getInventoryBricksSet, getInventorySets } from "@lib/inventoryStore";
 import { Feedback } from "@components/Feedback";
 import SetsSelect from "@components/SetsSelect";
 import SetInfo from "@components/SetInfo";
@@ -12,6 +12,7 @@ let activeSetNumber = querySetNumber || "";
 
 const allSets = await getInventorySets();
 const bricks = await getInventoryBricksSet(activeSetNumber);
+const allBricks = await getInventoryBricks();
 
 const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? null;
 ---
@@ -33,6 +34,5 @@ const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? 
   <SetInfo activeSetNumber={activeSetNumber} initialSelectedSet={selectedSet} initialBricks={bricks} client:load/>
 
   <!-- Add new Pieces -->
-
-  <AddNewPiece selectedSet={selectedSet} />
+  {selectedSet && <AddNewPiece selectedSet={selectedSet} allBricks={allBricks} client:load/>}
 </AppLayout>
