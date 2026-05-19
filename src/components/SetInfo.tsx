@@ -28,7 +28,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, initialBr
     return (
       <section class="bg-error-container text-on-error-container rounded-xl p-6">
         <h2 class="text-xl font-black mb-2">Set not found</h2>
-        <p class="text-sm">The selected set does not exist in inventory. Go back to <a href="/sets" class="font-bold underline">Set Catalog</a>.</p>
+        <p class="text-sm">The selected set does not exist in inventory. Go back to <a href="/sets" class="font-bold underline">Set Catalog</a> or select another set in the list.</p>
       </section>
     )
   }
