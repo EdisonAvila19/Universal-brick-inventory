@@ -54,3 +54,9 @@ export interface GroupedBrick {
   needed: number;
   sets: { setNumber: string; required: number; stock: number }[];
 }
+
+export interface ArchiveColor {
+  id: number;
+  name: string;
+  rgb: string;
+}
