@@ -1,8 +1,9 @@
 import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { BrickRecord, PurchaseStore, SetRecord } from "@/types/archiveData";
-import { fetchRebrickableColors } from "./rebrickable";
+
+import type { BrickRecord, PurchaseStore, SetRecord, ArchiveColor } from "@/types/archiveData";
+import { fetchRebrickableColors } from "@lib/rebrickable";
 
 const APP_DATA_DIR = process.env.APP_DATA_DIR?.trim();
 const DATA_DIR = APP_DATA_DIR ? APP_DATA_DIR : path.join(process.cwd(), "data");
@@ -116,10 +117,15 @@ async function ensureColors() {
   }
 }
 
-export async function getColors(): Promise<Array<{ id: number; name: string; rgb: string }>> {
+export async function getColors(): Promise<Array<ArchiveColor>> {
   await ensureColors();
   const db = getDb();
-  return db.prepare("SELECT id, name, rgb FROM colors ORDER BY name ASC").all() as Array<{ id: number; name: string; rgb: string }>;
+  const rows = db.prepare("SELECT id, name, rgb FROM colors ORDER BY name ASC").all() as Array<Record<string, unknown>>;
+  return rows.map((row) => ({
+    id: Number(row.id),
+    name: String(row.name),
+    rgb: String(row.rgb)
+  }));
 }
 
 async function readStore(): Promise<InventoryPayload> {
