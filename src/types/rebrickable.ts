@@ -14,18 +14,13 @@ export interface RebrickablePart {
   part: {
     part_num: string;
     name: string;
-    part_cat_id: number;
-    part_url: string;
     part_img_url: string | null;
-    external_ids: Record<string, string[] | number[] | null>;
-    print_of: string | null;
   };
   color: {
     id: number;
     name: string;
     rgb: string;
     is_trans: boolean;
-    external_ids: Record<string, string[] | number[] | null>;
   };
   set_num: string;
   quantity: number;
@@ -51,11 +46,7 @@ export interface RebrickablePagedResponse<T> {
 export interface RebrickablePartDetails {
   part_num: string;
   name: string;
-  part_cat_id: number;
-  part_url: string;
   part_img_url: string | null;
-  external_ids: Record<string, string[] | number[] | null>;
-  print_of: string | null;
 }
 
 export interface RebrickablePartColor {
@@ -68,9 +59,7 @@ export interface RebrickablePartColor {
 export interface RebrickablePartColorDetails {
   color_id: number,
   color_name: string,
-  num_sets: number,
-  num_set_parts: number,
   part_img_url: string,
   elements: string[],
-  colorRgb: string
+  colorRgb?: string
 }
