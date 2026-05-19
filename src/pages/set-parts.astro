@@ -1,7 +1,8 @@
 ---
 import AppLayout from "@layouts/AppLayout.astro";
 import { addBrickToSet, getColors, getInventoryBricks, getInventorySets, removeBrickFromSet, updateBrickInSet } from "@lib/inventoryStore";
-import { fetchRebrickablePart, fetchRebrickablePartColors, type RebrickablePartColorDetails } from "@lib/rebrickable";
+import { fetchRebrickablePart, fetchRebrickablePartColors } from "@lib/rebrickable";
+import type { RebrickablePartColorDetails } from "@/types/rebrickable";
 
 const url = new URL(Astro.request.url);
 const querySetNumber = (url.searchParams.get("set") ?? "").trim();
@@ -51,20 +52,28 @@ if (Astro.request.method === "POST") {
             feedbackTone = "error";
             feedback = "Part found, but no colors available.";
           } else {
+            // console.log("Part details:", partDetails);
+            // console.log("Part colors:", partColors);
+            // console.log("Local colors:", localColors);
+            
             const enrichedColors = partColors
               .filter(pc => pc && typeof pc.color_id === 'number')
               .map(pc => {
                 const localColor = localColors.find(lc => lc.id === pc.color_id);
+                // console.log(localColor);
+                
                 return {
                   ...pc,
-                  colorRgb: localColor ? localColor.rgb : (pc.color?.rgb || '000000')
+                  colorRgb: localColor ? localColor.rgb : (pc.colorRgb || '000000')
                 };
               });
             
-            Astro.locals.externalPart = {
+            (Astro as any).locals.externalPart = {
               part: partDetails,
               colors: enrichedColors
             };
+
+
             feedback = `Part "${partDetails.name}" found! Select a color below.`;
           }
         } catch (err) {
@@ -502,7 +511,7 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
   }
 
   window.addEventListener('submit', async (e) => {
-    e.preventDefault();
+    // e.preventDefault();
     const form = e.target;
     if (form.tagName !== 'FORM') return;
     if (form.closest('#brick-list') || form.id === 'add-brick-form' || form.id === 'search-rebrickable') {
@@ -517,9 +526,12 @@ const totalOwned = selectedSetBricks.reduce((acc, brick) => acc + Math.min(brick
               Accept: "application/json"
             }
           });
-          const payload = await response.json();
-          if (!response.ok || !payload.updated) {
-            // setFeedback("error", payload.message || "Could not update stock for the selected piece.");
+          
+          // const payload = await response.json();
+          // console.log("Form submission payload:", payload);
+          
+          if (!response.ok) {
+            setFeedback("error", "Could not update stock for the selected piece.");
             return;
           }
           
