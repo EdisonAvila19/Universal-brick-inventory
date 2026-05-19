@@ -65,17 +65,34 @@ export async function fetchRebrickableColors(): Promise<RebrickableColor[]> {
 }
 
 export async function fetchRebrickablePart(partNum: string): Promise<RebrickablePartDetails> {
-  return rebrickableFetch<RebrickablePartDetails>(`/parts/${partNum}/`);
+  const partFullDetails = await rebrickableFetch<RebrickablePartDetails>(`/parts/${partNum}/`);
+
+  const partDetails = {
+    part_num: partFullDetails.part_num,
+    name: partFullDetails.name,
+    part_img_url: partFullDetails.part_img_url,
+  }
+  return partDetails;
 }
 
 export async function fetchRebrickablePartColors(partNum: string): Promise<RebrickablePartColorDetails[]> {
   const firstPage = await rebrickableFetch<RebrickablePagedResponse<RebrickablePartColorDetails>>(`/parts/${partNum}/colors`);
-  const colors: RebrickablePartColorDetails[] = [...firstPage.results];
+  
+  const RebrickableColors: RebrickablePartColorDetails[] = [...firstPage.results];
+
   let next = firstPage.next;
   while (next) {
     const page = await rebrickableFetchAbsolute<RebrickablePagedResponse<RebrickablePartColorDetails>>(next);
-    colors.push(...page.results);
+    RebrickableColors.push(...page.results);
     next = page.next;
   }
+
+  const colors = RebrickableColors.map(color => ({
+    color_id: color.color_id,
+    color_name: color.color_name,
+    part_img_url: color.part_img_url,
+    elements: color.elements,
+  }));
+
   return colors;
 }
