@@ -75,3 +75,26 @@ export const UpdateBrickStock = async (setNumber: string, formData: FormData) =>
     return { updated: false, reason: error instanceof Error ? error.message : "Unknown error" };
   }
 }
+
+export const searchNewBrick = async (formData: FormData) => {
+  const reference = formData.get("reference");
+  if (typeof reference !== "string" || !reference.trim()) {
+    return ({ status: "error", message: "Invalid reference" });
+  }
+  try {
+    const response = await fetch(`/api/bricks/external/${reference}`);
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to search for the part");
+    }
+    return ({status: "ok", message: "Search completed, check console for details" });
+  } catch (error) {
+    console.error("Error adding new brick:", error);
+    if (error instanceof Error) {
+      return ({ status: "error", message: error.message });
+    } else {
+      return ({ status: "error", message: String(error) });
+    }
+  }
+}
