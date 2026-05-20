@@ -37,8 +37,6 @@ export async function GET({ params }: { params: { brickID: string } }) {
       colors: enrichedColors
     }
 
-    console.log(`Fetched part details for ${brickID}:`, externalPartData);
-
     return new Response(JSON.stringify(externalPartData), {
       headers: { 'Content-Type': 'application/json' },
     });
