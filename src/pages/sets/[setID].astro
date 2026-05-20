@@ -31,7 +31,7 @@ const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? 
   <Feedback client:load/>
 
   <!-- Result -->
-  <SetInfo activeSetNumber={activeSetNumber} initialSelectedSet={selectedSet} initialBricks={bricks} client:load/>
+  <SetInfo activeSetNumber={activeSetNumber} initialSelectedSet={selectedSet} initialSetBricks={bricks} client:load/>
 
   <!-- Add new Pieces -->
   {selectedSet && <AddNewPiece selectedSet={selectedSet} allBricks={allBricks} client:load/>}

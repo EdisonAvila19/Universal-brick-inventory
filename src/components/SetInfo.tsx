@@ -6,7 +6,7 @@ import { useState } from "preact/hooks";
 import BricksxSetList from './BricksxSetList'
 import { useSetStore } from '@/hooks/useSetStore'
 
-export default function SetInfo({ activeSetNumber, initialSelectedSet, initialBricks }: Readonly<{ activeSetNumber: string | null, initialSelectedSet: SetRecord | null, initialBricks: BrickRecord[] }>) {
+export default function SetInfo({ activeSetNumber, initialSelectedSet, initialSetBricks }: Readonly<{ activeSetNumber: string | null, initialSelectedSet: SetRecord | null, initialSetBricks: BrickRecord[] }>) {
   
   // Handle cases where no set is selected or the selected set is not found
   if (!activeSetNumber) {
@@ -21,7 +21,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, initialBr
   const sets = useStore($sets);
   const [selectedSet, setSelectedSet] = useState(initialSelectedSet)
 
-  const { fetchBricks, totalRequired, totalOwned, bricks } = useSetStore(activeSetNumber, initialBricks, sets, setSelectedSet);
+  const { fetchBricks, totalRequired, totalOwned, bricks } = useSetStore(activeSetNumber, initialSetBricks, sets, setSelectedSet);
 
   // If a set is selected but not found in the store, show an error message
   if (!selectedSet) {
