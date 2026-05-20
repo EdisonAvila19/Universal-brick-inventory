@@ -1,11 +1,12 @@
-import { searchNewBrick } from '@/utils/bricksData'
+import { addNewBrick, searchNewBrick } from '@/utils/bricksData'
 import type { BrickRecord } from '@/types/archiveData'
 import { updateFeedback } from '@/stores/feedback';
-import { useState } from 'preact/compat'
-import type { RebrickablePartColorDetails, RebrickablePartDetails } from '@/types/rebrickable'
+import type { RebrickablePartColorDetails } from '@/types/rebrickable'
 
+import { useStore } from '@nanostores/preact';
+import { $displayColors, $colorBricks, setDisplayColors, setColorBricks, resetForm } from '@stores/storage-newPieceForm';
 
-function SearchExternalPartForm({ selectedSet, setDisplayColors, setColorBricks }: Readonly<{ selectedSet: { setNumber: string }, setDisplayColors: (value: boolean) => void, setColorBricks: (value: {info: RebrickablePartDetails, colors: RebrickablePartColorDetails[]} | null) => void }>) {
+function SearchExternalPartForm({ selectedSet }: Readonly<{ selectedSet: { setNumber: string } }>) {
 
   const handleSearchExternalPart = async (event: Event) => {
     event.preventDefault();
@@ -29,11 +30,11 @@ function SearchExternalPartForm({ selectedSet, setDisplayColors, setColorBricks 
 
       setDisplayColors(true);
       setColorBricks({info, colors});
+
     } catch (error) {
       console.error("Error searching for external part:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred while searching for the part.";
-      setDisplayColors(false);
-      setColorBricks(null);
+      resetForm();
       updateFeedback(errorMessage, "error");
     }
     
@@ -56,10 +57,40 @@ function SearchExternalPartForm({ selectedSet, setDisplayColors, setColorBricks 
   )
 }
 
-function SelectionColorsList({ bricksData }: Readonly<{ bricksData: {info: RebrickablePartDetails, colors: RebrickablePartColorDetails[]} }>) {
+function AddExternalPieceForm({ selectedSet }: Readonly<{ selectedSet: { setNumber: string } }>) {
+
+  const bricksData = useStore($colorBricks);
+  const setNumber = selectedSet.setNumber;
+
+  if (!bricksData) return null;
 
   const { part_num, name, part_img_url } = bricksData.info;
   const colors = bricksData.colors;
+
+  const handleSubmit = async (event: Event) => {
+    event.preventDefault();
+    const form = event.target as HTMLFormElement;
+    const formData = new FormData(form);
+
+    try {
+      if (!formData.get("setNumber") || !formData.get("reference") || !formData.get("name") || !formData.get("colorId") || !formData.get("elementId")) {
+        throw new Error("Missing required fields to add the brick");
+      }
+
+      const results = await addNewBrick(formData)
+      
+      if (results.status === "error") {
+        throw new Error(results.message || "Failed to add the brick");
+      }
+
+      updateFeedback("Brick added successfully!", "info");
+      resetForm();
+    } catch (error) {
+      console.error("Error adding new brick:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred while adding the brick.";
+      updateFeedback(errorMessage, "error");
+    }
+  }
 
   return (
     <section class="bg-surface-container-highest rounded-xl p-6 mb-6">
@@ -76,18 +107,19 @@ function SelectionColorsList({ bricksData }: Readonly<{ bricksData: {info: Rebri
         {colors.map((colorData: RebrickablePartColorDetails) => {
 
             const brickID = colorData.elements?.[0] 
-              ? `${part_num}-${colorData.color_id}-${colorData.elements[0]}` 
+              ? `${colorData.elements[0]}`
               : `${part_num}-${colorData.color_id}`;
 
             return (
-              <form method="post" class="bg-surface-container-lowest p-3 rounded-lg flex items-center gap-3" key={brickID}>
-                <input type="hidden" name="action" value="add-brick" />
-                <input type="hidden" name="setNumber" value={part_num} />
+              <form method="post" class="bg-surface-container-lowest p-3 rounded-lg flex items-center gap-3" key={brickID} onSubmit={handleSubmit}>
+                <input type="hidden" name="setNumber" value={setNumber} />
                 <input type="hidden" name="reference" value={part_num} />
                 <input type="hidden" name="name" value={name} />
                 <input type="hidden" name="colorId" value={colorData.color_id} />
                 <input type="hidden" name="elementId" value={brickID} />
                 <input type="hidden" name="image" value={colorData.part_img_url ?? ""} />
+                <input type="hidden" name="required" value="1"/>
+                <input type="hidden" name="stock" value="0"/>
                 <div class="w-6 h-6 rounded-full shadow-inner" style={`background:${colorData.colorRgb}`}></div>
                 <div class="flex-1">
                   <p class="text-xs font-bold">{colorData.color_name}</p>
@@ -102,21 +134,18 @@ function SelectionColorsList({ bricksData }: Readonly<{ bricksData: {info: Rebri
   )
 }
 
+function AddManualPieceForm({selectedSet, allBricks}: Readonly<{ selectedSet: { setNumber: string }, allBricks: Array<BrickRecord> }>) {
 
-export default function AddNewPiece({selectedSet, allBricks}: Readonly<{ selectedSet: { setNumber: string }, allBricks: Array<BrickRecord> }>) {
-  const [displayColors, setDisplayColors] = useState(false);
-  const [colorBricks, setColorBricks] = useState<{info: RebrickablePartDetails, colors: RebrickablePartColorDetails[]} | null>(null);
+  const handleSubmit = (event: Event) => {
+    event.preventDefault();
+    const form = event.target as HTMLFormElement;
+    const formData = new FormData(form);
 
+    console.log("Form data to submit:", Object.fromEntries(formData.entries()));
+  }
 
   return (
-    <section class="bg-surface-container-low rounded-xl p-6">
-      <h3 class="text-xl font-black mb-4">Add Piece to Set</h3>
-
-      <SearchExternalPartForm selectedSet={selectedSet} setDisplayColors={setDisplayColors} setColorBricks={setColorBricks} />
-
-      {(displayColors && colorBricks) && <SelectionColorsList bricksData={colorBricks} />}
-
-      <form class="grid grid-cols-1 md:grid-cols-2 gap-4" id="add-brick-form">
+    <form class="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
         <input type="hidden" name="action" value="add-brick" />
         <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
         <div class="md:col-span-2 relative">
@@ -169,6 +198,22 @@ export default function AddNewPiece({selectedSet, allBricks}: Readonly<{ selecte
           <button type="submit" class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm">Add Piece</button>
         </div>
       </form>
+  )
+}
+
+export default function AddNewPiece({selectedSet, allBricks}: Readonly<{ selectedSet: { setNumber: string }, allBricks: Array<BrickRecord> }>) {
+    const colorBricks = useStore($colorBricks);
+    const displayColors = useStore($displayColors);
+
+  return (
+    <section class="bg-surface-container-low rounded-xl p-6">
+      <h3 class="text-xl font-black mb-4">Add Piece to Set</h3>
+
+      <SearchExternalPartForm selectedSet={selectedSet} />
+
+      {(displayColors && colorBricks) && <AddExternalPieceForm selectedSet={selectedSet} />}
+
+      <AddManualPieceForm selectedSet={selectedSet} allBricks={allBricks} />
     </section>
   )
 }

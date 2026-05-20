@@ -1,21 +1,53 @@
-import { removeBrickFromSet, updateBrickInSet } from '@lib/inventoryStore'
+import { addBrickToSet, removeBrickFromSet, updateBrickInSet } from '@lib/inventoryStore'
 
 // Add new External Brick
-export async function GET({ params, request }: { params: { brickID: string }, request: Request }) {
+export async function POST({ request }: { request: Request }) {
   const body = await request.formData();
   
   const newBrick = {
-    elementId: body.get("elementId"),
-    name: body.get("name"),
-    color: body.get("color"),
-    // Add any other fields you need
+    fromSet: (()=> {
+      const v = body.get("setNumber");
+      return typeof v === "string" ? v.trim() : "";
+    })(),
+    elementId: (() => {
+      const v = body.get("elementId");
+      return typeof v === "string" ? v.trim() : "";
+    })(),
+    reference: (() => {
+      const v = body.get("reference");
+      return typeof v === "string" ? v.trim() : "";
+    })(),
+    name: (() => {
+      const v = body.get("name");
+      return typeof v === "string" ? v.trim() : "";
+    })(),
+    colorId: (() => {
+      const v = body.get("colorId");
+      return typeof v === "string" ? Number(v) : 0;
+    })(),
+    image: (() => {
+      const v = body.get("image");
+      return typeof v === "string" ? v.trim() : "";
+    })(),
+    required: (() => {
+      const v = body.get("required");
+      return typeof v === "string" ? Number(v) : 0;
+    })(),
+    stock: (() => {
+      const v = body.get("stock");
+      return typeof v === "string" ? Number(v) : 0;
+    })()
   };
 
-  console.log(newBrick);
-  
+  const response = await addBrickToSet(newBrick);
 
-  // Call your function to add the new brick
-  // await addNewBrick(newBrick);
+  if (!response.added) {
+    console.error("Failed to add brick:", response.reason);
+    return new Response(JSON.stringify({ ok: false, error: response.reason }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   return new Response(JSON.stringify({ ok: true }), {
     headers: { 'Content-Type': 'application/json' },

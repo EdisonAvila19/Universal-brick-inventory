@@ -102,3 +102,30 @@ export const searchNewBrick = async (formData: FormData) : Promise<{ status: str
     }
   }
 }
+
+export const addNewBrick = async (formData: FormData) : Promise<{ status: string, message?: string }> => {
+  const element = formData.get("elementId");
+  const brickID = typeof element === "string" ? element.trim() : "";
+
+  try {
+    if (!brickID) {
+      throw new Error("Invalid element ID");
+    }
+
+    const response = await fetch(`/api/bricks/${brickID}`, {
+      method: "POST",
+      body: formData
+    });
+    
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to add the brick");
+    }
+
+    return {status: "ok", message: "Brick added successfully"};
+  } catch (error) {
+    console.error("Error adding new brick:", error);
+    return {status: "error", message: error instanceof Error ? error.message : "Failed to add the brick"};
+  }
+}
