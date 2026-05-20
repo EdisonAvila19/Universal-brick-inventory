@@ -2,8 +2,9 @@ import type { BrickRecord, SetRecord } from '@/types/archiveData'
 import { DeleteBrick, UpdateBrickData, UpdateBrickStock } from '@/utils/bricksData'
 import { useState } from 'preact/hooks'
 import { updateFeedback } from '@stores/feedback'
+import { fetchBricks } from '@stores/storage-bricks'
 
-function UpdateStockForm ({ selectedSet, brick, updateBricks }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, updateBricks: () => void }>) {
+function UpdateStockForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord }>) {
 
   const handleSubmit = async (event: Event) => {
     event.preventDefault();
@@ -17,7 +18,7 @@ function UpdateStockForm ({ selectedSet, brick, updateBricks }: Readonly<{ selec
       return;
     }
 
-    updateBricks();
+    fetchBricks();
     updateFeedback( "Brick stock updated successfully!", "info" );
   }
 
@@ -39,7 +40,7 @@ function UpdateStockForm ({ selectedSet, brick, updateBricks }: Readonly<{ selec
   )
 }
 
-function DeleteBrickForm ({ selectedSet, brick, updateBricks }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, updateBricks: () => void }>) {
+function DeleteBrickForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord }>) {
 
   const handleSubmit = async (event: Event) => {
     event.preventDefault();
@@ -52,7 +53,7 @@ function DeleteBrickForm ({ selectedSet, brick, updateBricks }: Readonly<{ selec
       return;
     }
 
-    updateBricks();
+    fetchBricks();
     updateFeedback( "Brick removed successfully!", "info" );
   }
 
@@ -66,7 +67,7 @@ function DeleteBrickForm ({ selectedSet, brick, updateBricks }: Readonly<{ selec
   )
 }
 
-function UpdateInfoForm ({ selectedSet, brick, updateBricks }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, updateBricks: () => void }>) {
+function UpdateInfoForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord }>) {
   const [isOpen, setIsOpen] = useState(false)
 
   const handleToggle = (event: Event) => {
@@ -84,7 +85,7 @@ function UpdateInfoForm ({ selectedSet, brick, updateBricks }: Readonly<{ select
       updateFeedback( "Failed to update brick details. Please try again.", "error" );
     }
 
-    updateBricks();
+    fetchBricks();
     handleToggle({ target: { open: false }} as unknown as Event);
     updateFeedback( "Brick details updated successfully!", "info" );
   }
@@ -148,12 +149,7 @@ function UpdateInfoForm ({ selectedSet, brick, updateBricks }: Readonly<{ select
 }
 
 
-export default function BricksxSetList({ selectedSet, brick, updateBricks }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, updateBricks: () => Promise<void> }>) {
-
-  const handleBrickUpdate = async () => {
-    updateBricks();
-  }
-  
+export default function BricksxSetList({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord }>) {
   return (
     <article class="bg-surface-container-lowest rounded-xl p-5">
       <div class="flex flex-col lg:flex-row gap-5 lg:items-center">
@@ -166,10 +162,10 @@ export default function BricksxSetList({ selectedSet, brick, updateBricks }: Rea
             <p class="text-xs text-secondary">{brick.colorName} · <span class="inline-block w-4 h-w-4 rounded aspect-square shadow-md border" style={`background:${brick.colorHex}`}></span></p>
           </div>
         </div>
-        <UpdateStockForm selectedSet={selectedSet} brick={brick} updateBricks={handleBrickUpdate}/>
-        <DeleteBrickForm selectedSet={selectedSet} brick={brick} updateBricks={handleBrickUpdate}/>
+        <UpdateStockForm selectedSet={selectedSet} brick={brick} />
+        <DeleteBrickForm selectedSet={selectedSet} brick={brick} />
       </div>
-        <UpdateInfoForm selectedSet={selectedSet} brick={brick} updateBricks={handleBrickUpdate}/>
+        <UpdateInfoForm selectedSet={selectedSet} brick={brick} />
     </article>
   )
 }

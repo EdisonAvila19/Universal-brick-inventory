@@ -7,7 +7,7 @@ import type { RebrickablePartColorDetails } from '@/types/rebrickable'
 import { addNewBrick, searchNewBrick } from '@utils/bricksData'
 import { updateFeedback } from '@stores/feedback';
 import { $displayColors, $colorBricks, setDisplayColors, setColorBricks, resetForm } from '@stores/storage-newPieceForm';
-import { $bricks, fetchBricks, setBricks, getBricks } from '@stores/storage-bricks';
+import { $bricks, fetchBricks, setBricks } from '@stores/storage-bricks';
 
 
 function SearchExternalPartForm({ selectedSet }: Readonly<{ selectedSet: { setNumber: string } }>) {
@@ -164,7 +164,7 @@ function AddExternalPieceForm({ selectedSet }: Readonly<{ selectedSet: { setNumb
 }
 
 function AddManualPieceForm({selectedSet, allBricks}: Readonly<{ selectedSet: { setNumber: string }, allBricks: Array<BrickRecord> }>) {
-  const bricks = useStore($bricks);
+  const fullBricks = useStore($bricks);
 
   useEffect(() => {
     setBricks(allBricks);

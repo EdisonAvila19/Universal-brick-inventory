@@ -57,7 +57,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, initialSe
         </section>
       ) : (
         <section class="space-y-4 mb-10">
-          {bricks.map((brick) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} updateBricks={fetchBricks} key={brick.elementId} />))}
+          {bricks.map((brick) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} key={brick.elementId} />))}
         </section>
       )}
     </>
