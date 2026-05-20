@@ -322,15 +322,15 @@ export async function addBrickToSet(input: { fromSet: string; elementId: string;
   const store = await readStore();
   const setExists = store.sets.some((set) => set.setNumber === input.fromSet);
   if (!setExists) {
-    return { added: false, reason: "set-not-found" };
+    return { added: false, reason: "Set not found" };
   }
   const reference = input.reference.trim();
   if (!reference) {
-    return { added: false, reason: "invalid-data" };
+    return { added: false, reason: "Invalid data" };
   }
   const alreadyExists = store.bricks.some((brick) => brick.fromSet === input.fromSet && equalsIgnoreCase(brick.elementId, input.elementId));
   if (alreadyExists) {
-    return { added: false, reason: "duplicate-piece" };
+    return { added: false, reason: "Duplicate piece" };
   }
   store.bricks = [
     ...store.bricks,
