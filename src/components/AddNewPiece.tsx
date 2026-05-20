@@ -11,9 +11,9 @@ import { $bricks, fetchBricks, setBricks, getBricks } from '@stores/storage-bric
 
 
 function SearchExternalPartForm({ selectedSet }: Readonly<{ selectedSet: { setNumber: string } }>) {
+  const existingBricks = useStore($bricks);
 
   const filterExistingBricks = async (colorBricks: RebrickablePartColorDetails[], reference: string) => {
-    const existingBricks = await getBricks();
     const setBricks = existingBricks.filter(brick => brick.fromSet === selectedSet.setNumber);
 
     const tempColorBricks = [...colorBricks]

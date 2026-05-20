@@ -3,7 +3,7 @@ import { useStore } from '@nanostores/preact';
 
 import type { BrickRecord, SetRecord } from "@/types/archiveData";
 import { GetNewBricksForSet } from '@utils/bricksData';
-import { $bricks } from '@stores/storage-bricks'
+import { $bricks, fetchBricks as fetchGlobalBricks } from '@stores/storage-bricks'
 
 export function useSetStore (activeSetNumber: string, initialSetBricks: BrickRecord[], sets: SetRecord[], setSelectedSet: (set: SetRecord | null) => void)  {
   const fullBricks = useStore($bricks);
@@ -14,6 +14,7 @@ export function useSetStore (activeSetNumber: string, initialSetBricks: BrickRec
   const fetchBricks = async () => {
     const newBricks = await GetNewBricksForSet(activeSetNumber)
     setSetBricks(newBricks);
+    fetchGlobalBricks();
   }
 
   useEffect(() => {
