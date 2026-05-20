@@ -2,9 +2,10 @@ import { searchNewBrick } from '@/utils/bricksData'
 import type { BrickRecord } from '@/types/archiveData'
 import { updateFeedback } from '@/stores/feedback';
 import { useState } from 'preact/compat'
+import type { RebrickablePartColorDetails, RebrickablePartDetails } from '@/types/rebrickable'
 
 
-function SearchExternalPartForm({ selectedSet, setDisplayColors }: Readonly<{ selectedSet: { setNumber: string }, setDisplayColors: (value: boolean) => void }>) {
+function SearchExternalPartForm({ selectedSet, setDisplayColors, setColorBricks }: Readonly<{ selectedSet: { setNumber: string }, setDisplayColors: (value: boolean) => void, setColorBricks: (value: {info: RebrickablePartDetails, colors: RebrickablePartColorDetails[]} | null) => void }>) {
 
   const handleSearchExternalPart = async (event: Event) => {
     event.preventDefault();
@@ -12,19 +13,30 @@ function SearchExternalPartForm({ selectedSet, setDisplayColors }: Readonly<{ se
     const form = event.target as HTMLFormElement;
     const formData = new FormData(form);
     const reference = formData.get("reference") as string;
-    if (!reference) {
-      updateFeedback("Reference is required to search for the part", "error");
-      return;
-    }
+    
+    try {
+      if (!reference) {
+        throw new Error("Reference is required to search for the part");
+      }
 
-    // API call to search for the part in Rebrickable
-    const result = await searchNewBrick(formData);
-    if (result.status === "error") {
-      updateFeedback("No Part matches the given query.", "error");
-      return;
-    }
+      // API call to search for the part in Rebrickable
+      const result = await searchNewBrick(formData);
 
-    setDisplayColors(true);
+      if (result.status === "error" || !result.data) {
+        throw new Error(result.message || "No Part matches the given query.");
+      }
+      const { info, colors } = result.data;
+
+      setDisplayColors(true);
+      setColorBricks({info, colors});
+    } catch (error) {
+      console.error("Error searching for external part:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred while searching for the part.";
+      setDisplayColors(false);
+      setColorBricks(null);
+      updateFeedback(errorMessage, "error");
+    }
+    
   }
 
   return (
@@ -44,37 +56,47 @@ function SearchExternalPartForm({ selectedSet, setDisplayColors }: Readonly<{ se
   )
 }
 
-function SelectionColorsList() {
+function SelectionColorsList({ bricksData }: Readonly<{ bricksData: {info: RebrickablePartDetails, colors: RebrickablePartColorDetails[]} }>) {
+
+  const { part_num, name, part_img_url } = bricksData.info;
+  const colors = bricksData.colors;
+
   return (
     <section class="bg-surface-container-highest rounded-xl p-6 mb-6">
       <h4 class="text-lg font-black mb-2">External Part Found</h4>
       <div class="flex gap-4 items-start mb-4">
-        <img src={Astro.locals.externalPart.part.part_img_url ?? "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=900&q=80"} alt={Astro.locals.externalPart.part.name} class="w-24 h-24 object-contain bg-surface-container-low p-2 rounded-lg" />
+        <img src={part_img_url ?? "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=900&q=80"} alt={name} class="w-24 h-24 object-contain bg-surface-container-low p-2 rounded-lg" />
         <div>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {Astro.locals.externalPart.part.part_num}</p>
-          <h5 class="font-black text-base">{Astro.locals.externalPart.part.name}</h5>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {part_num}</p>
+          <h5 class="font-black text-base">{name}</h5>
           <p class="text-xs text-secondary">Select a color to add:</p>
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {Astro.locals.externalPart.colors
-          .map((colorData: RebrickablePartColorDetails) => (
-          <form method="post" class="bg-surface-container-lowest p-3 rounded-lg flex items-center gap-3">
-            <input type="hidden" name="action" value="add-brick" />
-            <input type="hidden" name="setNumber" value={selectedSet?.setNumber} />
-            <input type="hidden" name="reference" value={Astro.locals.externalPart.part.part_num} />
-            <input type="hidden" name="name" value={Astro.locals.externalPart.part.name} />
-            <input type="hidden" name="colorId" value={colorData.color_id} />
-            <input type="hidden" name="elementId" value={(colorData.elements && colorData.elements[0]) ? colorData.elements[0] : `${Astro.locals.externalPart.part.part_num}-${colorData.color_id}`} />
-            <input type="hidden" name="image" value={colorData.part_img_url ?? ""} />
-            <div class="w-6 h-6 rounded-full shadow-inner" style={`background:${colorData.colorRgb}`}></div>
-            <div class="flex-1">
-              <p class="text-xs font-bold">{colorData.color_name}</p>
-              <p class="text-[9px] text-secondary">ID: {(colorData.elements && colorData.elements[0]) ? colorData.elements[0] : "N/A"}</p>
-            </div>
-            <button type="submit" class="bg-primary text-white px-3 py-1 rounded text-xs font-bold">Add</button>
-          </form>
-        ))}
+        {colors.map((colorData: RebrickablePartColorDetails) => {
+
+            const brickID = colorData.elements?.[0] 
+              ? `${part_num}-${colorData.color_id}-${colorData.elements[0]}` 
+              : `${part_num}-${colorData.color_id}`;
+
+            return (
+              <form method="post" class="bg-surface-container-lowest p-3 rounded-lg flex items-center gap-3" key={brickID}>
+                <input type="hidden" name="action" value="add-brick" />
+                <input type="hidden" name="setNumber" value={part_num} />
+                <input type="hidden" name="reference" value={part_num} />
+                <input type="hidden" name="name" value={name} />
+                <input type="hidden" name="colorId" value={colorData.color_id} />
+                <input type="hidden" name="elementId" value={brickID} />
+                <input type="hidden" name="image" value={colorData.part_img_url ?? ""} />
+                <div class="w-6 h-6 rounded-full shadow-inner" style={`background:${colorData.colorRgb}`}></div>
+                <div class="flex-1">
+                  <p class="text-xs font-bold">{colorData.color_name}</p>
+                  <p class="text-[9px] text-secondary">ID: {brickID}</p>
+                </div>
+                <button type="submit" class="bg-primary text-white px-3 py-1 rounded text-xs font-bold">Add</button>
+              </form>
+            )
+        })}
       </div>
     </section>
   )
@@ -83,15 +105,16 @@ function SelectionColorsList() {
 
 export default function AddNewPiece({selectedSet, allBricks}: Readonly<{ selectedSet: { setNumber: string }, allBricks: Array<BrickRecord> }>) {
   const [displayColors, setDisplayColors] = useState(false);
+  const [colorBricks, setColorBricks] = useState<{info: RebrickablePartDetails, colors: RebrickablePartColorDetails[]} | null>(null);
+
 
   return (
     <section class="bg-surface-container-low rounded-xl p-6">
       <h3 class="text-xl font-black mb-4">Add Piece to Set</h3>
 
-      { displayColors 
-        ? <p class="text-sm text-secondary my-4">Colors for the selected part will be displayed here.</p>
-        : <SearchExternalPartForm selectedSet={selectedSet} setDisplayColors={setDisplayColors} />
-      }
+      <SearchExternalPartForm selectedSet={selectedSet} setDisplayColors={setDisplayColors} setColorBricks={setColorBricks} />
+
+      {(displayColors && colorBricks) && <SelectionColorsList bricksData={colorBricks} />}
 
       <form class="grid grid-cols-1 md:grid-cols-2 gap-4" id="add-brick-form">
         <input type="hidden" name="action" value="add-brick" />
