@@ -7,10 +7,27 @@ import type { RebrickablePartColorDetails } from '@/types/rebrickable'
 import { addNewBrick, searchNewBrick } from '@utils/bricksData'
 import { updateFeedback } from '@stores/feedback';
 import { $displayColors, $colorBricks, setDisplayColors, setColorBricks, resetForm } from '@stores/storage-newPieceForm';
-import { $bricks, fetchBricks, setBricks } from '@stores/storage-bricks';
+import { $bricks, fetchBricks, setBricks, getBricks } from '@stores/storage-bricks';
 
 
 function SearchExternalPartForm({ selectedSet }: Readonly<{ selectedSet: { setNumber: string } }>) {
+
+  const filterExistingBricks = async (colorBricks: RebrickablePartColorDetails[], reference: string) => {
+    const existingBricks = await getBricks();
+    const setBricks = existingBricks.filter(brick => brick.fromSet === selectedSet.setNumber);
+
+    const tempColorBricks = [...colorBricks]
+    tempColorBricks.forEach(colorBrick => {
+      if (colorBrick.elements[0]) return;
+      colorBrick.elements[0] = `${reference}-${colorBrick.color_id}`;
+    });
+
+    const filteredColors = tempColorBricks.filter(({color_name, elements}) => {
+      return !setBricks.some(({elementId, reference}) => elementId === (elements[0] ? elements[0] : `${reference}-${color_name}`));
+    })
+
+    return filteredColors;
+  }
 
   const handleSearchExternalPart = async (event: Event) => {
     event.preventDefault();
@@ -32,8 +49,10 @@ function SearchExternalPartForm({ selectedSet }: Readonly<{ selectedSet: { setNu
       }
       const { info, colors } = result.data;
 
+      const filteredBricks = await filterExistingBricks(colors, info.part_num);
+
       setDisplayColors(true);
-      setColorBricks({info, colors});
+      setColorBricks({info, colors: filteredBricks});
 
     } catch (error) {
       console.error("Error searching for external part:", error);
