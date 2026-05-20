@@ -31,8 +31,17 @@ const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? 
   <Feedback client:load/>
 
   <!-- Result -->
-  <SetInfo activeSetNumber={activeSetNumber} initialSelectedSet={selectedSet} initialSetBricks={bricks} client:load/>
+  { selectedSet
+    ? (
+      <SetInfo activeSetNumber={activeSetNumber} initialSelectedSet={selectedSet} initialSetBricks={bricks} client:load/>
 
-  <!-- Add new Pieces -->
-  {selectedSet && <AddNewPiece selectedSet={selectedSet} allBricks={allBricks} client:load/>}
+      <AddNewPiece selectedSet={selectedSet} allBricks={allBricks} client:load/>
+    )
+    : (
+      <section class="bg-error-container text-on-error-container rounded-xl p-6">
+        <h2 class="text-xl font-black mb-2">Set not found</h2>
+        <p class="text-sm">The selected set does not exist in inventory. Go back to <a href="/sets" class="font-bold underline">Set Catalog</a> or select another set in the list.</p>
+      </section>
+    )
+  }
 </AppLayout>
