@@ -1,7 +1,16 @@
 import { getInventoryBricks, updateBrickStock } from "@lib/inventoryStore";
 
+// Get Bricks
+export async function GET({ request, }: { request: Request }) {
+  const bricks = await getInventoryBricks();
+
+  return new Response(JSON.stringify({ bricks }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 // Update Brick
-export async function POST({ request }: { request: Request }) {
+export async function PUT({ request }: { request: Request }) {
   const body = await request.formData();
 
   const IdRaw = body.get("elementId");
@@ -46,11 +55,3 @@ export async function POST({ request }: { request: Request }) {
   });
 }
 
-// Get Bricks
-export async function GET({ request, }: { request: Request }) {
-  const bricks = await getInventoryBricks();
-
-  return new Response(JSON.stringify({ bricks }), {
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
