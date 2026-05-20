@@ -1,10 +1,13 @@
 import { useStore } from '@nanostores/preact';
-import type { BrickRecord, SetRecord } from "@/types/archiveData";
-import SetInfoForm from "@components/SetInfoForm";
-import { $sets } from '@/stores/storage-sets';
 import { useState } from "preact/hooks";
-import BricksxSetList from './BricksxSetList'
+
+import type { BrickRecord, SetRecord } from "@/types/archiveData";
 import { useSetStore } from '@/hooks/useSetStore'
+
+import { $sets } from '@stores/storage-sets';
+
+import SetInfoForm from "@components/SetInfoForm";
+import BricksxSetList from '@components/BricksxSetList'
 
 export default function SetInfo({ activeSetNumber, initialSelectedSet, initialSetBricks }: Readonly<{ activeSetNumber: string | null, initialSelectedSet: SetRecord | null, initialSetBricks: BrickRecord[] }>) {
   
@@ -24,14 +27,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, initialSe
   const { fetchBricks, totalRequired, totalOwned, bricks } = useSetStore(activeSetNumber, initialSetBricks, sets, setSelectedSet);
 
   // If a set is selected but not found in the store, show an error message
-  if (!selectedSet) {
-    return (
-      <section class="bg-error-container text-on-error-container rounded-xl p-6">
-        <h2 class="text-xl font-black mb-2">Set not found</h2>
-        <p class="text-sm">The selected set does not exist in inventory. Go back to <a href="/sets" class="font-bold underline">Set Catalog</a> or select another set in the list.</p>
-      </section>
-    )
-  }
+  if (!selectedSet) return
 
   // If a set is selected and found, display the form
   return (

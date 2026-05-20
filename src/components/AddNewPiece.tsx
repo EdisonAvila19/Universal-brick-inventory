@@ -1,10 +1,14 @@
-import { addNewBrick, searchNewBrick } from '@/utils/bricksData'
+import { useStore } from '@nanostores/preact';
+import { useEffect } from "preact/hooks";
+
 import type { BrickRecord } from '@/types/archiveData'
-import { updateFeedback } from '@/stores/feedback';
 import type { RebrickablePartColorDetails } from '@/types/rebrickable'
 
-import { useStore } from '@nanostores/preact';
+import { addNewBrick, searchNewBrick } from '@utils/bricksData'
+import { updateFeedback } from '@stores/feedback';
 import { $displayColors, $colorBricks, setDisplayColors, setColorBricks, resetForm } from '@stores/storage-newPieceForm';
+import { $bricks, fetchBricks, setBricks } from '@stores/storage-bricks';
+
 
 function SearchExternalPartForm({ selectedSet }: Readonly<{ selectedSet: { setNumber: string } }>) {
 
@@ -83,6 +87,12 @@ function AddExternalPieceForm({ selectedSet }: Readonly<{ selectedSet: { setNumb
         throw new Error(results.message || "Failed to add the brick");
       }
 
+      const updateBricksResults = await fetchBricks()
+
+      if (updateBricksResults.status === "error") {
+        throw new Error(updateBricksResults.message || "Brick added but failed to update the bricks list");
+      }
+
       updateFeedback("Brick added successfully!", "info");
       resetForm();
     } catch (error) {
@@ -135,6 +145,11 @@ function AddExternalPieceForm({ selectedSet }: Readonly<{ selectedSet: { setNumb
 }
 
 function AddManualPieceForm({selectedSet, allBricks}: Readonly<{ selectedSet: { setNumber: string }, allBricks: Array<BrickRecord> }>) {
+  const bricks = useStore($bricks);
+
+  useEffect(() => {
+    setBricks(allBricks);
+  }, []);
 
   const handleSubmit = (event: Event) => {
     event.preventDefault();
@@ -146,58 +161,58 @@ function AddManualPieceForm({selectedSet, allBricks}: Readonly<{ selectedSet: { 
 
   return (
     <form class="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
-        <input type="hidden" name="action" value="add-brick" />
-        <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
-        <div class="md:col-span-2 relative">
-          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
-            Search Existing Piece{" "}
-            <input name="existingElementId" id="existingElementId" placeholder="Search by typing reference, name or color" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
-          </label>
-          <div id="existing-bricks-suggestions" class="hidden absolute z-10 w-full bg-surface-container-highest rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1"></div>
-        </div>
-        <div id="manual-fields" style="display: contents;">
-          <div>
-            <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
-              Reference{" "}
-              <input name="reference" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
-            </label>
-          </div>
-          <div>
-            <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
-              Name{" "}
-              <input name="name" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
-            </label>
-          </div>
-          <div>
-            <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
-              Color ID{" "}
-              <input type="number" name="colorId" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
-            </label>
-          </div>
-          <div class="md:col-span-2">
-            <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
-              Image URL{" "}
-              <input type="url" name="image" placeholder="https://..." class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
-            </label>
-          </div>
-        </div>
-        <div id="existing-preview" class="md:col-span-2" style="display:none;"></div>
+      <input type="hidden" name="action" value="add-brick" />
+      <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
+      <div class="md:col-span-2 relative">
+        <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
+          Search Existing Piece{" "}
+          <input name="existingElementId" id="existingElementId" placeholder="Search by typing reference, name or color" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+        </label>
+        <div id="existing-bricks-suggestions" class="hidden absolute z-10 w-full bg-surface-container-highest rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1"></div>
+      </div>
+      <div id="manual-fields" style="display: contents;">
         <div>
           <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
-            Required{" "}
-            <input required min="1" type="number" name="required" value="1" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            Reference{" "}
+            <input name="reference" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div>
         <div>
           <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
-            Stock{" "}
-            <input required min="0" type="number" name="stock" value="0" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            Name{" "}
+            <input name="name" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+          </label>
+        </div>
+        <div>
+          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
+            Color ID{" "}
+            <input type="number" name="colorId" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div>
         <div class="md:col-span-2">
-          <button type="submit" class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm">Add Piece</button>
+          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
+            Image URL{" "}
+            <input type="url" name="image" placeholder="https://..." class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+          </label>
         </div>
-      </form>
+      </div>
+      <div id="existing-preview" class="md:col-span-2" style="display:none;"></div>
+      <div>
+        <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
+          Required{" "}
+          <input required min="1" type="number" name="required" value="1" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+        </label>
+      </div>
+      <div>
+        <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
+          Stock{" "}
+          <input required min="0" type="number" name="stock" value="0" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+        </label>
+      </div>
+      <div class="md:col-span-2">
+        <button type="submit" class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm">Add Piece</button>
+      </div>
+    </form>
   )
 }
 
