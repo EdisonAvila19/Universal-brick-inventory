@@ -9,6 +9,10 @@ export async function setBricks(bricks: BrickRecord[]) {
   $bricks.set(bricks);
 }
 
+export async function getBricks() {
+  return $bricks.get();
+}
+
 export async function refreshBrickStats(groupedBricks: GroupedBrick[]) {
   const totalUniquePieces = groupedBricks.length;
   const missingBricks = groupedBricks.reduce((acc, g) => acc + (g.needed > 0 ? 1 : 0), 0);
