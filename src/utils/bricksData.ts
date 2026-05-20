@@ -1,4 +1,5 @@
 import type { BrickRecord } from "@/types/archiveData";
+import type { RebrickablePartDetails, RebrickablePartColorDetails } from '@/types/rebrickable'
 
 export const GetNewBricksForSet = async (setNumber: string): Promise<BrickRecord[]> => {
   try {
@@ -76,19 +77,22 @@ export const UpdateBrickStock = async (setNumber: string, formData: FormData) =>
   }
 }
 
-export const searchNewBrick = async (formData: FormData) => {
+export const searchNewBrick = async (formData: FormData) : Promise<{ status: string, message?: string, data?: { info: RebrickablePartDetails,colors:RebrickablePartColorDetails[]} }> => {
   const reference = formData.get("reference");
   if (typeof reference !== "string" || !reference.trim()) {
     return ({ status: "error", message: "Invalid reference" });
   }
   try {
     const response = await fetch(`/api/bricks/external/${reference}`);
-
+    
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error || "Failed to search for the part");
     }
-    return ({status: "ok", message: "Search completed, check console for details" });
+    
+    const searchResult = await response.json();
+    return ({ status: "ok", data: searchResult });
+
   } catch (error) {
     console.error("Error adding new brick:", error);
     if (error instanceof Error) {
