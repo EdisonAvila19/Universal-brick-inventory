@@ -35,7 +35,7 @@ export async function fetchBricks() {
 export async function updateBrick (formData: FormData) {
   try {
     const response = await fetch(`/api/bricks`, {
-      method: "POST",
+      method: "PUT",
       body: formData
     });
 
