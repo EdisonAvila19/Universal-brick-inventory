@@ -20,6 +20,9 @@ let database: DatabaseSync | undefined;
 function getDb() {
   if (!database) {
     database = new DatabaseSync(DB_FILE);
+
+    database.exec("PRAGMA journal_mode=WAL");
+
     database.exec(`
       CREATE TABLE IF NOT EXISTS sets (
         id TEXT PRIMARY KEY,
@@ -31,30 +34,88 @@ function getDb() {
         image TEXT NOT NULL,
         source TEXT NOT NULL,
         homologatedToLego INTEGER NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS bricks (
-        elementId TEXT NOT NULL,
-        fromSet TEXT NOT NULL,
-        reference TEXT NOT NULL,
-        name TEXT NOT NULL,
-        colorId INTEGER NOT NULL,
-        image TEXT NOT NULL,
-        required INTEGER NOT NULL,
-        stock INTEGER NOT NULL,
-        buyAt TEXT NOT NULL,
-        plannedStore TEXT,
-        plannedQuantity INTEGER,
-        plannedLegoQuantity INTEGER,
-        plannedBricklinkQuantity INTEGER,
-        PRIMARY KEY (fromSet, elementId),
-        FOREIGN KEY (colorId) REFERENCES colors(id)
-      );
+      )
+    `);
+
+    database.exec(`
       CREATE TABLE IF NOT EXISTS colors (
         id INTEGER PRIMARY KEY,
         name TEXT NOT NULL,
         rgb TEXT NOT NULL
-      );
+      )
     `);
+
+    const existingBrickColumns = database
+      .prepare("PRAGMA table_info(bricks)")
+      .all() as Array<{ name: string }>;
+    const isOldSchema = existingBrickColumns.some((c) => c.name === "fromSet");
+
+    if (isOldSchema) {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS bricks_new (
+          elementId TEXT PRIMARY KEY,
+          reference TEXT NOT NULL,
+          name TEXT NOT NULL,
+          colorId INTEGER NOT NULL,
+          image TEXT NOT NULL,
+          buyAt TEXT NOT NULL DEFAULT '["lego","bricklink"]',
+          plannedStore TEXT,
+          plannedQuantity INTEGER,
+          plannedLegoQuantity INTEGER,
+          plannedBricklinkQuantity INTEGER
+        )
+      `);
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS set_bricks (
+          setNumber TEXT NOT NULL,
+          elementId TEXT NOT NULL,
+          required INTEGER NOT NULL,
+          stock INTEGER NOT NULL,
+          PRIMARY KEY (setNumber, elementId)
+        )
+      `);
+      database.exec("BEGIN");
+      try {
+        database.exec(`
+          INSERT OR IGNORE INTO bricks_new (elementId, reference, name, colorId, image, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity)
+          SELECT elementId, reference, name, colorId, image, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity FROM bricks
+        `);
+        database.exec(`
+          INSERT INTO set_bricks (setNumber, elementId, required, stock)
+          SELECT fromSet, elementId, required, stock FROM bricks
+        `);
+        database.exec("DROP TABLE bricks");
+        database.exec("ALTER TABLE bricks_new RENAME TO bricks");
+        database.exec("COMMIT");
+      } catch (err) {
+        database.exec("ROLLBACK");
+        throw err;
+      }
+    } else {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS bricks (
+          elementId TEXT PRIMARY KEY,
+          reference TEXT NOT NULL,
+          name TEXT NOT NULL,
+          colorId INTEGER NOT NULL,
+          image TEXT NOT NULL,
+          buyAt TEXT NOT NULL DEFAULT '["lego","bricklink"]',
+          plannedStore TEXT,
+          plannedQuantity INTEGER,
+          plannedLegoQuantity INTEGER,
+          plannedBricklinkQuantity INTEGER
+        )
+      `);
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS set_bricks (
+          setNumber TEXT NOT NULL,
+          elementId TEXT NOT NULL,
+          required INTEGER NOT NULL,
+          stock INTEGER NOT NULL,
+          PRIMARY KEY (setNumber, elementId)
+        )
+      `);
+    }
   }
   return database;
 }
@@ -133,12 +194,14 @@ async function readStore(): Promise<InventoryPayload> {
   const db = getDb();
   const sets = db.prepare("SELECT id, setNumber, name, brand, totalPieces, ownedPieces, image, source, homologatedToLego FROM sets ORDER BY rowid ASC").all() as Array<Record<string, unknown>>;
   const bricks = db.prepare(`
-    SELECT b.elementId, b.fromSet, b.reference, b.name, b.colorId, b.image, b.required, b.stock, b.buyAt,
+    SELECT b.elementId, b.reference, b.name, b.colorId, b.image, b.buyAt,
            b.plannedStore, b.plannedQuantity, b.plannedLegoQuantity, b.plannedBricklinkQuantity,
-           c.name as colorName, c.rgb as colorHex
+           sb.setNumber AS fromSet, sb.required, sb.stock,
+           c.name AS colorName, c.rgb AS colorHex
     FROM bricks b
+    INNER JOIN set_bricks sb ON sb.elementId = b.elementId
     LEFT JOIN colors c ON b.colorId = c.id
-    ORDER BY b.rowid ASC
+    ORDER BY sb.rowid ASC
   `).all() as Array<Record<string, unknown>>;
   return {
     sets: sets.map((set) => ({ ...set, homologatedToLego: toBoolean(set.homologatedToLego) })) as SetRecord[],
@@ -150,11 +213,15 @@ async function saveStore(payload: InventoryPayload) {
   const db = getDb();
   db.exec("BEGIN");
   try {
-    db.exec("DELETE FROM bricks; DELETE FROM sets;");
+    db.exec("DELETE FROM set_bricks; DELETE FROM bricks; DELETE FROM sets;");
     const insertSet = db.prepare("INSERT INTO sets (id, setNumber, name, brand, totalPieces, ownedPieces, image, source, homologatedToLego) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    const insertBrick = db.prepare("INSERT INTO bricks (elementId, fromSet, reference, name, colorId, image, required, stock, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    const insertBrick = db.prepare("INSERT OR IGNORE INTO bricks (elementId, reference, name, colorId, image, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    const insertSetBrick = db.prepare("INSERT INTO set_bricks (setNumber, elementId, required, stock) VALUES (?, ?, ?, ?)");
     for (const set of payload.sets) insertSet.run(set.id, set.setNumber, set.name, set.brand, set.totalPieces, set.ownedPieces, set.image, set.source, set.homologatedToLego ? 1 : 0);
-    for (const brick of payload.bricks) insertBrick.run(brick.elementId, brick.fromSet, brick.reference, brick.name, brick.colorId, brick.image, brick.required, brick.stock, JSON.stringify(brick.buyAt), brick.plannedStore ?? null, brick.plannedQuantity ?? null, brick.plannedLegoQuantity ?? null, brick.plannedBricklinkQuantity ?? null);
+    for (const brick of payload.bricks) {
+      insertBrick.run(brick.elementId, brick.reference, brick.name, brick.colorId, brick.image, JSON.stringify(brick.buyAt), brick.plannedStore ?? null, brick.plannedQuantity ?? null, brick.plannedLegoQuantity ?? null, brick.plannedBricklinkQuantity ?? null);
+      insertSetBrick.run(brick.fromSet, brick.elementId, brick.required, brick.stock);
+    }
     db.exec("COMMIT");
   } catch (err) {
     db.exec("ROLLBACK");
@@ -208,56 +275,46 @@ export async function addSetToInventory(nextSet: SetRecord, bricks: BrickRecord[
 }
 
 export async function updateBrickStock(input: { elementId: string; fromSet: string; stock: number }): Promise<{ updated: boolean }> {
-  
-  const store = await readStore();
+  const db = getDb();
   const nextStock = Number.isFinite(input.stock) ? Math.max(0, Math.floor(input.stock)) : 0;
-  let updated = false;
-  store.bricks = store.bricks.map((brick) => {
-    const isTarget = brick.elementId === input.elementId && brick.fromSet === input.fromSet;
-    if (!isTarget) return brick;
-    updated = true;
-    return { ...brick, stock: nextStock };
-  });
-  if (!updated) {
+  const result = db.prepare("UPDATE set_bricks SET stock = ? WHERE setNumber = ? AND elementId = ?").run(nextStock, input.fromSet, input.elementId);
+  if (result.changes === 0) {
     return { updated: false };
   }
+  const store = await readStore();
   store.sets = recalculateOwnedPieces(store.sets, store.bricks);
   await saveStore(store);
   return { updated: true };
 }
 
 export async function updateBrickPurchasePlan(input: { elementId: string; fromSet: string; plannedLegoQuantity: number; plannedBricklinkQuantity: number }): Promise<{ updated: boolean }> {
-  const store = await readStore();
+  const db = getDb();
   const nextLegoQuantity = Number.isFinite(input.plannedLegoQuantity) ? Math.max(0, Math.floor(input.plannedLegoQuantity)) : 0;
   const nextBricklinkQuantity = Number.isFinite(input.plannedBricklinkQuantity) ? Math.max(0, Math.floor(input.plannedBricklinkQuantity)) : 0;
   const nextTotal = nextLegoQuantity + nextBricklinkQuantity;
-  let updated = false;
-  store.bricks = store.bricks.map((brick) => {
-    const isTarget = brick.elementId === input.elementId && brick.fromSet === input.fromSet;
-    if (!isTarget) return brick;
-    updated = true;
-    if (nextTotal === 0) {
-      return {
-        ...brick,
-        plannedStore: undefined,
-        plannedQuantity: undefined,
-        plannedLegoQuantity: undefined,
-        plannedBricklinkQuantity: undefined
-      };
-    }
-    const normalizedStore = nextLegoQuantity > 0 && nextBricklinkQuantity === 0 ? "lego" : nextBricklinkQuantity > 0 && nextLegoQuantity === 0 ? "bricklink" : undefined;
-    return {
-      ...brick,
-      plannedStore: normalizedStore,
-      plannedQuantity: nextTotal,
-      plannedLegoQuantity: nextLegoQuantity,
-      plannedBricklinkQuantity: nextBricklinkQuantity
-    };
-  });
-  if (!updated) {
+
+  let plannedStore: string | null = null;
+  let plannedQuantity: number | null = null;
+  let plannedLegoQuantity: number | null = null;
+  let plannedBricklinkQuantity: number | null = null;
+
+  if (nextTotal > 0) {
+    plannedLegoQuantity = nextLegoQuantity;
+    plannedBricklinkQuantity = nextBricklinkQuantity;
+    plannedQuantity = nextTotal;
+    if (nextLegoQuantity > 0 && nextBricklinkQuantity === 0) plannedStore = "lego";
+    else if (nextBricklinkQuantity > 0 && nextLegoQuantity === 0) plannedStore = "bricklink";
+  }
+
+  const result = db
+    .prepare(
+      "UPDATE bricks SET plannedStore = ?, plannedQuantity = ?, plannedLegoQuantity = ?, plannedBricklinkQuantity = ? WHERE elementId = ?"
+    )
+    .run(plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity, input.elementId);
+
+  if (result.changes === 0) {
     return { updated: false };
   }
-  await saveStore(store);
   return { updated: true };
 }
 
@@ -313,6 +370,7 @@ export async function deleteSetFromInventory(setNumber: string): Promise<{ remov
   if (store.sets.length === previousLength) {
     return { removed: false };
   }
+  store.bricks = store.bricks.filter((brick) => brick.fromSet !== setNumber);
   store.sets = recalculateOwnedPieces(store.sets, store.bricks);
   await saveStore(store);
   return { removed: true };
@@ -332,20 +390,20 @@ export async function addBrickToSet(input: { fromSet: string; elementId: string;
   if (alreadyExists) {
     return { added: false, reason: "Duplicate piece" };
   }
-  store.bricks = [
-    ...store.bricks,
-    {
-      elementId: input.elementId.trim(),
-      fromSet: input.fromSet,
-      reference,
-      name: input.name.trim() || reference,
-      colorId: input.colorId,
-      image: input.image.trim() || "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=900&q=80",
-      required: Math.max(1, normalizeNonNegativeInt(input.required, 1)),
-      stock: normalizeNonNegativeInt(input.stock, 0),
-      buyAt: ["lego", "bricklink"]
-    }
-  ];
+
+  const newBrick: BrickRecord = {
+    elementId: input.elementId.trim(),
+    fromSet: input.fromSet,
+    reference,
+    name: input.name.trim() || reference,
+    colorId: input.colorId,
+    image: input.image.trim() || "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=900&q=80",
+    required: Math.max(1, normalizeNonNegativeInt(input.required, 1)),
+    stock: normalizeNonNegativeInt(input.stock, 0),
+    buyAt: ["lego", "bricklink"]
+  };
+
+  store.bricks = [...store.bricks, newBrick];
   store.sets = recalculateOwnedPieces(store.sets, store.bricks);
   await saveStore(store);
   return { added: true };

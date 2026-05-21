@@ -32,6 +32,13 @@ export interface BrickRecord {
   fromSet: string;
 }
 
+export interface SetBrickRecord {
+  fromSet: string;
+  elementId: string;
+  required: number;
+  stock: number;
+}
+
 export interface ManualSetInput {
   name: string;
   setNumber: string;
