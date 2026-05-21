@@ -168,7 +168,12 @@ function AddManualPieceForm({selectedSet, allBricks}: Readonly<{ selectedSet: { 
   const [previewBrick, setPreviewBrick] = useState<BrickRecord | null>(null);
   const [suggestions, setSuggestions] = useState<Array<BrickRecord>>([]);
   const suggestionBoxRef = useRef<HTMLDivElement | null>(null);
-  const suggestionBrickData = useRef<HTMLFormElement | null>(null);
+
+  const elementIdRef = useRef<string>("")
+  const referenceRef = useRef<string>("")
+  const nameRef = useRef<string>("")
+  const colorIdRef = useRef<string>("")
+  const imageRef = useRef<string>("")
 
   useEffect(() => {
     setBricks(allBricks);
@@ -178,6 +183,7 @@ function AddManualPieceForm({selectedSet, allBricks}: Readonly<{ selectedSet: { 
     function handleClickOutside(event: MouseEvent) {
       if (suggestionBoxRef.current && !suggestionBoxRef.current.contains(event.target as Node)) {
         setSuggestions([]);
+        setPreviewBrick(null);
       }
     }
 
@@ -191,6 +197,15 @@ function AddManualPieceForm({selectedSet, allBricks}: Readonly<{ selectedSet: { 
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [suggestions]);
+
+  const resetManualForm = () => {
+    elementIdRef.current = "";
+    referenceRef.current = "";
+    nameRef.current = "";
+    colorIdRef.current = "";
+    imageRef.current = "";
+    setPreviewBrick(null);
+  }
 
   const handleSearchSuggestions = (event: Event) => {
     event.preventDefault();
@@ -214,34 +229,58 @@ function AddManualPieceForm({selectedSet, allBricks}: Readonly<{ selectedSet: { 
   }
 
   const handleSuggestionClick = (brick: BrickRecord) => {
+    elementIdRef.current = brick.elementId;
+    referenceRef.current = brick.reference;
+    nameRef.current = brick.name;
+    colorIdRef.current = brick.colorId.toString();
+    imageRef.current = brick.image;
+
     setPreviewBrick(brick);
     setSuggestions([]);
-    
-    const form = suggestionBrickData.current 
-    if (!form) return;
-
-    const elementIdInput = form.elements.namedItem("elementId") as HTMLInputElement;
-    elementIdInput.value = brick.elementId;
-
-    const referenceInput = form.elements.namedItem("reference") as HTMLInputElement;
-    referenceInput.value = brick.reference;
-
-    const nameInput = form.elements.namedItem("name") as HTMLInputElement;
-    nameInput.value = brick.name;
-
-    const colorIdInput = form.elements.namedItem("colorId") as HTMLInputElement;
-    colorIdInput.value = brick.colorId.toString();
-
-    const imageInput = form.elements.namedItem("image") as HTMLInputElement;
-    imageInput.value = brick.image;
   }
 
-  const handleSubmit = (event: Event) => {
+  const handleSubmit = async (event: Event) => {
     event.preventDefault();
     const form = event.target as HTMLFormElement;
     const formData = new FormData(form);
 
-    console.log("Form data to submit:", Object.fromEntries(formData.entries()));
+    try {
+      if (!formData.get("setNumber") || !formData.get("reference") || !formData.get("name") || !formData.get("colorId")) {
+        throw new Error("Missing required fields to add the brick");
+      }
+
+      const elementId = formData.get("elementId")
+      if (!elementId) {
+        const rawReference = formData.get("reference")
+        const reference = typeof rawReference === "string" ? rawReference.trim() : "";
+        const colorId = Number(formData.get("colorId") ?? "0");
+        
+        formData.set("elementId", `${reference}-${colorId}`);
+      }
+      
+      const results = await addNewBrick(formData)
+      
+      if (results.status === "error") {
+        throw new Error(results.message || "Failed to add the brick");
+      }
+
+      const updateBricksResults = await fetchBricks()
+
+      if (updateBricksResults.status === "error") {
+        throw new Error(updateBricksResults.message || "Brick added but failed to update the bricks list");
+      }
+
+      updateFeedback("Brick added successfully!", "info");
+      suggestionBoxRef.current = null;
+      resetManualForm();
+
+    } catch (error) {
+      console.error("Error adding new brick:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred while adding the brick.";
+      updateFeedback(errorMessage, "error");
+    }
+
+    
   }
 
   return (
@@ -281,16 +320,16 @@ function AddManualPieceForm({selectedSet, allBricks}: Readonly<{ selectedSet: { 
         </div>
       )}
 
-      <form ref={suggestionBrickData} class="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
-        <input type="hidden" name="fromSet" value={selectedSet.setNumber} />
+      <form class="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
+        <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
         {previewBrick 
           ? (
             <>
-              <input type="hidden" name="elementId" />
-              <input type="hidden" name="reference"/>
-              <input type="hidden" name="name"/>
-              <input type="hidden" name="colorId"/>
-              <input type="hidden" name="image"/>
+              <input value={elementIdRef.current} type="hidden" name="elementId" />
+              <input value={referenceRef.current} type="hidden" name="reference"/>
+              <input value={nameRef.current} type="hidden" name="name"/>
+              <input value={colorIdRef.current} type="hidden" name="colorId"/>
+              <input value={imageRef.current} type="hidden" name="image"/>
             </>
           )
           : (
@@ -299,25 +338,25 @@ function AddManualPieceForm({selectedSet, allBricks}: Readonly<{ selectedSet: { 
               <div>
                 <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
                   Reference{" "}
-                  <input name="reference" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" required />
+                  <input name="reference" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" value={referenceRef.current} required />
                 </label>
               </div>
               <div>
                 <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
                   Name{" "}
-                  <input name="name" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" required/>
+                  <input name="name" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" value={nameRef.current} required />
                 </label>
               </div>
               <div>
                 <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
                   Color ID{" "}
-                  <input type="number" name="colorId" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" required />
+                  <input type="number" name="colorId" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" value={colorIdRef.current} required />
                 </label>
               </div>
               <div class="md:col-span-2">
                 <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
                   Image URL{" "}
-                  <input type="url" name="image" placeholder="https://..." class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" required />
+                  <input type="url" name="image" placeholder="https://..." class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" value={imageRef.current} required />
                 </label>
               </div>
             </div>
