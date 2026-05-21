@@ -251,6 +251,20 @@ export async function getInventorySets(): Promise<SetRecord[]> {
   return store.sets;
 }
 
+export async function getBricksCatalog(): Promise<BrickRecord[]> {
+  await ensureStore();
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT b.elementId, b.reference, b.name, b.colorId, b.image, b.buyAt,
+           b.plannedStore, b.plannedQuantity, b.plannedLegoQuantity, b.plannedBricklinkQuantity,
+           c.name AS colorName, c.rgb AS colorHex
+    FROM bricks b
+    LEFT JOIN colors c ON b.colorId = c.id
+    ORDER BY b.elementId ASC
+  `).all() as Array<Record<string, unknown>>;
+  return rows.map((row) => ({ ...row, buyAt: parseBuyAt(String(row.buyAt ?? "[]")) })) as BrickRecord[];
+}
+
 export async function getInventoryBricks(): Promise<BrickRecord[]> {
   const store = await readStore();
   return store.bricks;
