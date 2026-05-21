@@ -15,9 +15,6 @@ const bricks = await getInventoryBricksSet(activeSetNumber);
 const allBricks = await getInventoryBricks();
 const colors = await getColors();
 
-const bricksCatalog = await getBricksCatalog();
-console.log(bricksCatalog);
-
 const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? null;
 ---
 

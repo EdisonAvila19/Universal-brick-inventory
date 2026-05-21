@@ -36,7 +36,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, initialSe
 
         {/* Set Info */}
         <div class="flex flex-col md:flex-row gap-6 mb-6">
-          <img src={selectedSet.image} alt={selectedSet.name} class="w-32 h-32 object-cover rounded-lg bg-surface-container-low" />
+          <img src={selectedSet.image} alt={selectedSet.name} class="max-w-[250px] max-h-[250px] object-cover rounded-lg bg-surface-container-low" />
           <div class="space-y-2">
             <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Set No. {selectedSet.setNumber}</p>
             <h2 class="text-2xl font-black leading-tight">{selectedSet.name}</h2>

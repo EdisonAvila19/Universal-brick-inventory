@@ -20,7 +20,7 @@ export default function BrickInfo(group: Readonly<GroupedBrick>) {
               <p class="text-[10px] font-bold text-secondary tracking-widest uppercase">Ref. {group.reference}</p>
               <p class="text-[9px] font-semibold text-tertiary tracking-wider">ID: {group.elementId}</p>
             </div>
-            <div class="w-6 h-6 rounded-full shadow-inner" style={`background:${group.colorHex};`} title={`Color: ${group.colorName}`}></div>
+            <div class="w-6 h-6 rounded-full shadow-md shadow-black" style={`background:${group.colorHex};`} title={`Color: ${group.colorName}`}></div>
           </div>
           <h3 class="font-bold text-lg leading-tight mt-1">{group.name}</h3>
         </div>

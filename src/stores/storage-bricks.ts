@@ -24,7 +24,6 @@ export async function setBricksCatalog() {
     if (!response.ok) throw new Error("Failed to fetch bricks catalog");
 
     const { bricks } = await response.json(); 
-    console.log("Fetched bricks catalog:", bricks);
     
     $BricksCatalog.set(bricks);
   } catch (error) {
