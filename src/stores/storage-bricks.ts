@@ -2,6 +2,7 @@ import { atom } from 'nanostores';
 import type { BrickRecord, GroupedBrick } from '@/types/archiveData';
 
 export const $bricks = atom<BrickRecord[]>([]);
+export const $BricksCatalog = atom<BrickRecord[]>([]);
 export const $brickStats = atom({ Unique: 0, Missing: 0 });
 export const $filters = atom<{ piece: string, set: string[], status: string }>({ piece: "", set: [], status: "all" });
 
@@ -11,6 +12,24 @@ export async function setBricks(bricks: BrickRecord[]) {
 
 export async function getBricks() {
   return $bricks.get();
+}
+
+export async function getBricksCatalog() {
+  return $BricksCatalog.get();
+}
+
+export async function setBricksCatalog() {
+  try {
+    const response = await fetch('/api/bricks/catalog');
+    if (!response.ok) throw new Error("Failed to fetch bricks catalog");
+
+    const { bricks } = await response.json(); 
+    console.log("Fetched bricks catalog:", bricks);
+    
+    $BricksCatalog.set(bricks);
+  } catch (error) {
+    console.error("Error fetching bricks catalog:", error);
+  }
 }
 
 export async function refreshBrickStats(groupedBricks: GroupedBrick[]) {

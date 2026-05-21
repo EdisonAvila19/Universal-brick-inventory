@@ -7,7 +7,7 @@ import type { RebrickablePartColorDetails } from '@/types/rebrickable'
 import { addNewBrick, searchNewBrick } from '@utils/bricksData'
 import { updateFeedback } from '@stores/feedback';
 import { $displayColors, $colorBricks, setDisplayColors, setColorBricks, resetForm } from '@stores/storage-newPieceForm';
-import { $bricks, fetchBricks, setBricks } from '@stores/storage-bricks';
+import { $bricks, $BricksCatalog, fetchBricks, setBricks, setBricksCatalog } from '@stores/storage-bricks';
 
 
 function SearchExternalPartForm({ selectedSet }: Readonly<{ selectedSet: { setNumber: string } }>) {
@@ -164,7 +164,7 @@ function AddExternalPieceForm({ selectedSet }: Readonly<{ selectedSet: { setNumb
 }
 
 function AddManualPieceForm({selectedSet, allBricks, colors}: Readonly<{ selectedSet: { setNumber: string }, allBricks: Array<BrickRecord>, colors: Array<ArchiveColor> }>) {
-  const fullBricks = useStore($bricks);
+  const BricksCatalog = useStore($BricksCatalog);
   const [previewBrick, setPreviewBrick] = useState<BrickRecord | null>(null);
   const [suggestions, setSuggestions] = useState<Array<BrickRecord>>([]);
   const suggestionBoxRef = useRef<HTMLDivElement | null>(null);
@@ -217,8 +217,8 @@ function AddManualPieceForm({selectedSet, allBricks, colors}: Readonly<{ selecte
       setPreviewBrick(null);
       return;
     }
-    
-    const matches = fullBricks.filter(b =>
+
+    const matches = BricksCatalog.filter(b =>
       b.elementId.toLowerCase().includes(query) ||
       b.reference.toLowerCase().includes(query) ||
       b.name.toLowerCase().includes(query) ||
@@ -296,10 +296,11 @@ function AddManualPieceForm({selectedSet, allBricks, colors}: Readonly<{ selecte
           <div ref={suggestionBoxRef} class="absolute z-10 w-full bg-surface-container-highest rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1">
             {suggestions.map(b => (
               <button class="w-full px-3 py-2 cursor-pointer hover:bg-surface-container-low flex items-center gap-3" data-element-id={b.elementId} key={b.elementId} onClick={() => handleSuggestionClick(b)}>
-                <img src={b.image} alt={b.name} class="w-8 h-8 rounded object-contain bg-surface-container-low p-1" />
+                <img src={b.image} alt={b.name} class="w-h-10 h-10 rounded object-contain bg-surface-container-low p-1" />
                 <div class="min-w-0 flex flex-col items-start">
+                  
                   <p class="text-xs font-bold truncate">{b.name}</p>
-                  <p class="text-[9px] text-secondary">{b.reference} · {b.colorName ?? 'Unknown'} · <span class="inline-block w-2 h-2 rounded" style={`background:${b.colorHex}`}></span></p>
+                  <p class="flex gap-1 text-[12px] text-secondary">{b.reference} · {b.colorName ?? 'Unknown'} · <span class="inline-block w-3 h-3 border border-black rounded-full" style={`background:${b.colorHex}`}></span></p>
                 </div>
               </button>
             ))}
@@ -310,11 +311,12 @@ function AddManualPieceForm({selectedSet, allBricks, colors}: Readonly<{ selecte
       {previewBrick && (
         <div id="existing-preview" class="md:col-span-2">
           <div class="bg-surface-container-highest rounded-lg p-4 flex gap-4 items-center">
-            <img src={previewBrick.image} alt={previewBrick.name} class="w-16 h-16 rounded-lg object-contain p-2 bg-surface-container-low" />
+            <img src={previewBrick.image} alt={previewBrick.name} class="w-20 h-20 rounded-lg object-contain p-2 bg-surface-container-low" />
             <div>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Id. {previewBrick.elementId}</p>
               <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {previewBrick.reference}</p>
               <h4 class="font-black text-base">{previewBrick.name}</h4>
-              <p class="text-xs text-secondary">{previewBrick.colorName} · <span class="inline-block w-3 h-3 rounded" style="background:${previewBrick.colorHex}"></span> {previewBrick.colorHex}</p>
+              <p class="text-xs text-secondary">{previewBrick.colorName} · <span class="inline-block w-3 h-3 rounded" style={`background:${previewBrick.colorHex}`}></span></p>
             </div>
           </div>
         </div>
@@ -391,8 +393,12 @@ function AddManualPieceForm({selectedSet, allBricks, colors}: Readonly<{ selecte
 }
 
 export default function AddNewPiece({selectedSet, allBricks, colors}: Readonly<{ selectedSet: { setNumber: string }, allBricks: Array<BrickRecord>, colors: Array<ArchiveColor> }>) {
-    const colorBricks = useStore($colorBricks);
-    const displayColors = useStore($displayColors);
+  const colorBricks = useStore($colorBricks);
+  const displayColors = useStore($displayColors);
+
+  useEffect(() => {
+    setBricksCatalog();
+  }, [$bricks])
 
   return (
     <section class="bg-surface-container-low rounded-xl p-6">
