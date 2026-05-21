@@ -25,10 +25,10 @@ const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? 
       <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">Set Metadata</p>
       <h1 class="text-4xl font-black tracking-tight">Edit Set Information</h1>
     </div>
+    <!-- Filter -->
     <SetsSelect initialSets={allSets} activeSetNumber={activeSetNumber} client:load/>
   </section>
 
-  <!-- Filter -->
   
   <!-- Feedback -->
   <Feedback client:load/>
