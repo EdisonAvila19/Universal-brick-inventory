@@ -42,9 +42,9 @@ export default function SetCard(setData: Readonly<SetRecord>) {
           <a href={`/bricks?set=${encodeURIComponent(set.setNumber)}`} className="flex-1 text-center bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">Brick Inventory</a>
           <a href={`/shopping?set=${encodeURIComponent(set.setNumber)}`} className="flex-1 text-center bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">Shopping List</a>
         </div> */}
-        <div className="mb-3">
+        {/* <div className="mb-3">
           <a href={`/set-parts?set=${encodeURIComponent(setData.setNumber)}`} className="w-full inline-flex justify-center bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">View/Edit Pieces</a>
-        </div>
+        </div> */}
         <div className="mb-3">
           <a href={`/sets/${encodeURIComponent(setData.setNumber)}`} className="w-full inline-flex justify-center bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">Edit Set Info</a>
         </div>
