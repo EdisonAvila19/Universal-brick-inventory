@@ -18,7 +18,7 @@ export default function SetsSelect({initialSets, activeSetNumber}: Readonly<{ini
   }, [])
 
   return (
-    <section className="text-left bg-surface-container-low rounded-xl p-6 mb-6  ">
+    <section className="text-left bg-surface-container-low rounded-xl px-6 mb-6  w-1/2">
       <div className='relative'>
 
         {/* <!-- Botón del dropdown --> */}

@@ -1,8 +1,9 @@
-import type { BrickRecord, SetRecord } from '@/types/archiveData'
+import type { ArchiveColor, BrickRecord, SetRecord } from '@/types/archiveData'
 import { DeleteBrick, UpdateBrickData, UpdateBrickStock } from '@/utils/bricksData'
 import { useState } from 'preact/hooks'
 import { updateFeedback } from '@stores/feedback'
 import { fetchBricks } from '@stores/storage-bricks'
+import '@styles/select.css'
 
 function UpdateStockForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord }>) {
 
@@ -67,7 +68,7 @@ function DeleteBrickForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRec
   )
 }
 
-function UpdateInfoForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord }>) {
+function UpdateInfoForm ({ selectedSet, brick, colors }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, colors: ArchiveColor[] }>) {
   const [isOpen, setIsOpen] = useState(false)
 
   const handleToggle = (event: Event) => {
@@ -91,57 +92,70 @@ function UpdateInfoForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetReco
   }
 
   return (
-    <details class="mt-4" open={isOpen} onToggle={handleToggle}>
-      <summary class="cursor-pointer text-xs font-bold uppercase tracking-widest text-secondary" > Edit Piece Details </summary>
-      <form class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3" onSubmit={handleSubmit}>
+    <details className="mt-4" open={isOpen} onToggle={handleToggle}>
+      <summary className="cursor-pointer text-xs font-bold uppercase tracking-widest text-secondary" > Edit Piece Details </summary>
+      <form className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3" onSubmit={handleSubmit}>
         <input type="hidden" name="action" value="update-brick" />
         <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
         <input type="hidden" name="originalElementId" value={brick.elementId} />
         <input type="hidden" name="elementId" value={brick.elementId} />
         <div>
-          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
+          <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Reference{" "}
-            <input required name="reference" value={brick.reference} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input required name="reference" value={brick.reference} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div>
         <div>
-          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
+          <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Name{" "}
-            <input required name="name" value={brick.name} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input required name="name" value={brick.name} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div>
-        <div>
-          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
+        {/* <div>
+          <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Color{" "}
-            <input required name="color" type='number' value={brick.colorId} min={-1} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input required name="color" type='number' value={brick.colorId} min={-1} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+          </label>
+        </div> */}
+        <div>
+          <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
+            Color{" "}
+            <select required name="color" className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm">
+              {colors.map((color) => (
+                <option value={color.id} selected={color.id === brick.colorId} key={color.id}>
+                  <span className="w-4 h-4 rounded-full border border-black" style={{ backgroundColor: color.rgb }} aria-hidden="true"></span>
+                  <span className="">{color.name}</span>
+                </option>
+              ))}
+            </select>
           </label>
         </div>
-        <div>
-          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
+        {/* <div>
+          <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Color Hex{" "}
-            <input name="colorHex" value={brick.colorHex} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input name="colorHex" value={brick.colorHex} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
           </label>
-        </div>
-        <div class="md:col-span-2">
-          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
+        </div> */}
+        <div>
+          <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Image URL{" "}
-            <input type="url" name="image" value={brick.image} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input type="url" name="image" value={brick.image} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div>
         <div>
-          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
+          <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Required{" "}
-            <input required min="1" type="number" name="required" value={brick.required} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input required min="1" type="number" name="required" value={brick.required} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div>
         <div>
-          <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
+          <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Stock{" "}
-            <input required min="0" type="number" name="stock" value={brick.stock} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input required min="0" type="number" name="stock" value={brick.stock} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div>
-        <div class="md:col-span-2">
-          <button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Save Details</button>
+        <div className="md:col-span-2">
+          <button type="submit" className="bg-primary text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Save Details</button>
         </div>
       </form>
     </details>
@@ -149,23 +163,23 @@ function UpdateInfoForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetReco
 }
 
 
-export default function BricksxSetList({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord }>) {
+export default function BricksxSetList({ selectedSet, brick, colors }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, colors: ArchiveColor[] }>) {
   return (
-    <article class="bg-surface-container-lowest rounded-xl p-5">
-      <div class="flex flex-col lg:flex-row gap-5 lg:items-center">
-        <div class="flex gap-4 min-w-0 lg:flex-1">
-          <img src={brick.image} alt={brick.name} class="max-w-max-h-32 max-h-32 rounded-lg bg-surface-container-low object-contain p-2" />
-          <div class="min-w-0 flex gap-2 flex-col justify-center">
-            <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {brick.reference}</p>
-            <p class="text-[9px] font-semibold text-tertiary tracking-wider">ID: {brick.elementId}</p>
-            <h3 class="font-black text-base leading-tight">{brick.name}</h3>
-            <p class="text-xs text-secondary">{brick.colorName} · <span class="inline-block w-4 h-w-4 rounded aspect-square shadow-md border" style={`background:${brick.colorHex}`}></span></p>
+    <article className="bg-surface-container-lowest rounded-xl p-5">
+      <div className="flex flex-col lg:flex-row gap-5 lg:items-center">
+        <div className="flex gap-4 min-w-0 lg:flex-1">
+          <img src={brick.image} alt={brick.name} className="max-w-max-h-32 max-h-32 rounded-lg bg-surface-container-low object-contain p-2" />
+          <div className="min-w-0 flex gap-2 flex-col justify-center">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {brick.reference}</p>
+            <p className="text-[9px] font-semibold text-tertiary tracking-wider">ID: {brick.elementId}</p>
+            <h3 className="font-black text-base leading-tight">{brick.name}</h3>
+            <p className="text-xs text-secondary">{brick.colorName} · <span class="inline-block w-4 h-w-4 rounded aspect-square shadow-md border" style={`background:${brick.colorHex}`}></span></p>
           </div>
         </div>
         <UpdateStockForm selectedSet={selectedSet} brick={brick} />
         <DeleteBrickForm selectedSet={selectedSet} brick={brick} />
       </div>
-        <UpdateInfoForm selectedSet={selectedSet} brick={brick} />
+        <UpdateInfoForm selectedSet={selectedSet} brick={brick} colors={colors} />
     </article>
   )
 }

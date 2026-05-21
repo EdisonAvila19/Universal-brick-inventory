@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/preact';
 import { useEffect, useState, useRef } from "preact/hooks";
 
-import type { BrickRecord } from '@/types/archiveData'
+import type { ArchiveColor, BrickRecord } from '@/types/archiveData'
 import type { RebrickablePartColorDetails } from '@/types/rebrickable'
 
 import { addNewBrick, searchNewBrick } from '@utils/bricksData'
@@ -163,7 +163,7 @@ function AddExternalPieceForm({ selectedSet }: Readonly<{ selectedSet: { setNumb
   )
 }
 
-function AddManualPieceForm({selectedSet, allBricks}: Readonly<{ selectedSet: { setNumber: string }, allBricks: Array<BrickRecord> }>) {
+function AddManualPieceForm({selectedSet, allBricks, colors}: Readonly<{ selectedSet: { setNumber: string }, allBricks: Array<BrickRecord>, colors: Array<ArchiveColor> }>) {
   const fullBricks = useStore($bricks);
   const [previewBrick, setPreviewBrick] = useState<BrickRecord | null>(null);
   const [suggestions, setSuggestions] = useState<Array<BrickRecord>>([]);
@@ -350,10 +350,18 @@ function AddManualPieceForm({selectedSet, allBricks}: Readonly<{ selectedSet: { 
               <div>
                 <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
                   Color ID{" "}
-                  <input type="number" name="colorId" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" value={colorIdRef.current} required />
+                  <select required name="color" className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" value={colorIdRef.current} onChange={(e) => colorIdRef.current = e.currentTarget.value}>
+                    {colors.map((color) => (
+                      <option value={color.id} key={color.id}>
+                        <span className="w-4 h-4 rounded-full border border-black" style={{ backgroundColor: color.rgb }} aria-hidden="true"></span>
+                        <span className="">{color.name}</span>
+                      </option>
+                    ))}
+                  </select>
+                  {/* <input type="number" name="colorId" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" value={colorIdRef.current} required /> */}
                 </label>
               </div>
-              <div class="md:col-span-2">
+              <div>
                 <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
                   Image URL{" "}
                   <input type="url" name="image" placeholder="https://..." class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" value={imageRef.current} required />
@@ -382,7 +390,7 @@ function AddManualPieceForm({selectedSet, allBricks}: Readonly<{ selectedSet: { 
   )
 }
 
-export default function AddNewPiece({selectedSet, allBricks}: Readonly<{ selectedSet: { setNumber: string }, allBricks: Array<BrickRecord> }>) {
+export default function AddNewPiece({selectedSet, allBricks, colors}: Readonly<{ selectedSet: { setNumber: string }, allBricks: Array<BrickRecord>, colors: Array<ArchiveColor> }>) {
     const colorBricks = useStore($colorBricks);
     const displayColors = useStore($displayColors);
 
@@ -394,7 +402,7 @@ export default function AddNewPiece({selectedSet, allBricks}: Readonly<{ selecte
 
       {(displayColors && colorBricks) && <AddExternalPieceForm selectedSet={selectedSet} />}
 
-      <AddManualPieceForm selectedSet={selectedSet} allBricks={allBricks} />
+      <AddManualPieceForm selectedSet={selectedSet} allBricks={allBricks} colors={colors} />
     </section>
   )
 }

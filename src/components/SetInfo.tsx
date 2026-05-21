@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/preact';
 import { useState } from "preact/hooks";
 
-import type { BrickRecord, SetRecord } from "@/types/archiveData";
+import type { BrickRecord, SetRecord, ArchiveColor } from "@/types/archiveData";
 import { useSetStore } from '@/hooks/useSetStore'
 
 import { $sets } from '@stores/storage-sets';
@@ -9,7 +9,7 @@ import { $sets } from '@stores/storage-sets';
 import SetInfoForm from "@components/SetInfoForm";
 import BricksxSetList from '@components/BricksxSetList'
 
-export default function SetInfo({ activeSetNumber, initialSelectedSet, initialSetBricks }: Readonly<{ activeSetNumber: string | null, initialSelectedSet: SetRecord | null, initialSetBricks: BrickRecord[] }>) {
+export default function SetInfo({ activeSetNumber, initialSelectedSet, initialSetBricks, colors }: Readonly<{ activeSetNumber: string | null, initialSelectedSet: SetRecord | null, initialSetBricks: BrickRecord[], colors: ArchiveColor[] }>) {
   
   // Handle cases where no set is selected or the selected set is not found
   if (!activeSetNumber) {
@@ -24,7 +24,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, initialSe
   const sets = useStore($sets);
   const [selectedSet, setSelectedSet] = useState(initialSelectedSet)
 
-  const { fetchBricks, totalRequired, totalOwned, bricks } = useSetStore(activeSetNumber, initialSetBricks, sets, setSelectedSet);
+  const { totalRequired, totalOwned, bricks } = useSetStore(activeSetNumber, initialSetBricks, sets, setSelectedSet);
 
   // If a set is selected but not found in the store, show an error message
   if (!selectedSet) return
@@ -57,7 +57,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, initialSe
         </section>
       ) : (
         <section class="space-y-4 mb-10">
-          {bricks.map((brick) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} key={brick.elementId} />))}
+          {bricks.map((brick) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} colors={colors} key={brick.elementId} />))}
         </section>
       )}
     </>

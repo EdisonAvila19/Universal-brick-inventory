@@ -1,0 +1,10 @@
+select,
+::picker(select) {
+  appearance: base-select;
+
+  @apply bg-surface-container-highest
+}
+
+select::picker-icon {
+  opacity: 0;
+}

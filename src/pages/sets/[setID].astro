@@ -1,6 +1,6 @@
 ---
 import AppLayout from "@layouts/AppLayout.astro";
-import { getInventoryBricks, getInventoryBricksSet, getInventorySets } from "@lib/inventoryStore";
+import { getColors, getInventoryBricks, getInventoryBricksSet, getInventorySets } from "@lib/inventoryStore";
 import { Feedback } from "@components/Feedback";
 import SetsSelect from "@components/SetsSelect";
 import SetInfo from "@components/SetInfo";
@@ -13,19 +13,22 @@ let activeSetNumber = querySetNumber || "";
 const allSets = await getInventorySets();
 const bricks = await getInventoryBricksSet(activeSetNumber);
 const allBricks = await getInventoryBricks();
+const colors = await getColors();
 
 const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? null;
 ---
 
 <AppLayout title="Bricks Inventory | Edit Set" active="catalog">
 
-  <section class="mb-10">
-    <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">Set Metadata</p>
-    <h1 class="text-4xl font-black tracking-tight">Edit Set Information</h1>
+  <section class="mb-5 flex flex-row w-full justify-between">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">Set Metadata</p>
+      <h1 class="text-4xl font-black tracking-tight">Edit Set Information</h1>
+    </div>
+    <SetsSelect initialSets={allSets} activeSetNumber={activeSetNumber} client:load/>
   </section>
 
   <!-- Filter -->
-  <SetsSelect initialSets={allSets} activeSetNumber={activeSetNumber} client:load/>
   
   <!-- Feedback -->
   <Feedback client:load/>
@@ -33,9 +36,9 @@ const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? 
   <!-- Result -->
   { selectedSet
     ? (
-      <SetInfo activeSetNumber={activeSetNumber} initialSelectedSet={selectedSet} initialSetBricks={bricks} client:load/>
+      <SetInfo activeSetNumber={activeSetNumber} initialSelectedSet={selectedSet} initialSetBricks={bricks} colors={colors} client:load/>
 
-      <AddNewPiece selectedSet={selectedSet} allBricks={allBricks} client:load/>
+      <AddNewPiece selectedSet={selectedSet} allBricks={allBricks} colors={colors} client:load/>
     )
     : (
       <section class="bg-error-container text-on-error-container rounded-xl p-6">
