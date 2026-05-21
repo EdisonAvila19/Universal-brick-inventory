@@ -24,4 +24,4 @@ pnpm-debug.log*
 .idea/
 
 # SQLite database files
-data/inventory.sqlite
+data/*.sqlite
