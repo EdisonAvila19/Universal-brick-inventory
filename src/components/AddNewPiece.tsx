@@ -7,7 +7,7 @@ import type { RebrickablePartColorDetails } from '@/types/rebrickable'
 import { addNewBrick, searchNewBrick } from '@utils/bricksData'
 import { updateFeedback } from '@stores/feedback';
 import { $displayColors, $colorBricks, setDisplayColors, setColorBricks, resetForm } from '@stores/storage-newPieceForm';
-import { $bricks, $BricksCatalog, fetchBricks, setBricks, setBricksCatalog } from '@stores/storage-bricks';
+import { $bricks, $BricksCatalog, fetchBricks, setBricksCatalog } from '@stores/storage-bricks';
 
 
 function SearchExternalPartForm({ selectedSet }: Readonly<{ selectedSet: { setNumber: string } }>) {
@@ -163,7 +163,7 @@ function AddExternalPieceForm({ selectedSet }: Readonly<{ selectedSet: { setNumb
   )
 }
 
-function AddManualPieceForm({selectedSet, allBricks, colors}: Readonly<{ selectedSet: { setNumber: string }, allBricks: Array<BrickRecord>, colors: Array<ArchiveColor> }>) {
+function AddManualPieceForm({selectedSet, colors}: Readonly<{ selectedSet: { setNumber: string }, colors: Array<ArchiveColor> }>) {
   const BricksCatalog = useStore($BricksCatalog);
   const [previewBrick, setPreviewBrick] = useState<BrickRecord | null>(null);
   const [suggestions, setSuggestions] = useState<Array<BrickRecord>>([]);
@@ -176,7 +176,7 @@ function AddManualPieceForm({selectedSet, allBricks, colors}: Readonly<{ selecte
   const imageRef = useRef<string>("")
 
   useEffect(() => {
-    setBricks(allBricks);
+    fetchBricks();
   }, []);
 
   useEffect(() => {
@@ -392,7 +392,7 @@ function AddManualPieceForm({selectedSet, allBricks, colors}: Readonly<{ selecte
   )
 }
 
-export default function AddNewPiece({selectedSet, allBricks, colors}: Readonly<{ selectedSet: { setNumber: string }, allBricks: Array<BrickRecord>, colors: Array<ArchiveColor> }>) {
+export default function AddNewPiece({selectedSet, colors}: Readonly<{ selectedSet: { setNumber: string }, colors: Array<ArchiveColor> }>) {
   const colorBricks = useStore($colorBricks);
   const displayColors = useStore($displayColors);
 
@@ -408,7 +408,7 @@ export default function AddNewPiece({selectedSet, allBricks, colors}: Readonly<{
 
       {(displayColors && colorBricks) && <AddExternalPieceForm selectedSet={selectedSet} />}
 
-      <AddManualPieceForm selectedSet={selectedSet} allBricks={allBricks} colors={colors} />
+      <AddManualPieceForm selectedSet={selectedSet} colors={colors} />
     </section>
   )
 }

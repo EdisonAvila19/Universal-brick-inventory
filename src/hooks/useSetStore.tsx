@@ -5,15 +5,18 @@ import type { BrickRecord, SetRecord } from "@/types/archiveData";
 import { GetNewBricksForSet } from '@utils/bricksData';
 import { $bricks } from '@stores/storage-bricks'
 
-export function useSetStore (activeSetNumber: string, initialSetBricks: BrickRecord[], sets: SetRecord[], setSelectedSet: (set: SetRecord | null) => void)  {
+export function useSetStore (activeSetNumber: string, sets: SetRecord[], setSelectedSet: (set: SetRecord | null) => void)  {
   const fullBricks = useStore($bricks);
-  const [setBricks, setSetBricks] = useState(initialSetBricks);
-  const [totalRequired, setTotalRequired] = useState(initialSetBricks.reduce((acc, brick) => acc + brick.required, 0));
-  const [totalOwned, setTotalOwned] = useState(initialSetBricks.reduce((acc, brick) => acc + Math.min(brick.required, brick.stock), 0));
+  const [setBricks, setSetBricks] = useState<BrickRecord[]>([]);
+  const [totalRequired, setTotalRequired] = useState(0);
+  const [totalOwned, setTotalOwned] = useState(0);
+  const [loading, setLoading] = useState(true);
   
   const fetchBricks = async () => {
+    setLoading(true);
     const newBricks = await GetNewBricksForSet(activeSetNumber)
     setSetBricks(newBricks);
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -32,5 +35,5 @@ export function useSetStore (activeSetNumber: string, initialSetBricks: BrickRec
     fetchBricks();
   }, [fullBricks])
 
-  return { fetchBricks, totalRequired, totalOwned, bricks: setBricks, setBricks: setSetBricks };
+  return { fetchBricks, totalRequired, totalOwned, bricks: setBricks, setBricks: setSetBricks, loading };
 }
