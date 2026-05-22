@@ -29,7 +29,11 @@ module.exports = {
         sans: ["Inter", "sans-serif"]
       },
       animation: {
-        shake: 'shake 0.5s ease-in-out both'
+        shake: 'shake 0.5s ease-in-out both',
+        'fade-in': 'fade-in 0.3s ease-in both',
+        'fade-out': 'fade-out 0.3s ease-out both',
+        'slide-in-top': 'slide-in-top 0.3s ease-out both',
+        'slide-out-top': 'slide-out-top 0.3s ease-out both'
       },
       keyframes: {
         shake: {
@@ -37,6 +41,22 @@ module.exports = {
           '25%': { transform: 'translateX(-10px)' },
           '50%': { transform: 'translateX(10px)' },
           '75%': { transform: 'translateX(-10px)' }
+        },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' }
+        },
+        'fade-out': {
+          '0%': { opacity: '1' },
+          '100%': { opacity: '0' }
+        },
+        'slide-in-top': {
+          '0%': { opacity: '0', transform: 'translateY(-20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' }
+        },
+        'slide-out-top': {
+          '0%': { opacity: '1', transform: 'translateY(0)' },
+          '100%': { opacity: '0', transform: 'translateY(-20px)' }
         }
       }
     }

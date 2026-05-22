@@ -396,63 +396,70 @@ function AddManualPieceForm({selectedSet, colors, onSuccess}: Readonly<{ selecte
 export default function AddNewPiece({selectedSet, colors}: Readonly<{ selectedSet: { setNumber: string }, colors: Array<ArchiveColor> }>) {
   const colorBricks = useStore($colorBricks);
   const displayColors = useStore($displayColors);
-  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [entered, setEntered] = useState(false);
   const [shaking, setShaking] = useState(false);
 
   useEffect(() => {
     setBricksCatalog();
   }, [$bricks])
 
-  const close = () => {
-    setOpen(false);
-    resetForm();
+  const openModal = () => {
+    setMounted(true);
+    requestAnimationFrame(() => setEntered(true));
+  };
+
+  const closeModal = () => {
+    setEntered(false);
+    setTimeout(() => {
+      setMounted(false);
+      resetForm();
+    }, 350);
+  };
+
+  const toggle = () => {
+    if (mounted) {
+      closeModal();
+    } else {
+      openModal();
+    }
+    setShaking(true);
+    setTimeout(() => setShaking(false), 600);
   };
 
   return (
     <>
       <button
-        onClick={() => {
-          setOpen(!open);
-          setShaking(true);
-          setTimeout(() => setShaking(false), 600);
-        }}
+        onClick={toggle}
         class={`fixed top-6 right-0 z-[70] w-14 h-14 bg-primary-container text-[#6a5700] rounded-s-lg shadow-lg flex items-center justify-center text-3xl font-bold hover:bg-primary/90 hover:text-white transition-colors ${shaking ? 'animate-shake' : ''}`}
-        aria-label={open ? "Close" : "Add piece to set"}
+        aria-label={mounted ? "Close" : "Add piece to set"}
       >
         <span
           className="block transition-transform duration-300 ease-in-out"
-          style={`transform: rotate(${open ? 45 : 0}deg)`}
+          style={`transform: rotate(${mounted ? 45 : 0}deg)`}
         >
           +
         </span>
       </button>
 
-      {open && (
+      {mounted && (
         <div
           className="fixed inset-0 z-50 flex items-start justify-center pt-12 pb-12 items-center ml-64"
-          onClick={(e) => { if (e.target === e.currentTarget) close(); }}
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
         >
-          <div className="absolute inset-0 bg-black/40" onClick={close}/>
+          <div className={`absolute inset-0 bg-black/40 ${entered ? 'animate-fade-in' : 'animate-fade-out'}`} onClick={closeModal}/>
 
-          <div className="relative bg-surface-container-low rounded-xl p-6 w-full max-w-7xl max-h-full overflow-y-auto mx-4 shadow-2xl">
+          <div className={`relative bg-surface-container-low rounded-xl p-6 w-full max-w-7xl max-h-full overflow-y-auto mx-4 shadow-2xl ${entered ? 'animate-fade-in animate-slide-in-top' : 'animate-fade-out animate-slide-out-top'}`}>
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-xl font-black">Add Piece to Set</h3>
             </div>
 
             <SearchExternalPartForm selectedSet={selectedSet} />
 
-            {(displayColors && colorBricks) && <AddExternalPieceForm selectedSet={selectedSet} onSuccess={close} />}
+            {(displayColors && colorBricks) && <AddExternalPieceForm selectedSet={selectedSet} onSuccess={closeModal} />}
 
-            <AddManualPieceForm selectedSet={selectedSet} colors={colors} onSuccess={close} />
+            <AddManualPieceForm selectedSet={selectedSet} colors={colors} onSuccess={closeModal} />
           </div>
-
-          {/* <button
-            onClick={close}
-            class="fixed top-4 right-4 z-[60] w-10 h-10 flex items-center justify-center rounded-ful text-white hover:bg-surface-dim transition-colors text-5xl font-bold"
-            aria-label="Close"
-          >
-            &times;
-          </button> */}
         </div>
       )}
     </>
