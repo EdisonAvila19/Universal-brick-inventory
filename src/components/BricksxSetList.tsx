@@ -168,7 +168,7 @@ export default function BricksxSetList({ selectedSet, brick, colors }: Readonly<
     <article className="bg-surface-container-lowest rounded-xl p-5 shadow-[0_0_13px_-6px] shadow-contrast">
       <div className="flex flex-col lg:flex-row gap-5 lg:items-center">
         <div className="flex gap-4 min-w-0 lg:flex-1">
-          <img src={brick.image} alt={brick.name} className="max-w-max-h-32 max-h-32 rounded-lg bg-surface-container-low object-contain p-2" />
+          <img src={brick.image} alt={brick.name} className="max-w-max-h-32 max-h-32 rounded-lg bg-surface-container-low object-contain p-2" loading="lazy" />
           <div className="min-w-0 flex gap-2 flex-col justify-center">
             <p className="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {brick.reference}</p>
             <p className="text-[9px] font-semibold text-tertiary tracking-wider">ID: {brick.elementId}</p>

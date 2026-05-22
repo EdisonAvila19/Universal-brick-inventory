@@ -78,7 +78,7 @@ export default function BricksFilters({ initialFilters, sets, colors }: Readonly
       <div>
         <label class="block text-[10px] uppercase font-bold text-secondary px-2">
           Set Source{" "}
-          <select class="w-full h-[46px] bg-box text-contrast rounded-lg px-4 py-3 text-sm mt-2 border-none" name="set" multiple size={1} onChange={handleSetChange}>
+          <select class="w-full h-[46px] bg-box text-contrast rounded-lg px-4 ps-3 pe-8 text-sm mt-2 border-none" name="set" multiple size={1} onChange={handleSetChange}>
             {sets.map((set) => (
               <option key={set.value} selected={localSets.includes(set.value)} value={set.value}>{set.label}</option>
             ))}

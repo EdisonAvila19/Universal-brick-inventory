@@ -11,7 +11,7 @@ export default function BrickInfo(group: Readonly<GroupedBrick>) {
         </div>
 
         <div className="w-full aspect-square bg-box rounded-md mb-6 overflow-hidden">
-          <img alt={group.name} class="w-full h-full object-contain p-8" src={group.image} />
+          <img alt={group.name} class="w-full h-full object-contain p-8" loading="lazy" src={group.image} />
         </div>
 
         <div className="flex flex-col justify-between items-start mb-4">
