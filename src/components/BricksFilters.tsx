@@ -38,7 +38,7 @@ export default function BricksFilters({ initialFilters, sets }: Readonly<{ initi
       <div>
         <label class="block text-[10px] uppercase font-bold text-secondary px-2">
           Piece Number or Name{" "}
-          <input class="w-full bg-box text-contrast placeholder:text-contrast placeholder:opacity-60 rounded-lg px-4 py-3 text-sm mt-2 border-none shadow-sm shadow-contrast" placeholder="e.g. 3001" type="text" name="piece" value={filters.piece} />
+          <input class="w-full bg-box text-contrast placeholder:text-contrast placeholder:opacity-60 rounded-lg px-4 py-3 text-sm mt-2 border-none" placeholder="e.g. 3001" type="text" name="piece" value={filters.piece} />
         </label>
       </div>
       <div>
