@@ -28,6 +28,7 @@ export default function SetCard(setData: Readonly<SetRecord>) {
       </div>
       <p className="text-[10px] font-bold text-secondary uppercase tracking-[0.1em]">Set No. {setData.setNumber}</p>
       <h3 className="text-lg font-bold leading-tight mt-1">{setData.name}</h3>
+      <span className="text-xs font-medium text-secondary">{setData.totalPieces.toLocaleString()} Pieces</span>
       <div className="mt-4 space-y-1">
         <div className="flex justify-between text-[10px] font-bold text-secondary uppercase tracking-widest">
           <span>Completion</span>
@@ -46,10 +47,9 @@ export default function SetCard(setData: Readonly<SetRecord>) {
           <a href={`/set-parts?set=${encodeURIComponent(setData.setNumber)}`} className="w-full inline-flex justify-center bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">View/Edit Pieces</a>
         </div> */}
         <div className="mb-3">
-          <a href={`/sets/${encodeURIComponent(setData.setNumber)}`} className="w-full inline-flex justify-center bg-surface-container-highest text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">Edit Set Info</a>
+          <a href={`/sets/${encodeURIComponent(setData.setNumber)}`} className="w-full inline-flex justify-center bg-surface-container-high text-on-surface text-xs font-bold uppercase tracking-widest px-3 py-2 rounded-lg">Edit Set Info</a>
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-secondary">{setData.totalPieces.toLocaleString()} Pieces</span>
+        <div className="flex items-center justify-center gap-2">
           <form onSubmit={handleDelete}>
             <input type="hidden" name="action" value="delete-set" />
             <input type="hidden" name="setNumber" value={setData.setNumber} />

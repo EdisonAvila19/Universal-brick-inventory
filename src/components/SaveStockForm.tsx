@@ -49,7 +49,7 @@ export function SaveStockForm({ group, closeList }: Readonly<{ group: GroupedBri
           ))}
         </div>
         <input type="hidden" name="elementId" value={group.elementId} />
-        <button type="submit" className="w-full bg-primary text-white rounded-lg py-2 mt-3 text-xs font-bold uppercase tracking-wider">{ buttonLabel }</button>
+        <button type="submit" className="w-full bg-primary-container text-primary-container-contrast rounded-lg py-2 mt-3 text-xs font-bold uppercase tracking-wider">{ buttonLabel }</button>
       </form>
   )
 }

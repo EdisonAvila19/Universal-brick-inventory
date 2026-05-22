@@ -1,25 +1,30 @@
 /** @type {import('tailwindcss').Config} */
 
 module.exports = {
+  darkMode: 'class',
   content: ["./src/**/*.{astro,html,js,jsx,ts,tsx,md,mdx}"],
   theme: {
     extend: {
       colors: {
-        primary: "#715d00",
-        "primary-container": "#f2cd37",
-        secondary: "#5f5e5e",
-        surface: "#fcf9f8",
-        "on-surface": "#1b1c1c",
-        error: "#ba1a1a",
-        "error-container": "#ffdad6",
-        "on-error-container": "#93000a",
-        "tertiary-container": "#62dfff",
-        "on-tertiary-container": "#006173",
-        "surface-container-low": "#f6f3f2",
-        "surface-container-lowest": "#ffffff",
-        "surface-container-high": "#eae7e7",
-        "surface-container-highest": "#e4e2e1",
-        "outline-variant": "#d0c6ad"
+        primary: "var(--color-primary)",
+        "primary-container": "var(--color-primary-container)",
+        "primary-container-contrast": "var(--color-primary-container-contrast)",
+        secondary: "var(--color-secondary)",
+        surface: "var(--color-surface)",
+        "on-surface": "var(--color-on-surface)",
+        error: "var(--color-error)",
+        "error-container": "var(--color-error-container)",
+        "on-error-container": "var(--color-on-error-container)",
+        "tertiary-container": "var(--color-tertiary-container)",
+        "on-tertiary-container": "var(--color-on-tertiary-container)",
+        "surface-container-low": "var(--color-surface-container-low)",
+        "surface-container-lowest": "var(--color-surface-container-lowest)",
+        "surface-container-high": "var(--color-surface-container-high)",
+        "surface-container-highest": "var(--color-surface-container-highest)",
+        "outline-variant": "var(--color-outline-variant)",
+        "selected": "var(--color-selected)",
+        "filter": "var(--color-filter)",
+        "on-filter": "var(--color-on-filter)"
       },
       borderRadius: {
         xl: "0.5rem",

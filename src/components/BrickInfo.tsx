@@ -4,13 +4,13 @@ import { BrickStock } from '@components/BrickStock'
 
 export default function BrickInfo(group: Readonly<GroupedBrick>) {
   return (
-    <article className="bg-surface-container-lowest p-6 rounded-xl relative overflow-hidden flex flex-col h-full shadow-md" data-brick-card>
+    <article className="bg-surface-container-low p-6 rounded-xl relative overflow-hidden flex flex-col h-full shadow-md" data-brick-card>
 
         <div data-status-pill className={`absolute top-4 right-4 text-[10px] font-bold px-3 py-1 rounded-full uppercase ${group.needed > 0 ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"}`}>
           {group.needed > 0 ? "Missing" : "In Stock"}
         </div>
 
-        <div className="w-full aspect-square bg-surface-container-low rounded-md mb-6 overflow-hidden">
+        <div className="w-full aspect-square bg-surface-container-lowest rounded-md mb-6 overflow-hidden">
           <img alt={group.name} class="w-full h-full object-contain p-8" src={group.image} />
         </div>
 
@@ -29,7 +29,7 @@ export default function BrickInfo(group: Readonly<GroupedBrick>) {
 
         <div className="flex flex-wrap gap-1 mb-4">
           {group.sets.map((s) => 
-            <span class="text-[9px] font-bold bg-surface-container-highest text-secondary px-2 py-0.5 rounded">{s.setNumber}</span>
+            <span class="text-[9px] font-bold bg-surface-container-highest text-secondary px-2 py-0.5 rounded" key={s.setNumber}>{s.setNumber}</span>
           )}
         </div>
 

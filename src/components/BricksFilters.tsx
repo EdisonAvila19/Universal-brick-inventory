@@ -60,7 +60,7 @@ export default function BricksFilters({ initialFilters, sets }: Readonly<{ initi
           </select>
         </label>
       </div>
-      <button type="submit" class="bg-on-surface text-white py-3 px-8 rounded-lg font-bold text-sm">Apply Filters</button>
+      <button type="submit" class="bg-primary-container text-primary-container-contrast py-3 px-8 rounded-lg font-bold text-sm">Apply Filters</button>
     </form>
   )
 }
