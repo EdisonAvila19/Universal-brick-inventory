@@ -27,7 +27,7 @@ export async function fetchSets() {
 
     const sets = await response.json();
     
-    $sets.set(sets);
+    setSets(sets);
     return ({ status: "ok", message: "Sets Updated" });
   } catch (error) {
     console.error("Error fetching sets:", error);

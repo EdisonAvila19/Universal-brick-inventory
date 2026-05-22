@@ -48,7 +48,7 @@ export default function BricksFilters({ initialFilters, sets, colors }: Readonly
   };
 
   const handlePieceChange = (e: Event) => {
-    const value = (e.target as HTMLInputElement).value;
+    const value = (e.target as HTMLInputElement).value.trim();
     setLocalPiece(value);
     scheduleApply();
   };
