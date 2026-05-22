@@ -173,7 +173,7 @@ export default function BricksxSetList({ selectedSet, brick, colors }: Readonly<
             <p className="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {brick.reference}</p>
             <p className="text-[9px] font-semibold text-tertiary tracking-wider">ID: {brick.elementId}</p>
             <h3 className="font-black text-base leading-tight">{brick.name}</h3>
-            <p className="text-xs text-secondary">{brick.colorName} · <span class="inline-block w-4 h-w-4 rounded aspect-square shadow-md border" style={`background:${brick.colorHex}`}></span></p>
+            <p className="flex flex-row gap-1 text-xs text-secondary">{brick.colorName} · <span class="inline-block w-4 h-w-4 rounded aspect-square shadow-[0_0_13px_-6px] shadow-contrast" style={`background:${brick.colorHex}`}></span></p>
           </div>
         </div>
         <UpdateStockForm selectedSet={selectedSet} brick={brick} />
