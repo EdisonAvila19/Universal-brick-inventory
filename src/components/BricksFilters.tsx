@@ -1,9 +1,10 @@
 import { useEffect } from 'preact/hooks'
 import { useStore } from '@nanostores/preact';
 import { $filters, updateFilters } from '@stores/storage-bricks';
+import type { ArchiveColor } from '@/types/archiveData'
 import "@styles/select.css"
 
-export default function BricksFilters({ initialFilters, sets }: Readonly<{ initialFilters: { piece: string, set: string[], status: string }, sets: { value: string, label: string }[] }>) {
+export default function BricksFilters({ initialFilters, sets, colors }: Readonly<{ initialFilters: { piece: string, set: string[], status: string, color: string }, sets: { value: string, label: string }[], colors: ArchiveColor[] }>) {
   const filters = useStore($filters);
 
   useEffect(()=> {
@@ -20,13 +21,16 @@ export default function BricksFilters({ initialFilters, sets }: Readonly<{ initi
     const set = formData.getAll("set").filter((v): v is string => typeof v === "string");
     const rawStatus = formData.get("status");
     const status = typeof rawStatus === "string" ? rawStatus : "all";
+    const rawColor = formData.get("color");
+    const color = typeof rawColor === "string" ? rawColor : "";
 
-    updateFilters({ piece, set, status });
+    updateFilters({ piece, set, status, color });
 
     const params = new URLSearchParams();
     if (piece) params.append("piece", piece);
     set.forEach((s) => params.append("set", s));
     if (status && status !== "all") params.append("status", status);
+    if (color) params.append("color", color);
 
     const stringParams = params.toString() ? `?${params.toString()}` : '';
     const newUrl = `${globalThis.location.pathname}${stringParams}`;
@@ -34,7 +38,7 @@ export default function BricksFilters({ initialFilters, sets }: Readonly<{ initi
   }
 
   return (
-    <form class="bg-surface-container-lowest p-6 rounded-xl mb-10 grid grid-cols-1 md:grid-cols-4 gap-4 items-end shadow-[0_0_13px_-6px] shadow-contrast" onSubmit={handleSubmit}>
+    <form class="bg-surface-container-lowest p-6 rounded-xl mb-10 grid grid-cols-1 md:grid-cols-5 gap-4 items-end shadow-[0_0_13px_-6px] shadow-contrast" onSubmit={handleSubmit}>
       <div>
         <label class="block text-[10px] uppercase font-bold text-secondary px-2">
           Piece Number or Name{" "}
@@ -58,6 +62,17 @@ export default function BricksFilters({ initialFilters, sets }: Readonly<{ initi
             <option value="all" selected={filters.status === "all"}>All</option>
             <option value="missing" selected={filters.status === "missing"}>Missing</option>
             <option value="in-stock" selected={filters.status === "in-stock"}>In Stock</option>
+          </select>
+        </label>
+      </div>
+      <div>
+        <label class="block text-[10px] uppercase font-bold text-secondary px-2">
+          Color{" "}
+          <select class="w-full bg-box text-contrast rounded-lg px-4 py-3 text-sm mt-2 border-none" name="color">
+            <option value="" selected={filters.color === ""}>All</option>
+            {colors.map((c) => (
+              <option key={c.id} value={c.id} selected={filters.color === String(c.id)}><span class={`block w-4 h-4 rounded-full`} style={`background-color: ${c.rgb};`}></span>{c.name}</option>
+            ))}
           </select>
         </label>
       </div>

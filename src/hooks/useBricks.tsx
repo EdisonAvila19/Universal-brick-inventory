@@ -14,7 +14,7 @@ export function useBricks( initialBricks: BrickRecord[] ) {
 
   useEffect(() => {
     const brickGroups = new Map<string, (typeof bricks)[number][]>();
-    const { piece, set: setFilters, status: statusFilter } = filters
+    const { piece, set: setFilters, status: statusFilter, color: colorFilter } = filters
 
     for (const brick of bricks) {
       const existing = brickGroups.get(brick.elementId);
@@ -51,7 +51,8 @@ export function useBricks( initialBricks: BrickRecord[] ) {
       const matchesPiece = !normalizedPieceFilter || group.reference.toLowerCase().includes(normalizedPieceFilter) || group.name.toLowerCase().includes(normalizedPieceFilter) || group.elementId.toLowerCase().includes(normalizedPieceFilter);
       const matchesSet = setFilters.length === 0 || group.sets.some((s) => setFilters.includes(s.setNumber));
       const matchesStatus = statusFilter === "all" || (statusFilter === "missing" ? group.needed > 0 : group.needed === 0);
-      return matchesPiece && matchesSet && matchesStatus;
+      const matchesColor = !colorFilter || group.colorId === Number(colorFilter);
+      return matchesPiece && matchesSet && matchesStatus && matchesColor;
     });
 
     setFilteredBricks(filteredBricks);

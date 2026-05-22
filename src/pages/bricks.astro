@@ -1,6 +1,6 @@
 ---
 import AppLayout from "@layouts/AppLayout.astro";
-import { getInventoryBricks, getInventorySets } from "@lib/inventoryStore";
+import { getColors, getInventoryBricks, getInventorySets } from "@lib/inventoryStore";
 import { Feedback } from "@components/Feedback";
 import PieceCountIndicator from "@components/PieceCountIndicator";
 import BricksResults from '@/components/Bricks-results'
@@ -10,11 +10,15 @@ const url = new URL(Astro.request.url);
 const filters = {
   piece: url.searchParams.get("piece") ?? "",
   set: url.searchParams.getAll("set").map((value) => value.trim()).filter(Boolean),
-  status: url.searchParams.get("status") ?? "all"
+  status: url.searchParams.get("status") ?? "all",
+  color: url.searchParams.get("color") ?? ""
 }
 
 const bricks = await getInventoryBricks();
 const sets = await getInventorySets();
+const colors = await getColors();
+const colorIds = new Set(bricks.map((b) => b.colorId));
+const availableColors = colors.filter((c) => colorIds.has(c.id));
 
 const setOptions = sets.map((set) => ({ label: `${set.setNumber} — ${set.name}`, value: set.setNumber }));
 
@@ -37,7 +41,7 @@ const setOptions = sets.map((set) => ({ label: `${set.setNumber} — ${set.name}
   </section>
 
   <!-- Filters Form -->
-  <BricksFilters initialFilters={filters} sets={setOptions} client:load/>
+  <BricksFilters initialFilters={filters} sets={setOptions} colors={availableColors} client:load/>
 
   <!-- Results Section -->
   <BricksResults initialBricks={bricks} client:load/>
