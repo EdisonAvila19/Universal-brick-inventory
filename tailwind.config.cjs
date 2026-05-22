@@ -1,3 +1,5 @@
+/** @type {import('tailwindcss').Config} */
+
 module.exports = {
   content: ["./src/**/*.{astro,html,js,jsx,ts,tsx,md,mdx}"],
   theme: {
@@ -25,8 +27,23 @@ module.exports = {
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"]
+      },
+      animation: {
+        shake: 'shake 0.5s ease-in-out both'
+      },
+      keyframes: {
+        shake: {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '25%': { transform: 'translateX(-10px)' },
+          '50%': { transform: 'translateX(10px)' },
+          '75%': { transform: 'translateX(-10px)' }
+        }
       }
     }
   },
-  plugins: [require("@tailwindcss/forms"), require("@tailwindcss/container-queries")]
+  plugins: [
+    require("@tailwindcss/forms"), 
+    require("@tailwindcss/container-queries"),
+    require("@midudev/tailwind-animations")
+  ]
 };
