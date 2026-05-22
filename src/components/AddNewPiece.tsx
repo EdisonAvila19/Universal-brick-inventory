@@ -80,7 +80,7 @@ function SearchExternalPartForm({ selectedSet }: Readonly<{ selectedSet: { setNu
   )
 }
 
-function AddExternalPieceForm({ selectedSet }: Readonly<{ selectedSet: { setNumber: string } }>) {
+function AddExternalPieceForm({ selectedSet, onSuccess }: Readonly<{ selectedSet: { setNumber: string }, onSuccess?: () => void }>) {
 
   const bricksData = useStore($colorBricks);
   const setNumber = selectedSet.setNumber;
@@ -114,6 +114,7 @@ function AddExternalPieceForm({ selectedSet }: Readonly<{ selectedSet: { setNumb
 
       updateFeedback("Brick added successfully!", "info");
       resetForm();
+      onSuccess?.();
     } catch (error) {
       console.error("Error adding new brick:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred while adding the brick.";
@@ -163,7 +164,7 @@ function AddExternalPieceForm({ selectedSet }: Readonly<{ selectedSet: { setNumb
   )
 }
 
-function AddManualPieceForm({selectedSet, colors}: Readonly<{ selectedSet: { setNumber: string }, colors: Array<ArchiveColor> }>) {
+function AddManualPieceForm({selectedSet, colors, onSuccess}: Readonly<{ selectedSet: { setNumber: string }, colors: Array<ArchiveColor>, onSuccess?: () => void }>) {
   const BricksCatalog = useStore($BricksCatalog);
   const [previewBrick, setPreviewBrick] = useState<BrickRecord | null>(null);
   const [suggestions, setSuggestions] = useState<Array<BrickRecord>>([]);
@@ -273,7 +274,7 @@ function AddManualPieceForm({selectedSet, colors}: Readonly<{ selectedSet: { set
       updateFeedback("Brick added successfully!", "info");
       suggestionBoxRef.current = null;
       resetManualForm();
-
+      onSuccess?.();
     } catch (error) {
       console.error("Error adding new brick:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred while adding the brick.";
@@ -395,20 +396,65 @@ function AddManualPieceForm({selectedSet, colors}: Readonly<{ selectedSet: { set
 export default function AddNewPiece({selectedSet, colors}: Readonly<{ selectedSet: { setNumber: string }, colors: Array<ArchiveColor> }>) {
   const colorBricks = useStore($colorBricks);
   const displayColors = useStore($displayColors);
+  const [open, setOpen] = useState(false);
+  const [shaking, setShaking] = useState(false);
 
   useEffect(() => {
     setBricksCatalog();
   }, [$bricks])
 
+  const close = () => {
+    setOpen(false);
+    resetForm();
+  };
+
   return (
-    <section class="bg-surface-container-low rounded-xl p-6">
-      <h3 class="text-xl font-black mb-4">Add Piece to Set</h3>
+    <>
+      <button
+        onClick={() => {
+          setOpen(!open);
+          setShaking(true);
+          setTimeout(() => setShaking(false), 600);
+        }}
+        class={`fixed top-6 right-0 z-[70] w-14 h-14 bg-primary-container text-[#6a5700] rounded-s-lg shadow-lg flex items-center justify-center text-3xl font-bold hover:bg-primary/90 hover:text-white transition-colors ${shaking ? 'animate-shake' : ''}`}
+        aria-label={open ? "Close" : "Add piece to set"}
+      >
+        <span
+          className="block transition-transform duration-300 ease-in-out"
+          style={`transform: rotate(${open ? 45 : 0}deg)`}
+        >
+          +
+        </span>
+      </button>
 
-      <SearchExternalPartForm selectedSet={selectedSet} />
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-12 pb-12 items-center ml-64"
+          onClick={(e) => { if (e.target === e.currentTarget) close(); }}
+        >
+          <div className="absolute inset-0 bg-black/40" onClick={close}/>
 
-      {(displayColors && colorBricks) && <AddExternalPieceForm selectedSet={selectedSet} />}
+          <div className="relative bg-surface-container-low rounded-xl p-6 w-full max-w-7xl max-h-full overflow-y-auto mx-4 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-xl font-black">Add Piece to Set</h3>
+            </div>
 
-      <AddManualPieceForm selectedSet={selectedSet} colors={colors} />
-    </section>
+            <SearchExternalPartForm selectedSet={selectedSet} />
+
+            {(displayColors && colorBricks) && <AddExternalPieceForm selectedSet={selectedSet} onSuccess={close} />}
+
+            <AddManualPieceForm selectedSet={selectedSet} colors={colors} onSuccess={close} />
+          </div>
+
+          {/* <button
+            onClick={close}
+            class="fixed top-4 right-4 z-[60] w-10 h-10 flex items-center justify-center rounded-ful text-white hover:bg-surface-dim transition-colors text-5xl font-bold"
+            aria-label="Close"
+          >
+            &times;
+          </button> */}
+        </div>
+      )}
+    </>
   )
 }
