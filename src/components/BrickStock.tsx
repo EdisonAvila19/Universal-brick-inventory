@@ -38,7 +38,7 @@ export function BrickStock({ group }: Readonly<{ group: GroupedBrick }>) {
       <BrickStats group={group} />
 
       <div class="mb-0 flex justify-center flex-col items-center gap-1">
-        <button class="list-none cursor-pointer bg-surface-container-highest rounded-lg px-3 py-2 mx-auto w-fit text-xs font-bold uppercase tracking-wider text-secondary" onClick={handleSwitchList} >Edit Stock</button>
+        <button class="list-none cursor-pointer bg-box rounded-lg px-3 py-2 mx-auto w-fit text-xs font-bold uppercase tracking-wider text-contrast" onClick={handleSwitchList} >Edit Stock</button>
         {isOpen && <SaveStockForm group={group} closeList={handleCloseList} />}
       </div>
       

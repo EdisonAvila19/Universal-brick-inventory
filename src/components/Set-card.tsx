@@ -19,9 +19,9 @@ export default function SetCard(setData: Readonly<SetRecord>) {
   }
 
   return (
-    <article className="group bg-surface-container-lowest rounded-xl p-4 flex flex-col">
+    <article className="group bg-surface-container-lowest rounded-xl p-4 flex flex-col shadow-[0_0_13px_-6px] shadow-contrast">
       <div className="relative aspect-square mb-6 overflow-hidden rounded-md bg-surface-container-low">
-        <img src={setData.image} alt={setData.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        <img src={setData.image} alt={setData.name} className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
         <div className="absolute top-3 left-3 flex gap-2">
           <span className="bg-primary-container text-[#6a5700] text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-widest">{setData.brand}</span>{setData.homologatedToLego && <span className="bg-tertiary-container text-on-tertiary-container text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-widest">Homologated</span>}
         </div>

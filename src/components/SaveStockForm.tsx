@@ -44,7 +44,7 @@ export function SaveStockForm({ group, closeList }: Readonly<{ group: GroupedBri
               <label className="text-[10px] font-bold text-secondary uppercase tracking-wider w-16 truncate">{s.setNumber}</label>
               <span className="text-[10px] text-secondary">Req: {s.required}</span>
               <input type="hidden" name={`old_stock_${s.setNumber}`} value={s.stock} />
-              <input type="number" data-stock-input={s.setNumber} name={`new_stock_${s.setNumber}`} min="0" value={s.stock} className="w-20 bg-surface-container-highest border-none rounded-lg px-2 py-1 text-sm" />
+              <input type="number" data-stock-input={s.setNumber} name={`new_stock_${s.setNumber}`} min="0" value={s.stock} className="w-20 bg-box text-contrast border-none rounded-lg px-2 py-1 text-sm" />
             </div>
           ))}
         </div>

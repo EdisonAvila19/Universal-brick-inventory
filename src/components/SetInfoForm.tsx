@@ -29,19 +29,19 @@ export default function SetInfoForm({ selectedSet }: Readonly<{ selectedSet: Set
       <div>
         <label className="block text-[10px] uppercase font-bold text-secondary">
           Set Number{" "}
-          <input required name="setNumber" value={selectedSet.setNumber} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" />
+          <input required name="setNumber" value={selectedSet.setNumber} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm mt-1" />
         </label>
       </div>
       <div>
         <label className="block text-[10px] uppercase font-bold text-secondary">
           Set Name{" "}
-          <input required name="name" value={selectedSet.name} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 mt-1 text-sm" />
+          <input required name="name" value={selectedSet.name} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 mt-1 text-sm" />
         </label>
       </div>
       <div>
         <label className="block text-[10px] uppercase font-bold text-secondary">
           Brand{" "}
-          <select name="brand" className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 mt-1 text-sm">
+          <select name="brand" className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 mt-1 text-sm">
             <option value="LEGO" selected={selectedSet.brand === "LEGO"}>LEGO</option>
             <option value="Mould King" selected={selectedSet.brand === "Mould King"}>Mould King</option>
             <option value="CaDA" selected={selectedSet.brand === "CaDA"}>CaDA</option>
@@ -52,7 +52,7 @@ export default function SetInfoForm({ selectedSet }: Readonly<{ selectedSet: Set
       <div>
         <label className="block text-[10px] uppercase font-bold text-secondary">
           Image URL{" "}
-          <input required type="url" name="image" value={selectedSet.image} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" />
+          <input required type="url" name="image" value={selectedSet.image} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm mt-1" />
         </label>
       </div>
       {/* <label className="md:col-span-2 flex items-center gap-2 text-sm text-secondary">
@@ -60,7 +60,7 @@ export default function SetInfoForm({ selectedSet }: Readonly<{ selectedSet: Set
         {" "}Homologated to LEGO equivalent pieces
       </label> */}
       <div className="md:col-span-2 flex gap-2">
-        <button type="submit" className="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm">Save Set Info</button>
+        <button type="submit" className="bg-primary-container text-primary-container-contrast px-6 py-3 rounded-lg font-bold text-sm">Save Set Info</button>
       </div>
     </form>
   )

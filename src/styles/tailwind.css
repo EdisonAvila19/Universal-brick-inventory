@@ -23,6 +23,8 @@
     --color-outline-variant: #d0c6ad;
     --color-filter: #1b1c1c;
     --color-on-filter: #fff;
+    --color-contrast: #5f5e5e;
+    --color-box: #e4e2e1;
   }
 
   .dark {
@@ -42,5 +44,7 @@
     --color-surface-container-high: #303030;
     --color-surface-container-highest: #24272e;
     --color-outline-variant: #4d4637;
+    --color-contrast: #fff;
+    --color-box: #888;
   }
 }

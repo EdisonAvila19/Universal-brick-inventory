@@ -28,15 +28,15 @@ function UpdateStockForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRec
       <input type="hidden" name="action" value="update-brick" />
       <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
       <input type="hidden" name="elementId" value={brick.elementId} />
-      <label class="block text-[10px] uppercase font-bold text-secondary">
+      <label className="block text-[10px] uppercase font-bold text-secondary">
         Required{" "}
-        <input required min="1" type="number" name="required" value={brick.required} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" disabled/>
+        <input required min="1" type="number" name="required" value={brick.required} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm mt-1" disabled/>
       </label>
-      <label class="block text-[10px] uppercase font-bold text-secondary">
+      <label className="block text-[10px] uppercase font-bold text-secondary">
         Stock{" "}
-        <input required min="0" type="number" name="stock" value={brick.stock} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" />
+        <input required min="0" type="number" name="stock" value={brick.stock} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm mt-1" />
       </label>
-      <button type="submit" class="bg-primary text-white px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Save Qty</button>
+      <button type="submit" className="bg-primary text-white px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Save Qty</button>
     </form>
   )
 }
@@ -102,25 +102,25 @@ function UpdateInfoForm ({ selectedSet, brick, colors }: Readonly<{ selectedSet:
         <div>
           <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Reference{" "}
-            <input required name="reference" value={brick.reference} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input required name="reference" value={brick.reference} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm " />
           </label>
         </div>
         <div>
           <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Name{" "}
-            <input required name="name" value={brick.name} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input required name="name" value={brick.name} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div>
         {/* <div>
           <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Color{" "}
-            <input required name="color" type='number' value={brick.colorId} min={-1} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input required name="color" type='number' value={brick.colorId} min={-1} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div> */}
         <div>
           <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Color{" "}
-            <select required name="color" className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm">
+            <select required name="color" className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm">
               {colors.map((color) => (
                 <option value={color.id} selected={color.id === brick.colorId} key={color.id}>
                   <span className="w-4 h-4 rounded-full border border-black" style={{ backgroundColor: color.rgb }} aria-hidden="true"></span>
@@ -133,25 +133,25 @@ function UpdateInfoForm ({ selectedSet, brick, colors }: Readonly<{ selectedSet:
         {/* <div>
           <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Color Hex{" "}
-            <input name="colorHex" value={brick.colorHex} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input name="colorHex" value={brick.colorHex} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div> */}
         <div>
           <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Image URL{" "}
-            <input type="url" name="image" value={brick.image} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input type="url" name="image" value={brick.image} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div>
         <div>
           <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Required{" "}
-            <input required min="1" type="number" name="required" value={brick.required} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input required min="1" type="number" name="required" value={brick.required} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div>
         <div>
           <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Stock{" "}
-            <input required min="0" type="number" name="stock" value={brick.stock} className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" />
+            <input required min="0" type="number" name="stock" value={brick.stock} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div>
         <div className="md:col-span-2">
@@ -165,7 +165,7 @@ function UpdateInfoForm ({ selectedSet, brick, colors }: Readonly<{ selectedSet:
 
 export default function BricksxSetList({ selectedSet, brick, colors }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, colors: ArchiveColor[] }>) {
   return (
-    <article className="bg-surface-container-lowest rounded-xl p-5">
+    <article className="bg-surface-container-lowest rounded-xl p-5 shadow-[0_0_13px_-6px] shadow-contrast">
       <div className="flex flex-col lg:flex-row gap-5 lg:items-center">
         <div className="flex gap-4 min-w-0 lg:flex-1">
           <img src={brick.image} alt={brick.name} className="max-w-max-h-32 max-h-32 rounded-lg bg-surface-container-low object-contain p-2" />

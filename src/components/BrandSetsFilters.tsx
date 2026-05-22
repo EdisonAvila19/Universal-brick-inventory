@@ -23,9 +23,9 @@ export default function BrandSetsFilters() {
 
   return (
     <section class="flex flex-wrap items-center gap-4 mb-8">
-      <button data-set-filter="all" className={`px-6 py-2 rounded-full text-xs font-bold tracking-wide ${brandFilter === "all" ? "bg-filter text-on-filter" : "bg-white text-secondary"}`} onClick={handleClick}>All Brands</button>
-      <button data-set-filter="lego" className={`px-6 py-2 rounded-full text-xs font-bold tracking-wide ${brandFilter === "lego" ? "bg-filter text-on-filter" : "bg-white text-secondary"}`} onClick={handleClick}>Lego Only</button>
-      <button data-set-filter="third-party" className={`px-6 py-2 rounded-full text-xs font-bold tracking-wide ${brandFilter === "third-party" ? "bg-filter text-on-filter" : "bg-white text-secondary"}`} onClick={handleClick}>Third Party</button>
+      <button data-set-filter="all" className={`px-6 py-2 rounded-full text-xs font-bold tracking-wide ${brandFilter === "all" ? "bg-filter text-on-filter shadow-[0_0_13px_-6px] shadow-contrast" : "bg-white text-secondary"}`} onClick={handleClick}>All Brands</button>
+      <button data-set-filter="lego" className={`px-6 py-2 rounded-full text-xs font-bold tracking-wide ${brandFilter === "lego" ? "bg-filter text-on-filter shadow-[0_0_13px_-6px] shadow-contrast" : "bg-white text-secondary"}`} onClick={handleClick}>Lego Only</button>
+      <button data-set-filter="third-party" className={`px-6 py-2 rounded-full text-xs font-bold tracking-wide ${brandFilter === "third-party" ? "bg-filter text-on-filter shadow-[0_0_13px_-6px] shadow-contrast" : "bg-white text-secondary"}`} onClick={handleClick}>Third Party</button>
     </section>
   )
 }

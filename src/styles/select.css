@@ -1,10 +1,37 @@
 select,
 ::picker(select) {
   appearance: base-select;
-
-  @apply bg-surface-container-highest
+  @apply bg-surface-container-highest 
 }
 
 select::picker-icon {
   opacity: 0;
+}
+
+::picker(select) {
+  margin-top: 3px;
+  border: none;
+  border-radius: 8px;
+  @apply shadow-sm shadow-contrast
+}
+
+option:first-of-type {
+  border-radius: 8px 8px 0 0;
+}
+
+option:last-of-type {
+  border-radius: 0 0 8px 8px;
+}
+
+option:not(option:last-of-type) {
+  border-bottom: none;
+}
+
+option .icon {
+  font-size: 1.6rem;
+  text-box: trim-both cap alphabetic;
+}
+
+option {
+  @apply py-2 text-contrast;
 }

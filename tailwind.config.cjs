@@ -24,7 +24,9 @@ module.exports = {
         "outline-variant": "var(--color-outline-variant)",
         "selected": "var(--color-selected)",
         "filter": "var(--color-filter)",
-        "on-filter": "var(--color-on-filter)"
+        "on-filter": "var(--color-on-filter)",
+        "contrast": "var(--color-contrast)",
+        "box": "var(--color-box)"
       },
       borderRadius: {
         xl: "0.5rem",

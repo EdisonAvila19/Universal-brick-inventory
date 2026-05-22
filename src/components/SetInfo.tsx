@@ -44,7 +44,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
 
   const paginationBar = (total: number, current: number, size: number, totalItems: number, goToPage: (p: number) => void, onSizeChange: (e: Event) => void) => (
     <>
-      <div class="flex items-center gap-2 text-sm text-secondary">
+      <div class="flex items-center gap-2 text-sm text-secondary ">
         <span class="font-bold text-on-surface">{totalItems}</span> pieces total —
         <span>Show</span>
         <select value={size} onChange={onSizeChange} class="bg-surface-container-high border-none rounded-lg px-2 py-1 text-sm font-bold text-on-surface">
@@ -167,7 +167,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
         </section>
       ) : (
         <>
-          <section class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface-container-lowest rounded-xl p-4 mb-4">
+          <section class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface-container-lowest rounded-xl p-4 mb-4 ">
             {paginationBar(totalPages, safePage, pageSize, bricks.length, setCurrentPage, handlePageSizeChange)}
           </section>
 

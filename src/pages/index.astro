@@ -54,7 +54,7 @@ const priorityParts = [...bricks]
           {recentSets.map((set) => {
             const completion = Math.round((set.ownedPieces / set.totalPieces) * 100);
             return (
-              <a href={`/sets/${set.setNumber}`} class="bg-surface-container-lowest p-4 rounded-xl">
+              <a href={`/sets/${set.setNumber}`} class="bg-surface-container-lowest p-4 rounded-xl shadow-[0_0_13px_-6px] shadow-contrast">
                 <div class="aspect-[4/3] rounded-md overflow-hidden bg-surface-container-low mb-4">
                   <img src={set.image} alt={set.name} class="w-full h-full object-cover" />
                 </div>
@@ -70,7 +70,7 @@ const priorityParts = [...bricks]
       )}
     </div>
 
-    <aside class="bg-surface-container-low p-6 rounded-xl">
+    <aside class="bg-surface-container-low p-6 rounded-xl shadow-[0_0_13px_-6px] shadow-contrast">
       <h2 class="text-xl font-black tracking-tight">Priority Parts</h2>
       <p class="text-xs text-secondary mt-1 mb-4">Needed for current builds</p>
       {priorityParts.length === 0
