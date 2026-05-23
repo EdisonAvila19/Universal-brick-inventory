@@ -99,7 +99,7 @@ export default function ColorManager({ initialColors }: Props) {
                 <th class="text-left px-6 py-4 font-bold w-16">Swatch</th>
                 <th class="text-left px-6 py-4 font-bold">Name</th>
                 <th class="text-left px-6 py-4 font-bold">RGB</th>
-                <th class="text-right px-6 py-4 font-bold">Actions</th>
+                <th class="text-center px-6 py-4 font-bold">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -126,12 +126,12 @@ export default function ColorManager({ initialColors }: Props) {
                   ) : (
                     <>
                       <td class="px-6 py-3">
-                        <span class="inline-block w-8 h-8 rounded-lg shadow-sm border border-outline-variant/20" style={`background:${color.rgb}`}></span>
+                        <div class="rounded-lg shadow-sm border border-outline-variant/20 shrink-0" style={{ width: "2rem", height: "2rem", backgroundColor: color.rgb }}></div>
                       </td>
                       <td class="px-6 py-3 font-semibold">{color.name}</td>
                       <td class="px-6 py-3 font-mono text-secondary">{color.rgb}</td>
-                      <td class="px-6 py-3 text-right">
-                        <div class="flex gap-2 justify-end">
+                      <td class="px-6 py-3 text-center w-fit">
+                        <div class="flex gap-2 justify-center">
                           <button onClick={() => startEdit(color)} class="bg-box text-contrast px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider">Edit</button>
                           <button onClick={() => handleDelete(color.id)} class="bg-error-container text-on-error-container px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider">Delete</button>
                         </div>
