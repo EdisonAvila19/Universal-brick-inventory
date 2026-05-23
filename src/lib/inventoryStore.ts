@@ -2,7 +2,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import type { BrickRecord, PurchaseStore, SetRecord, ArchiveColor } from "@/types/archiveData";
+import type { BrickRecord, PurchaseStore, SetRecord, ArchiveColor, SpareBrickRecord } from "@/types/archiveData";
 import { fetchRebrickableColors } from "@lib/rebrickable";
 
 const APP_DATA_DIR = process.env.APP_DATA_DIR?.trim();
@@ -62,7 +62,8 @@ function getDb() {
           plannedStore TEXT,
           plannedQuantity INTEGER,
           plannedLegoQuantity INTEGER,
-          plannedBricklinkQuantity INTEGER
+          plannedBricklinkQuantity INTEGER,
+          spareQuantity INTEGER NOT NULL DEFAULT 0
         )
       `);
       database.exec(`
@@ -103,7 +104,8 @@ function getDb() {
           plannedStore TEXT,
           plannedQuantity INTEGER,
           plannedLegoQuantity INTEGER,
-          plannedBricklinkQuantity INTEGER
+          plannedBricklinkQuantity INTEGER,
+          spareQuantity INTEGER NOT NULL DEFAULT 0
         )
       `);
       database.exec(`
@@ -115,6 +117,13 @@ function getDb() {
           PRIMARY KEY (setNumber, elementId)
         )
       `);
+    }
+
+    const brickColumns = database
+      .prepare("PRAGMA table_info(bricks)")
+      .all() as Array<{ name: string }>;
+    if (!brickColumns.some((c) => c.name === "spareQuantity")) {
+      database.exec("ALTER TABLE bricks ADD COLUMN spareQuantity INTEGER NOT NULL DEFAULT 0");
     }
   }
   return database;
@@ -196,6 +205,7 @@ async function readStore(): Promise<InventoryPayload> {
   const bricks = db.prepare(`
     SELECT b.elementId, b.reference, b.name, b.colorId, b.image, b.buyAt,
            b.plannedStore, b.plannedQuantity, b.plannedLegoQuantity, b.plannedBricklinkQuantity,
+           b.spareQuantity,
            sb.setNumber AS fromSet, sb.required, sb.stock,
            c.name AS colorName, c.rgb AS colorHex
     FROM bricks b
@@ -213,14 +223,31 @@ async function saveStore(payload: InventoryPayload) {
   const db = getDb();
   db.exec("BEGIN");
   try {
+    const spareOnly = db.prepare(`
+      SELECT elementId, reference, name, colorId, image, buyAt, spareQuantity,
+             plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity
+      FROM bricks WHERE spareQuantity > 0
+    `).all() as Array<Record<string, unknown>>;
+    const payloadElementIds = new Set(payload.bricks.map((b) => b.elementId));
+    const trulySpareOnly = spareOnly.filter((s) => !payloadElementIds.has(s.elementId as string));
+
     db.exec("DELETE FROM set_bricks; DELETE FROM bricks; DELETE FROM sets;");
     const insertSet = db.prepare("INSERT INTO sets (id, setNumber, name, brand, totalPieces, ownedPieces, image, source, homologatedToLego) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    const insertBrick = db.prepare("INSERT OR IGNORE INTO bricks (elementId, reference, name, colorId, image, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    const insertBrick = db.prepare("INSERT OR IGNORE INTO bricks (elementId, reference, name, colorId, image, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity, spareQuantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     const insertSetBrick = db.prepare("INSERT INTO set_bricks (setNumber, elementId, required, stock) VALUES (?, ?, ?, ?)");
     for (const set of payload.sets) insertSet.run(set.id, set.setNumber, set.name, set.brand, set.totalPieces, set.ownedPieces, set.image, set.source, set.homologatedToLego ? 1 : 0);
     for (const brick of payload.bricks) {
-      insertBrick.run(brick.elementId, brick.reference, brick.name, brick.colorId, brick.image, JSON.stringify(brick.buyAt), brick.plannedStore ?? null, brick.plannedQuantity ?? null, brick.plannedLegoQuantity ?? null, brick.plannedBricklinkQuantity ?? null);
+      insertBrick.run(brick.elementId, brick.reference, brick.name, brick.colorId, brick.image, JSON.stringify(brick.buyAt), brick.plannedStore ?? null, brick.plannedQuantity ?? null, brick.plannedLegoQuantity ?? null, brick.plannedBricklinkQuantity ?? null, brick.spareQuantity ?? 0);
       insertSetBrick.run(brick.fromSet, brick.elementId, brick.required, brick.stock);
+    }
+    for (const spare of trulySpareOnly) {
+      insertBrick.run(
+        spare.elementId, spare.reference, spare.name, spare.colorId, spare.image,
+        spare.buyAt ?? JSON.stringify(["lego", "bricklink"]),
+        spare.plannedStore ?? null, spare.plannedQuantity ?? null,
+        spare.plannedLegoQuantity ?? null, spare.plannedBricklinkQuantity ?? null,
+        Number(spare.spareQuantity)
+      );
     }
     db.exec("COMMIT");
   } catch (err) {
@@ -462,4 +489,129 @@ export async function removeBrickFromSet(input: { fromSet: string; elementId: st
   store.sets = recalculateOwnedPieces(store.sets, store.bricks);
   await saveStore(store);
   return { removed: true };
+}
+
+// --- Spare Parts Functions ---
+
+export async function getSpareBricks(): Promise<SpareBrickRecord[]> {
+  await ensureStore();
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT b.elementId, b.reference, b.name, b.colorId, b.image, b.buyAt,
+           b.spareQuantity, c.name AS colorName, c.rgb AS colorHex
+    FROM bricks b
+    LEFT JOIN colors c ON b.colorId = c.id
+    WHERE b.spareQuantity > 0
+    ORDER BY b.reference ASC
+  `).all() as Array<Record<string, unknown>>;
+  return rows.map((row) => ({
+    ...row,
+    buyAt: parseBuyAt(String(row.buyAt ?? "[]")),
+    spareQuantity: Number(row.spareQuantity)
+  })) as SpareBrickRecord[];
+}
+
+export async function addSpareBrick(input: {
+  elementId: string;
+  reference: string;
+  name: string;
+  colorId: number;
+  image: string;
+  spareQuantity: number;
+}): Promise<{ added: boolean; reason?: string }> {
+  const db = getDb();
+  const elementId = input.elementId.trim();
+  const reference = input.reference.trim();
+  if (!elementId || !reference) {
+    return { added: false, reason: "invalid-data" };
+  }
+  const existing = db.prepare("SELECT elementId FROM bricks WHERE elementId = ?").get(elementId) as { elementId: string } | undefined;
+  const quantity = Math.max(1, normalizeNonNegativeInt(input.spareQuantity, 1));
+
+  if (existing) {
+    db.prepare("UPDATE bricks SET spareQuantity = spareQuantity + ? WHERE elementId = ?").run(quantity, elementId);
+  } else {
+    db.prepare(`
+      INSERT INTO bricks (elementId, reference, name, colorId, image, buyAt, spareQuantity)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      elementId,
+      reference,
+      input.name.trim() || reference,
+      input.colorId,
+      input.image.trim() || "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=900&q=80",
+      JSON.stringify(["lego", "bricklink"]),
+      quantity
+    );
+  }
+  return { added: true };
+}
+
+export async function updateSpareQuantity(elementId: string, spareQuantity: number): Promise<{ updated: boolean; reason?: string }> {
+  const db = getDb();
+  const id = elementId.trim();
+  if (!id) return { updated: false, reason: "invalid-data" };
+  const quantity = normalizeNonNegativeInt(spareQuantity, 0);
+  const result = db.prepare("UPDATE bricks SET spareQuantity = ? WHERE elementId = ?").run(quantity, id);
+  if (result.changes === 0) {
+    return { updated: false, reason: "not-found" };
+  }
+  return { updated: true };
+}
+
+export async function removeSpareBrick(elementId: string): Promise<{ removed: boolean }> {
+  const db = getDb();
+  const id = elementId.trim();
+  if (!id) return { removed: false };
+  const setCount = db.prepare("SELECT COUNT(*) AS total FROM set_bricks WHERE elementId = ?").get(id) as { total: number };
+  if (Number(setCount.total) > 0) {
+    db.prepare("UPDATE bricks SET spareQuantity = 0 WHERE elementId = ?").run(id);
+  } else {
+    db.prepare("DELETE FROM bricks WHERE elementId = ?").run(id);
+  }
+  return { removed: true };
+}
+
+export async function assignSpareToSet(input: {
+  elementId: string;
+  setNumber: string;
+  quantity: number;
+}): Promise<{ assigned: boolean; reason?: string }> {
+  const db = getDb();
+  const elementId = input.elementId.trim();
+  const setNumber = input.setNumber.trim();
+  const quantity = Math.max(1, normalizeNonNegativeInt(input.quantity, 1));
+
+  if (!elementId || !setNumber || quantity < 1) {
+    return { assigned: false, reason: "invalid-data" };
+  }
+
+  const brick = db.prepare("SELECT spareQuantity FROM bricks WHERE elementId = ?").get(elementId) as { spareQuantity: number } | undefined;
+  if (!brick || brick.spareQuantity < quantity) {
+    return { assigned: false, reason: "insufficient-spare" };
+  }
+
+  const setExists = db.prepare("SELECT COUNT(*) AS total FROM sets WHERE setNumber = ?").get(setNumber) as { total: number };
+  if (Number(setExists.total) === 0) {
+    return { assigned: false, reason: "set-not-found" };
+  }
+
+  db.prepare("UPDATE bricks SET spareQuantity = spareQuantity - ? WHERE elementId = ?").run(quantity, elementId);
+
+  const existingSb = db.prepare("SELECT stock FROM set_bricks WHERE setNumber = ? AND elementId = ?").get(setNumber, elementId) as { stock: number } | undefined;
+  if (existingSb) {
+    db.prepare("UPDATE set_bricks SET stock = stock + ? WHERE setNumber = ? AND elementId = ?").run(quantity, setNumber, elementId);
+  } else {
+    db.prepare("INSERT INTO set_bricks (setNumber, elementId, required, stock) VALUES (?, ?, ?, ?)").run(setNumber, elementId, quantity, quantity);
+  }
+
+  const ownedResult = db.prepare(`
+    SELECT COALESCE(SUM(CASE WHEN sb.stock < sb.required THEN sb.stock ELSE sb.required END), 0) AS owned
+    FROM set_bricks sb WHERE sb.setNumber = ?
+  `).get(setNumber) as { owned: number };
+  const setInfo = db.prepare("SELECT totalPieces FROM sets WHERE setNumber = ?").get(setNumber) as { totalPieces: number };
+  const newOwned = Math.min(Number(ownedResult.owned), Number(setInfo.totalPieces));
+  db.prepare("UPDATE sets SET ownedPieces = ? WHERE setNumber = ?").run(newOwned, setNumber);
+
+  return { assigned: true };
 }

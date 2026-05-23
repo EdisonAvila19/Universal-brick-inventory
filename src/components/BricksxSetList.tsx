@@ -1,8 +1,9 @@
 import type { ArchiveColor, BrickRecord, SetRecord } from '@/types/archiveData'
-import { DeleteBrick, UpdateBrickData, UpdateBrickStock } from '@/utils/bricksData'
+import { DeleteBrick, UpdateBrickData, UpdateBrickStock, assignSpareToSet } from '@/utils/bricksData'
 import { useState } from 'preact/hooks'
 import { updateFeedback } from '@stores/feedback'
 import { fetchBricks } from '@stores/storage-bricks'
+import { refreshSpareBricks } from '@stores/storage-spare-bricks'
 import '@styles/select.css'
 
 function UpdateStockForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord }>) {
@@ -162,10 +163,60 @@ function UpdateInfoForm ({ selectedSet, brick, colors }: Readonly<{ selectedSet:
   )
 }
 
+function SpareAssignForm({ selectedSet, brick, spareQuantity }: Readonly<{ selectedSet: SetRecord; brick: BrickRecord; spareQuantity: number }>) {
+  const [quantity, setQuantity] = useState(Math.min(spareQuantity, brick.required - brick.stock));
+  const [assigning, setAssigning] = useState(false);
 
-export default function BricksxSetList({ selectedSet, brick, colors }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, colors: ArchiveColor[] }>) {
+  const handleAssign = async () => {
+    if (quantity < 1) return;
+    setAssigning(true);
+    const formData = new FormData();
+    formData.set("elementId", brick.elementId);
+    formData.set("setNumber", selectedSet.setNumber);
+    formData.set("quantity", String(quantity));
+
+    const result = await assignSpareToSet(formData);
+    if (result.status === "error") {
+      updateFeedback(result.message || "Failed to assign spare", "error");
+      setAssigning(false);
+      return;
+    }
+
+    await fetchBricks();
+    await refreshSpareBricks();
+    updateFeedback(`Assigned ${quantity} spare piece(s) to set!`, "info");
+    setAssigning(false);
+  };
+
   return (
-    <article className="bg-surface-container-lowest rounded-xl p-5 shadow-[0_0_13px_-6px] shadow-contrast">
+    <div class="mt-3 pt-3 border-t border-primary/20 bg-primary-container/10 rounded-lg p-3 flex items-center gap-3">
+      <span class="text-xs font-bold uppercase tracking-wider text-primary shrink-0">Spare: {spareQuantity} available</span>
+      <input
+        type="number"
+        min="1"
+        max={Math.min(spareQuantity, brick.required - brick.stock)}
+        value={quantity}
+        onInput={(e) => setQuantity(Number((e.target as HTMLInputElement).value))}
+        class="w-16 bg-surface-container-highest border-none rounded-lg px-2 py-1.5 text-sm text-center"
+      />
+      <button
+        onClick={handleAssign}
+        disabled={assigning || quantity < 1}
+        class="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider disabled:opacity-50"
+      >
+        {assigning ? "..." : "Assign"}
+      </button>
+    </div>
+  );
+}
+
+
+export default function BricksxSetList({ selectedSet, brick, colors, spareQuantity = 0 }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, colors: ArchiveColor[], spareQuantity?: number }>) {
+  const missing = brick.required - brick.stock;
+  const hasSpare = spareQuantity > 0 && missing > 0;
+
+  return (
+    <article className={`bg-surface-container-lowest rounded-xl p-5 shadow-[0_0_13px_-6px] shadow-contrast ${hasSpare ? 'ring-1 ring-primary/30' : ''}`}>
       <div className="flex flex-col lg:flex-row gap-5 lg:items-center">
         <div className="flex gap-4 min-w-0 lg:flex-1">
           <img src={brick.image} alt={brick.name} className="max-w-max-h-32 max-h-32 rounded-lg bg-surface-container-low object-contain p-2" loading="lazy" />
@@ -174,12 +225,18 @@ export default function BricksxSetList({ selectedSet, brick, colors }: Readonly<
             <p className="text-[9px] font-semibold text-tertiary tracking-wider">ID: {brick.elementId}</p>
             <h3 className="font-black text-base leading-tight">{brick.name}</h3>
             <p className="flex flex-row gap-1 text-xs text-secondary">{brick.colorName} · <span class="inline-block w-4 h-w-4 rounded aspect-square shadow-[0_0_13px_-6px] shadow-contrast" style={`background:${brick.colorHex}`}></span></p>
+            {hasSpare && (
+              <p class="text-[10px] font-bold text-primary flex items-center gap-1 mt-1">
+                <span>📦</span> {spareQuantity} in spare parts
+              </p>
+            )}
           </div>
         </div>
         <UpdateStockForm selectedSet={selectedSet} brick={brick} />
         <DeleteBrickForm selectedSet={selectedSet} brick={brick} />
       </div>
         <UpdateInfoForm selectedSet={selectedSet} brick={brick} colors={colors} />
+        {hasSpare && <SpareAssignForm selectedSet={selectedSet} brick={brick} spareQuantity={spareQuantity} />}
     </article>
   )
 }

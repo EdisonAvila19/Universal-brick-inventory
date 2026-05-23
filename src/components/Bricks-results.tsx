@@ -1,9 +1,15 @@
+import { useEffect } from 'preact/hooks';
 import type { BrickRecord } from '@/types/archiveData'
 import BrickInfo from '@components/BrickInfo';
 import { useBricks } from '@hooks/useBricks';
+import { refreshSpareBricks } from '@stores/storage-spare-bricks';
 
 export default function BricksResults({initialBricks}: {initialBricks: BrickRecord[]}) {
   const filteredBricks = useBricks(initialBricks);
+
+  useEffect(() => {
+    refreshSpareBricks();
+  }, []);
 
   return (
     filteredBricks.length === 0 ? (

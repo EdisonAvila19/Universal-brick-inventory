@@ -1,4 +1,4 @@
-import type { BrickRecord } from "@/types/archiveData";
+import type { BrickRecord, SpareBrickRecord } from "@/types/archiveData";
 import type { RebrickablePartDetails, RebrickablePartColorDetails } from '@/types/rebrickable'
 
 export const GetNewBricksForSet = async (setNumber: string): Promise<BrickRecord[]> => {
@@ -129,3 +129,76 @@ export const addNewBrick = async (formData: FormData) : Promise<{ status: string
     return {status: "error", message: error instanceof Error ? error.message : "Failed to add the brick"};
   }
 }
+
+// --- Spare Parts API ---
+
+export const fetchSpareBricks = async (): Promise<SpareBrickRecord[]> => {
+  try {
+    const response = await fetch("/api/bricks/spare");
+    if (!response.ok) throw new Error("Failed to fetch spare bricks");
+    const { spareBricks } = await response.json();
+    return spareBricks;
+  } catch (error) {
+    console.error("Error fetching spare bricks:", error);
+    return [];
+  }
+};
+
+export const addSpareBrick = async (formData: FormData): Promise<{ status: string; message?: string }> => {
+  try {
+    const response = await fetch("/api/bricks/spare", {
+      method: "POST",
+      body: formData
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to add spare brick");
+    return { status: "ok", message: "Spare brick added successfully" };
+  } catch (error) {
+    console.error("Error adding spare brick:", error);
+    return { status: "error", message: error instanceof Error ? error.message : "Failed to add spare brick" };
+  }
+};
+
+export const updateSpareBrick = async (elementId: string, formData: FormData): Promise<{ status: string; message?: string }> => {
+  try {
+    const response = await fetch(`/api/bricks/spare/${encodeURIComponent(elementId)}`, {
+      method: "PUT",
+      body: formData
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to update spare brick");
+    return { status: "ok", message: "Spare brick updated successfully" };
+  } catch (error) {
+    console.error("Error updating spare brick:", error);
+    return { status: "error", message: error instanceof Error ? error.message : "Failed to update spare brick" };
+  }
+};
+
+export const deleteSpareBrick = async (elementId: string): Promise<{ status: string; message?: string }> => {
+  try {
+    const response = await fetch(`/api/bricks/spare/${encodeURIComponent(elementId)}`, {
+      method: "DELETE"
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to delete spare brick");
+    return { status: "ok", message: "Spare brick removed successfully" };
+  } catch (error) {
+    console.error("Error deleting spare brick:", error);
+    return { status: "error", message: error instanceof Error ? error.message : "Failed to delete spare brick" };
+  }
+};
+
+export const assignSpareToSet = async (formData: FormData): Promise<{ status: string; message?: string }> => {
+  try {
+    const response = await fetch("/api/bricks/spare/assign", {
+      method: "POST",
+      body: formData
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to assign spare to set");
+    return { status: "ok", message: "Spare assigned to set successfully" };
+  } catch (error) {
+    console.error("Error assigning spare to set:", error);
+    return { status: "error", message: error instanceof Error ? error.message : "Failed to assign spare to set" };
+  }
+};

@@ -1,10 +1,11 @@
 import { useStore } from '@nanostores/preact';
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
 import type { SetRecord, ArchiveColor } from "@/types/archiveData";
 import { useSetStore } from '@/hooks/useSetStore'
 
 import { $sets } from '@stores/storage-sets';
+import { $spareBricks, refreshSpareBricks } from '@stores/storage-spare-bricks';
 
 import SetInfoForm from "@components/SetInfoForm";
 import BricksxSetList from '@components/BricksxSetList'
@@ -26,8 +27,18 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
 
   const sets = useStore($sets);
   const [selectedSet, setSelectedSet] = useState(initialSelectedSet)
+  const spareBricksMap = useStore($spareBricks);
 
   const { totalRequired, totalOwned, bricks, loading } = useSetStore(activeSetNumber, sets, setSelectedSet);
+
+  useEffect(() => {
+    refreshSpareBricks();
+  }, [activeSetNumber]);
+
+  const getSpareQty = (elementId: string) => {
+    const found = spareBricksMap.find((s) => s.elementId === elementId);
+    return found ? found.spareQuantity : 0;
+  };
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -195,7 +206,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
 
       {/* Brick Inventory */}
       <section class="space-y-4 mb-4">
-        {visibleBricks.map((brick) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} colors={colors} key={brick.elementId} />))}
+        {visibleBricks.map((brick) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} colors={colors} spareQuantity={getSpareQty(brick.elementId)} key={brick.elementId} />))}
       </section>
 
       {/* Pagination */}

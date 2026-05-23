@@ -1,0 +1,21 @@
+---
+import AppLayout from "@layouts/AppLayout.astro";
+import { getColors } from "@lib/inventoryStore";
+import SparePartsManager from "@/components/SparePartsManager";
+import { Feedback } from "@components/Feedback";
+
+const colors = await getColors();
+---
+
+<AppLayout title="Spare Parts | Brick Inventory" active="spare-parts">
+  <Feedback client:load />
+
+  <section class="mb-10 flex flex-col md:flex-row justify-between items-end gap-6">
+    <div>
+      <h1 class="text-4xl font-black tracking-tight mb-2">Spare Parts</h1>
+      <p class="text-secondary font-medium uppercase text-xs tracking-[0.2em]">Bricks that don&rsquo;t belong to any set</p>
+    </div>
+  </section>
+
+  <SparePartsManager colors={colors} client:load />
+</AppLayout>

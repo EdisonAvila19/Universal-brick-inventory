@@ -1,10 +1,15 @@
+import { useStore } from '@nanostores/preact';
 import type { GroupedBrick } from "@/types/archiveData";
 import { BrickStock } from '@components/BrickStock'
-
+import { $spareBricks } from '@stores/storage-spare-bricks';
 
 export default function BrickInfo(group: Readonly<GroupedBrick>) {
+  const spareBricks = useStore($spareBricks);
+  const spare = spareBricks.find((s) => s.elementId === group.elementId);
+  const spareQty = spare?.spareQuantity ?? 0;
+
   return (
-    <article className="bg-surface-container-lowest p-6 rounded-xl relative overflow-hidden flex flex-col h-full shadow-[0_0_13px_-6px] shadow-contrast" data-brick-card>
+    <article className={`bg-surface-container-lowest p-6 rounded-xl relative overflow-hidden flex flex-col h-full shadow-[0_0_13px_-6px] shadow-contrast ${spareQty > 0 && group.needed > 0 ? 'ring-1 ring-primary/30' : ''}`} data-brick-card>
 
         <div data-status-pill className={`absolute top-4 right-4 text-[10px] font-bold px-3 py-1 rounded-full uppercase ${group.needed > 0 ? "bg-error-container text-on-error-container" : "bg-tertiary-container text-on-tertiary-container"}`}>
           {group.needed > 0 ? "Missing" : "In Stock"}
@@ -24,6 +29,12 @@ export default function BrickInfo(group: Readonly<GroupedBrick>) {
           </div>
           <h3 class="font-bold text-lg leading-tight mt-1">{group.name}</h3>
         </div>
+
+        {spareQty > 0 && (
+          <p class="text-[10px] font-bold text-primary flex items-center gap-1 mb-1">
+            <span>📦</span> {spareQty} in spare parts
+          </p>
+        )}
 
         <p className="text-xs text-secondary mb-2">{group.colorName} · {group.sets.length} set{group.sets.length > 1 ? "s" : ""}</p>
 
