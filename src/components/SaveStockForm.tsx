@@ -94,7 +94,7 @@ export function SaveStockForm({ group, closeList }: Readonly<{ group: GroupedBri
                       max={Math.min(currentSpareQty, need)}
                       value={assignQtys[s.setNumber] ?? Math.min(currentSpareQty, need)}
                       onInput={(e) => setAssignQtys((prev) => ({ ...prev, [s.setNumber]: Number((e.target as HTMLInputElement).value) }))}
-                      class="w-14 bg-surface-container-highest border-none rounded-lg px-1 py-1.5 text-xs text-center"
+                      class="w-14 bg-box text-contrast border-none rounded-lg px-1 py-1.5 text-xs text-center"
                     />
                     <button
                       onClick={() => handleAssign(s.setNumber)}

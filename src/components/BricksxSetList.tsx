@@ -197,7 +197,7 @@ function SpareAssignForm({ selectedSet, brick, spareQuantity }: Readonly<{ selec
         max={Math.min(spareQuantity, brick.required - brick.stock)}
         value={quantity}
         onInput={(e) => setQuantity(Number((e.target as HTMLInputElement).value))}
-        class="w-16 bg-surface-container-highest border-none rounded-lg px-2 py-1.5 text-sm text-center"
+        class="w-16 bg-box text-contrast border-none rounded-lg px-2 py-1.5 text-sm text-center"
       />
       <button
         onClick={handleAssign}

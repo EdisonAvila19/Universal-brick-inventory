@@ -101,7 +101,7 @@ export default function BricksFilters({ initialFilters, sets, colors }: Readonly
           <select class="w-full bg-box text-contrast rounded-lg px-4 py-3 text-sm mt-2 border-none" name="color" onChange={handleColorChange}>
             <option value="" selected={filters.color === ""}>All</option>
             {colors.map((c) => (
-              <option key={c.id} value={c.id} selected={filters.color === String(c.id)}>{c.name}</option>
+              <option key={c.id} value={c.id} selected={filters.color === String(c.id)}><span style={{ backgroundColor: c.rgb }} class="inline-block w-4 h-4 rounded-full mr-2"></span>{c.name}</option>
             ))}
           </select>
         </label>

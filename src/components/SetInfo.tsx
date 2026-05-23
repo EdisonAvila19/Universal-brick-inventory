@@ -221,6 +221,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
     "Fail": MissingBricksMessage,
     "Success": InventoryBricks
   };
+  
   let FinalStatus = loading 
     ? "Loading" 
     : (bricks.length === 0 || selectedSet === null) 
