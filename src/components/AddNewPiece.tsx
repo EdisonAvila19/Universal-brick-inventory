@@ -141,7 +141,7 @@ function AddExternalPieceForm({ selectedSet, onSuccess }: Readonly<{ selectedSet
               : `${part_num}-${colorData.color_id}`;
 
             return (
-              <form method="post" class="bg-surface-container-lowest p-3 rounded-lg flex items-center gap-3" key={brickID} onSubmit={handleSubmit}>
+              <form method="post" class="bg-surface-container-lowest border border-contrast p-3 rounded-lg flex items-center gap-3" key={brickID} onSubmit={handleSubmit}>
                 <input type="hidden" name="setNumber" value={setNumber} />
                 <input type="hidden" name="reference" value={part_num} />
                 <input type="hidden" name="name" value={name} />

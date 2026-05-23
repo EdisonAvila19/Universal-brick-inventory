@@ -32,10 +32,10 @@ export default function SetCard(setData: Readonly<SetRecord>) {
       <div className="mt-4 space-y-1">
         <div className="flex justify-between text-[10px] font-bold text-secondary uppercase tracking-widest">
           <span>Completion</span>
-          <span>{progress}%</span>
+          <span>{progress || 0}%</span>
         </div>
         <div className="h-1.5 w-full bg-surface-container-low rounded-full overflow-hidden">
-          <div className={["h-full", progress === 100 ? "bg-tertiary-container" : "bg-primary-container"].join(' ')} style={{ width: `${progress}%` }}></div>
+          <div className={["h-full", progress === 100 ? "bg-tertiary-container" : "bg-primary-container"].join(' ')} style={{ width: `${progress || 0}%` }}></div>
         </div>
       </div>
       <div className="pt-4 mt-auto">
