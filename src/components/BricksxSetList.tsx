@@ -2,11 +2,10 @@ import type { ArchiveColor, BrickRecord, SetRecord } from '@/types/archiveData'
 import { DeleteBrick, UpdateBrickData, UpdateBrickStock, assignSpareToSet } from '@/utils/bricksData'
 import { useState } from 'preact/hooks'
 import { updateFeedback } from '@stores/feedback'
-import { fetchBricks } from '@stores/storage-bricks'
 import { refreshSpareBricks } from '@stores/storage-spare-bricks'
 import '@styles/select.css'
 
-function UpdateStockForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord }>) {
+function UpdateStockForm ({ selectedSet, brick, onBrickUpdated }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, onBrickUpdated: () => void }>) {
 
   const handleSubmit = async (event: Event) => {
     event.preventDefault();
@@ -20,7 +19,7 @@ function UpdateStockForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRec
       return;
     }
 
-    fetchBricks();
+    onBrickUpdated();
     updateFeedback( "Brick stock updated successfully!", "info" );
   }
 
@@ -42,7 +41,7 @@ function UpdateStockForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRec
   )
 }
 
-function DeleteBrickForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord }>) {
+function DeleteBrickForm ({ selectedSet, brick, onBrickUpdated }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, onBrickUpdated: () => void }>) {
 
   const handleSubmit = async (event: Event) => {
     event.preventDefault();
@@ -55,7 +54,7 @@ function DeleteBrickForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRec
       return;
     }
 
-    fetchBricks();
+    onBrickUpdated();
     updateFeedback( "Brick removed successfully!", "info" );
   }
 
@@ -69,7 +68,7 @@ function DeleteBrickForm ({ selectedSet, brick }: Readonly<{ selectedSet: SetRec
   )
 }
 
-function UpdateInfoForm ({ selectedSet, brick, colors }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, colors: ArchiveColor[] }>) {
+function UpdateInfoForm ({ selectedSet, brick, colors, onBrickUpdated }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, colors: ArchiveColor[], onBrickUpdated: () => void }>) {
   const [isOpen, setIsOpen] = useState(false)
 
   const handleToggle = (event: Event) => {
@@ -87,7 +86,7 @@ function UpdateInfoForm ({ selectedSet, brick, colors }: Readonly<{ selectedSet:
       updateFeedback( "Failed to update brick details. Please try again.", "error" );
     }
 
-    fetchBricks();
+    onBrickUpdated();
     handleToggle({ target: { open: false }} as unknown as Event);
     updateFeedback( "Brick details updated successfully!", "info" );
   }
@@ -163,7 +162,7 @@ function UpdateInfoForm ({ selectedSet, brick, colors }: Readonly<{ selectedSet:
   )
 }
 
-function SpareAssignForm({ selectedSet, brick, spareQuantity }: Readonly<{ selectedSet: SetRecord; brick: BrickRecord; spareQuantity: number }>) {
+function SpareAssignForm({ selectedSet, brick, spareQuantity, onBrickUpdated }: Readonly<{ selectedSet: SetRecord; brick: BrickRecord; spareQuantity: number; onBrickUpdated: () => void }>) {
   const [quantity, setQuantity] = useState(Math.min(spareQuantity, brick.required - brick.stock));
   const [assigning, setAssigning] = useState(false);
 
@@ -182,7 +181,7 @@ function SpareAssignForm({ selectedSet, brick, spareQuantity }: Readonly<{ selec
       return;
     }
 
-    await fetchBricks();
+    await onBrickUpdated();
     await refreshSpareBricks();
     updateFeedback(`Assigned ${quantity} spare piece(s) to set!`, "info");
     setAssigning(false);
@@ -211,7 +210,7 @@ function SpareAssignForm({ selectedSet, brick, spareQuantity }: Readonly<{ selec
 }
 
 
-export default function BricksxSetList({ selectedSet, brick, colors, spareQuantity = 0 }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, colors: ArchiveColor[], spareQuantity?: number }>) {
+export default function BricksxSetList({ selectedSet, brick, colors, spareQuantity = 0, onBrickUpdated }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, colors: ArchiveColor[], spareQuantity?: number, onBrickUpdated: () => void }>) {
   const missing = brick.required - brick.stock;
   const hasSpare = spareQuantity > 0 && missing > 0;
 
@@ -232,11 +231,11 @@ export default function BricksxSetList({ selectedSet, brick, colors, spareQuanti
             )}
           </div>
         </div>
-        <UpdateStockForm selectedSet={selectedSet} brick={brick} />
-        <DeleteBrickForm selectedSet={selectedSet} brick={brick} />
+        <UpdateStockForm selectedSet={selectedSet} brick={brick} onBrickUpdated={onBrickUpdated} />
+        <DeleteBrickForm selectedSet={selectedSet} brick={brick} onBrickUpdated={onBrickUpdated} />
       </div>
-        <UpdateInfoForm selectedSet={selectedSet} brick={brick} colors={colors} />
-        {hasSpare && <SpareAssignForm selectedSet={selectedSet} brick={brick} spareQuantity={spareQuantity} />}
+        <UpdateInfoForm selectedSet={selectedSet} brick={brick} colors={colors} onBrickUpdated={onBrickUpdated} />
+        {hasSpare && <SpareAssignForm selectedSet={selectedSet} brick={brick} spareQuantity={spareQuantity} onBrickUpdated={onBrickUpdated} />}
     </article>
   )
 }

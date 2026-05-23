@@ -1,12 +1,10 @@
-import { useEffect, useState } from "preact/hooks";
-import { useStore } from '@nanostores/preact';
+import { useEffect, useRef, useState } from "preact/hooks";
 
 import type { BrickRecord, SetRecord } from "@/types/archiveData";
 import { GetNewBricksForSet } from '@utils/bricksData';
 import { $bricks } from '@stores/storage-bricks'
 
 export function useSetStore (activeSetNumber: string, sets: SetRecord[], setSelectedSet: (set: SetRecord | null) => void)  {
-  const fullBricks = useStore($bricks);
   const [setBricks, setSetBricks] = useState<BrickRecord[]>([]);
   const [totalRequired, setTotalRequired] = useState(0);
   const [totalOwned, setTotalOwned] = useState(0);
@@ -17,6 +15,11 @@ export function useSetStore (activeSetNumber: string, sets: SetRecord[], setSele
     const newBricks = await GetNewBricksForSet(activeSetNumber)
     setSetBricks(newBricks);
     setLoading(false);
+  }
+
+  const refreshBricks = async () => {
+    const newBricks = await GetNewBricksForSet(activeSetNumber)
+    setSetBricks(newBricks);
   }
 
   useEffect(() => {
@@ -31,9 +34,17 @@ export function useSetStore (activeSetNumber: string, sets: SetRecord[], setSele
     setTotalOwned(setBricks.reduce((acc, brick) => acc + Math.min(brick.required, brick.stock), 0));
   }, [setBricks])
 
-  useEffect(() => {
-    fetchBricks();
-  }, [fullBricks])
+  const refreshRef = useRef(refreshBricks);
+  refreshRef.current = refreshBricks;
 
-  return { fetchBricks, totalRequired, totalOwned, bricks: setBricks, setBricks: setSetBricks, loading };
+  useEffect(() => {
+    const unsub = $bricks.listen(() => {
+      if (activeSetNumber) {
+        refreshRef.current();
+      }
+    });
+    return () => unsub();
+  }, [activeSetNumber]);
+
+  return { fetchBricks, refreshBricks, totalRequired, totalOwned, bricks: setBricks, setBricks: setSetBricks, loading };
 }

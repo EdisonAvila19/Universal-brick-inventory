@@ -29,7 +29,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
   const [selectedSet, setSelectedSet] = useState(initialSelectedSet)
   const spareBricksMap = useStore($spareBricks);
 
-  const { totalRequired, totalOwned, bricks, loading } = useSetStore(activeSetNumber, sets, setSelectedSet);
+  const { totalRequired, totalOwned, bricks, loading, refreshBricks } = useSetStore(activeSetNumber, sets, setSelectedSet);
 
   useEffect(() => {
     refreshSpareBricks();
@@ -206,7 +206,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
 
       {/* Brick Inventory */}
       <section class="space-y-4 mb-4">
-        {visibleBricks.map((brick) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} colors={colors} spareQuantity={getSpareQty(brick.elementId)} key={brick.elementId} />))}
+        {visibleBricks.map((brick) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} colors={colors} spareQuantity={getSpareQty(brick.elementId)} key={brick.elementId} onBrickUpdated={refreshBricks} />))}
       </section>
 
       {/* Pagination */}
