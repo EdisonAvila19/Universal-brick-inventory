@@ -198,6 +198,54 @@ export async function getColors(): Promise<Array<ArchiveColor>> {
   }));
 }
 
+export async function addColor(name: string, rgb: string): Promise<{ added: boolean; reason?: string; id?: number }> {
+  const db = getDb();
+  const trimmedName = name.trim();
+  const trimmedRgb = rgb.trim();
+  if (!trimmedName || !trimmedRgb) {
+    return { added: false, reason: "invalid-data" };
+  }
+  const normalizedRgb = trimmedRgb.startsWith("#") ? trimmedRgb : `#${trimmedRgb}`;
+  const existing = db.prepare("SELECT id FROM colors WHERE name = ?").get(trimmedName) as { id: number } | undefined;
+  if (existing) {
+    return { added: false, reason: "duplicate-name" };
+  }
+  const result = db.prepare("INSERT INTO colors (name, rgb) VALUES (?, ?)").run(trimmedName, normalizedRgb);
+  return { added: true, id: Number(result.lastInsertRowid) };
+}
+
+export async function updateColor(id: number, name: string, rgb: string): Promise<{ updated: boolean; reason?: string }> {
+  const db = getDb();
+  const trimmedName = name.trim();
+  const trimmedRgb = rgb.trim();
+  if (!trimmedName || !trimmedRgb) {
+    return { updated: false, reason: "invalid-data" };
+  }
+  const normalizedRgb = trimmedRgb.startsWith("#") ? trimmedRgb : `#${trimmedRgb}`;
+  const duplicate = db.prepare("SELECT id FROM colors WHERE name = ? AND id != ?").get(trimmedName, id) as { id: number } | undefined;
+  if (duplicate) {
+    return { updated: false, reason: "duplicate-name" };
+  }
+  const result = db.prepare("UPDATE colors SET name = ?, rgb = ? WHERE id = ?").run(trimmedName, normalizedRgb, id);
+  if (result.changes === 0) {
+    return { updated: false, reason: "not-found" };
+  }
+  return { updated: true };
+}
+
+export async function deleteColor(id: number): Promise<{ deleted: boolean; reason?: string }> {
+  const db = getDb();
+  const inUse = db.prepare("SELECT COUNT(*) AS total FROM bricks WHERE colorId = ?").get(id) as { total: number };
+  if (Number(inUse.total) > 0) {
+    return { deleted: false, reason: "in-use" };
+  }
+  const result = db.prepare("DELETE FROM colors WHERE id = ?").run(id);
+  if (result.changes === 0) {
+    return { deleted: false, reason: "not-found" };
+  }
+  return { deleted: true };
+}
+
 async function readStore(): Promise<InventoryPayload> {
   await ensureStore();
   const db = getDb();

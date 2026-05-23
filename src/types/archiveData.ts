@@ -1,6 +1,6 @@
 export type Brand = "LEGO" | "Mould King" | "CaDA" | "Other";
 export type PurchaseStore = "lego" | "bricklink";
-export type ActiveView = "dashboard" | "catalog" | "bricks" | "shopping" | "spare-parts" | "";
+export type ActiveView = "dashboard" | "catalog" | "bricks" | "shopping" | "spare-parts" | "colors" | "";
 
 export interface SetRecord {
   id: string;
