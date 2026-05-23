@@ -75,12 +75,12 @@ export default function ColorManager({ initialColors }: Props) {
   return (
     <div class="flex flex-col gap-8">
       {/* Add form */}
-      <form onSubmit={handleAdd} class="bg-surface-container-low rounded-xl p-6 flex flex-col md:flex-row gap-4 items-end">
+      <form onSubmit={handleAdd} class="bg-surface-container-low rounded-xl p-6 flex flex-col md:flex-row gap-4 items-end shadow-[0_0_13px_-6px] shadow-contrast">
         <div class="flex-1 w-full">
           <label class="text-xs font-bold uppercase tracking-wider text-secondary">Name{" "}</label>
           <input type="text" value={newName} onInput={(e) => setNewName((e.target as HTMLInputElement).value)} placeholder="e.g. Bright Red" class="w-full bg-surface-container-high rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary" />
         </div>
-        <div class="w-auto md:w-40">
+        <div class="w-auto">
           <label class="text-xs font-bold uppercase tracking-wider text-secondary">RGB{" "}</label>
           <div class="flex gap-2 items-center">
             <input type="text" value={newRgb} onInput={(e) => setNewRgb((e.target as HTMLInputElement).value)} placeholder="#FFFFFF" class="flex-1 bg-surface-container-high rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary font-mono" />
@@ -91,7 +91,7 @@ export default function ColorManager({ initialColors }: Props) {
       </form>
 
       {/* Color table */}
-      <div class="bg-surface-container-low rounded-xl overflow-hidden">
+      <div class="bg-surface-container-low rounded-xl overflow-hidden shadow-[0_0_13px_-6px] shadow-contrast">
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
