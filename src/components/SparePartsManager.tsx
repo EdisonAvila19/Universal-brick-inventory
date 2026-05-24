@@ -5,9 +5,10 @@ import type { SpareBrickRecord, ArchiveColor } from "@/types/archiveData";
 import type { RebrickablePartColorDetails } from "@/types/rebrickable";
 
 import { $spareBricks, refreshSpareBricks } from "@stores/storage-spare-bricks";
-import { addSpareBrick as apiAddSpare, updateSpareBrick as apiUpdateSpare, deleteSpareBrick as apiDeleteSpare } from "@utils/bricksData";
-import { searchNewBrick } from "@utils/bricksData";
+import { addSpareBrick as apiAddSpare, updateSpareBrick as apiUpdateSpare, deleteSpareBrick as apiDeleteSpare, searchNewBrick } from "@utils/bricksData";
 import { updateFeedback } from "@stores/feedback";
+
+import "@styles/select.css"
 
 function SpareBrickCard({ brick, onEdit, onDelete }: Readonly<{ brick: SpareBrickRecord; onEdit: (b: SpareBrickRecord) => void; onDelete: (b: SpareBrickRecord) => void }>) {
   return (
@@ -125,7 +126,7 @@ function AddSpareModal({ colors, onClose }: Readonly<{ colors: ArchiveColor[]; o
   return (
     <div class="fixed inset-0 z-50 flex items-start justify-center pt-12 pb-12 items-center ml-64" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
       <div class={`absolute inset-0 bg-black/40 ${entered ? "animate-fade-in" : "animate-fade-out"}`} onClick={close} />
-      <div class={`relative bg-surface-container-low rounded-xl p-6 w-full max-w-2xl max-h-full overflow-y-auto mx-4 shadow-2xl ${entered ? "animate-fade-in animate-slide-in-top" : "animate-fade-out animate-slide-out-top"}`}>
+      <div class={`relative bg-surface-container-low rounded-xl p-6 w-full max-w-3xl max-h-full overflow-y-auto mx-4 shadow-2xl ${entered ? "animate-slide-in-top" : "animate-slide-out-top"}`}>
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-xl font-black">Add Spare Brick</h3>
           <button onClick={close} class="text-secondary text-lg font-bold">&times;</button>
@@ -158,7 +159,7 @@ function AddSpareModal({ colors, onClose }: Readonly<{ colors: ArchiveColor[]; o
               </div>
             </div>
             <label class="block text-[10px] uppercase font-bold text-secondary mb-3">
-              Quantity
+              Quantity{" "}
               <input type="number" min="1" value={quantity} onInput={(e) => setQuantity(Number((e.target as HTMLInputElement).value))} class="w-24 bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" />
             </label>
             <p class="text-xs text-secondary mb-3">Select a color:</p>
@@ -166,12 +167,15 @@ function AddSpareModal({ colors, onClose }: Readonly<{ colors: ArchiveColor[]; o
               {colorOptions.map((color) => {
                 const elementId = color.elements?.[0] || `${searchResult.part_num}-${color.color_id}`;
                 return (
-                  <button key={elementId} onClick={() => handleAddFromRebrickable(color)} class="bg-surface-container-highest p-3 rounded-lg flex items-center gap-3 hover:bg-surface-container-high transition-colors text-left">
-                    <div class="w-6 h-6 rounded-full shadow-inner shrink-0" style={`background:${color.colorRgb}`}></div>
-                    <div class="min-w-0">
-                      <p class="text-xs font-bold truncate">{color.color_name}</p>
-                      <p class="text-[9px] text-secondary">ID: {elementId}</p>
+                  <button key={elementId} onClick={() => handleAddFromRebrickable(color)} class="bg-surface-container-highest p-3 rounded-lg flex items-center gap-3 hover:bg-surface-container-high transition-colors text-left justify-between">
+                    <div className="flex flex-row gap-3">
+                      <img src={color.part_img_url} alt={color.color_name} class="w-6 h-6 rounded-full shadow-inner shrink-0" loading="lazy" />
+                      <div class="min-w-0">
+                        <p class="text-xs font-bold truncate">{color.color_name}</p>
+                        <p class="text-[9px] text-secondary">ID: {elementId}</p>
+                      </div>
                     </div>
+                    <div class="w-6 h-6 rounded-full shadow-inner shrink-0" style={`background:${color.colorRgb}`}></div>
                   </button>
                 );
               })}
@@ -183,33 +187,33 @@ function AddSpareModal({ colors, onClose }: Readonly<{ colors: ArchiveColor[]; o
           <form onSubmit={handleAddManual} class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="md:col-span-2">
               <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
-                Reference *
+                Reference *{" "}
                 <input name="reference" placeholder="e.g. 3001" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" value={reference} onInput={(e) => setReference((e.target as HTMLInputElement).value)} required />
               </label>
             </div>
             <div>
               <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
-                Name
+                Name{" "}
                 <input name="name" placeholder="Piece name" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" value={manualName} onInput={(e) => setManualName((e.target as HTMLInputElement).value)} />
               </label>
             </div>
             <div>
               <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
-                Color
+                Color{" "}
                 <select name="color" class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" value={manualColorId} onChange={(e) => setManualColorId(Number((e.target as HTMLSelectElement).value))}>
-                  {colors.map((c) => <option value={c.id}>{c.name}</option>)}
+                  {colors.map((c) => <option value={c.id} key={c.id}><span className="block w-4 h-4 rounded-full" style={`background:${c.rgb}`}></span> {c.name}</option>)}
                 </select>
               </label>
             </div>
             <div>
               <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
-                Image URL
+                Image URL{" "}
                 <input type="url" name="image" placeholder="https://..." class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" value={manualImage} onInput={(e) => setManualImage((e.target as HTMLInputElement).value)} />
               </label>
             </div>
             <div>
               <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
-                Quantity *
+                Quantity *{" "}
                 <input type="number" min="1" name="spareQuantity" value={quantity} onInput={(e) => setQuantity(Number((e.target as HTMLInputElement).value))} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" required />
               </label>
             </div>
