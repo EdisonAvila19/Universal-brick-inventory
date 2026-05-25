@@ -10,11 +10,12 @@ const colors = await getColors();
 <AppLayout title="Spare Parts | Brick Inventory" active="spare-parts">
   <Feedback client:load />
 
-  <section class="mb-10 flex flex-col md:flex-row justify-between items-end gap-6">
+  <section class="mb-5 flex flex-row w-full justify-between items-start">
     <div>
-      <h1 class="text-4xl font-black tracking-tight mb-2">Spare Parts</h1>
-      <p class="text-secondary font-medium uppercase text-xs tracking-[0.2em]">Bricks that don&rsquo;t belong to any set</p>
+      <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">Spare Parts</p>
+      <h1 class="text-4xl font-black tracking-tight">Spare Parts Inventory</h1>
     </div>
+    <button id="add-spare-btn" class="fixed top-4 right-4 z-50 bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm whitespace-nowrap shadow-lg">+ Add Spare Brick</button>
   </section>
 
   <SparePartsManager colors={colors} client:load />

@@ -278,6 +278,10 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
 
   useEffect(() => {
     refreshSpareBricks();
+    const btn = document.getElementById("add-spare-btn");
+    const handler = () => setShowAddModal(true);
+    btn?.addEventListener("click", handler);
+    return () => btn?.removeEventListener("click", handler);
   }, []);
 
   const filtered = spareBricks.filter((b) => {
@@ -334,7 +338,6 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
             ))}
           </select>
         </div>
-        <button onClick={() => setShowAddModal(true)} class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm whitespace-nowrap">+ Add Spare Brick</button>
       </div>
 
       {filtered.length === 0 ? (
