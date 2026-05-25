@@ -9,7 +9,6 @@ import { $spareBricks, refreshSpareBricks } from '@stores/storage-spare-bricks';
 
 import SetInfoForm from "@components/SetInfoForm";
 import BricksxSetList from '@components/BricksxSetList'
-import type { JSXInternal } from 'node_modules/preact/src/jsx'
 
 const PAGE_SIZES = [10, 15, 20, 30, 40, 50];
 
@@ -42,12 +41,21 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [filterName, setFilterName] = useState("");
   const [filterColor, setFilterColor] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "missings" | "completed">("all");
 
   const availableColors = colors.filter((c) => bricks.some((b) => b.colorId === c.id));
 
   const filteredBricks = bricks.filter((b) => {
+    if (filterName) {
+      const q = filterName.toLowerCase();
+      if (
+        !b.name.toLowerCase().includes(q) &&
+        !b.reference.toLowerCase().includes(q) &&
+        !b.elementId.toLowerCase().includes(q)
+      ) return false;
+    }
     if (filterColor && b.colorId !== Number(filterColor)) return false;
     if (filterStatus === "missings" && b.stock >= b.required) return false;
     if (filterStatus === "completed" && b.stock < b.required) return false;
@@ -143,94 +151,6 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
   // If a set is selected but not found in the store, show an error message
   if (!selectedSet) return
 
-  const LoadingMessage = () => (
-    <section class="bg-surface-container-lowest rounded-xl p-8 mb-8">
-      <div class="animate-pulse space-y-4">
-        <div class="h-6 bg-surface-container-high rounded w-1/3"></div>
-        <div class="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} class="flex gap-4 items-center p-4 bg-surface-container-high rounded-xl">
-              <div class="w-20 h-20 bg-surface-dim rounded-lg"></div>
-              <div class="flex-1 space-y-2">
-                <div class="h-3 bg-surface-dim rounded w-1/4"></div>
-                <div class="h-4 bg-surface-dim rounded w-3/4"></div>
-                <div class="h-3 bg-surface-dim rounded w-1/3"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-
-  const MissingBricksMessage = () => (
-    <section class="bg-surface-container-lowest rounded-xl p-8 text-center text-secondary mb-8">
-      <h3 class="text-xl font-black mb-2">No pieces in this set yet</h3>
-      <p class="text-sm">Use the form below to add your first piece.</p>
-    </section>
-  )
-
-  const InventoryBricks = () => (
-    <>
-      {/* Filters + Pagination */}
-      <section class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface-container-lowest rounded-xl p-4 mb-4">
-
-        <div class="flex items-center gap-4 text-sm">
-          <label class="flex items-center gap-2 text-secondary font-bold">
-            Color{" "}
-            <select value={filterColor} onChange={(e) => { setFilterColor((e.target as HTMLSelectElement).value); setCurrentPage(1); }} class="bg-surface-container-high border-none rounded-lg ps-3 pe-4 py-1 text-sm font-bold text-on-surface">
-              <option value="">All</option>
-              {availableColors.map((c) => (
-                <option key={c.id} value={c.id}><span class="block w-4 h-4 rounded-full border border-contrast" style={{ backgroundColor: c.rgb }}></span>{c.name}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div class="flex rounded-xl overflow-hidden border border-surface-dim text-sm font-bold">
-          {(["all", "missings", "completed"] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => { setFilterStatus(s); setCurrentPage(1); }}
-              class={`px-3 py-1.5 transition-colors capitalize ${
-                filterStatus === s
-                  ? "bg-primary text-surface"
-                  : "bg-surface-container-high text-on-surface hover:bg-surface-dim"
-              }`}
-            >{s}</button>
-          ))}
-        </div>
-
-        {paginationBar(totalPages, safePage, pageSize, filteredBricks.length, setCurrentPage, handlePageSizeChange)}
-      </section>
-
-      {/* Brick Inventory */}
-      <section class="space-y-4 mb-4">
-        {visibleBricks.map((brick) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} colors={colors} spareQuantity={getSpareQty(brick.elementId)} key={brick.elementId} onBrickUpdated={refreshBricks} />))}
-      </section>
-
-      {/* Pagination */}
-      <section class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface-container-lowest rounded-xl p-4 mb-10">
-        {paginationBar(totalPages, safePage, pageSize, filteredBricks.length, setCurrentPage, handlePageSizeChange)}
-      </section>
-    </>
-  )
-
-  const resultStatus: Record<string, () => JSXInternal.Element> = {
-    "Loading": LoadingMessage,
-    "Fail": MissingBricksMessage,
-    "Success": InventoryBricks
-  };
-  
-  let FinalStatus = loading 
-    ? "Loading" 
-    : (bricks.length === 0 || selectedSet === null) 
-      ? "Fail" 
-      : "Success";
-
-
-  const BrickResults = resultStatus[FinalStatus];
-  // If a set is selected and found, display the form
   return (
     <>
       {/* Set Info */}
@@ -252,7 +172,87 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
       </section>
 
       {/* Set Bricks Form */}
-      <BrickResults />
+      {loading ? (
+        <section class="bg-surface-container-lowest rounded-xl p-8 mb-8">
+          <div class="animate-pulse space-y-4">
+            <div class="h-6 bg-surface-container-high rounded w-1/3"></div>
+            <div class="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} class="flex gap-4 items-center p-4 bg-surface-container-high rounded-xl">
+                  <div class="w-20 h-20 bg-surface-dim rounded-lg"></div>
+                  <div class="flex-1 space-y-2">
+                    <div class="h-3 bg-surface-dim rounded w-1/4"></div>
+                    <div class="h-4 bg-surface-dim rounded w-3/4"></div>
+                    <div class="h-3 bg-surface-dim rounded w-1/3"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : (bricks.length === 0 || selectedSet === null) ? (
+        <section class="bg-surface-container-lowest rounded-xl p-8 text-center text-secondary mb-8">
+          <h3 class="text-xl font-black mb-2">No pieces in this set yet</h3>
+          <p class="text-sm">Use the form below to add your first piece.</p>
+        </section>
+      ) : (
+        <>
+          {/* Filters */}
+          <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface-container-lowest rounded-xl p-4 mb-4">
+
+            <div class="flex items-center gap-4 text-sm flex-wrap">
+              <label class="flex items-center gap-2 text-secondary font-bold">
+                Name
+                <input
+                  type="text"
+                  value={filterName}
+                  onInput={(e) => { setFilterName((e.target as HTMLInputElement).value); setCurrentPage(1); }}
+                  placeholder="Search pieces..."
+                  class="bg-surface-container-high border-none rounded-lg px-3 py-1 text-sm font-bold text-on-surface placeholder:text-secondary/50 w-40"
+                />
+              </label>
+              <label class="flex items-center gap-2 text-secondary font-bold">
+                Color{" "}
+                <select value={filterColor} onChange={(e) => { setFilterColor((e.target as HTMLSelectElement).value); setCurrentPage(1); }} class="bg-surface-container-high border-none rounded-lg ps-3 pe-4 py-1 text-sm font-bold text-on-surface">
+                  <option value="">All</option>
+                  {availableColors.map((c) => (
+                    <option key={c.id} value={c.id}><span class="block w-4 h-4 rounded-full border border-contrast" style={{ backgroundColor: c.rgb }}></span>{c.name}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div class="flex rounded-xl overflow-hidden border border-surface-dim text-sm font-bold">
+              {(["all", "missings", "completed"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => { setFilterStatus(s); setCurrentPage(1); }}
+                  class={`px-3 py-1.5 transition-colors capitalize ${
+                    filterStatus === s
+                      ? "bg-primary text-surface"
+                      : "bg-surface-container-high text-on-surface hover:bg-surface-dim"
+                  }`}
+                >{s}</button>
+              ))}
+            </div>
+          </section>
+
+          {/* Pagination Top */}
+          <section class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface-container-lowest rounded-xl p-4 mb-4">
+            {paginationBar(totalPages, safePage, pageSize, filteredBricks.length, setCurrentPage, handlePageSizeChange)}
+          </section>
+
+          {/* Brick Inventory */}
+          <section class="space-y-4 mb-4">
+            {visibleBricks.map((brick) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} colors={colors} spareQuantity={getSpareQty(brick.elementId)} key={brick.elementId} onBrickUpdated={refreshBricks} />))}
+          </section>
+
+          {/* Pagination */}
+          <section class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface-container-lowest rounded-xl p-4 mb-10">
+            {paginationBar(totalPages, safePage, pageSize, filteredBricks.length, setCurrentPage, handlePageSizeChange)}
+          </section>
+        </>
+      )}
     </>
   )
 }
