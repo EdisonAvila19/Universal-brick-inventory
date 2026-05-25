@@ -9,6 +9,7 @@ import { $spareBricks, refreshSpareBricks } from '@stores/storage-spare-bricks';
 
 import SetInfoForm from "@components/SetInfoForm";
 import BricksxSetList from '@components/BricksxSetList'
+import ColorMultiSelect from '@components/ColorMultiSelect'
 
 const PAGE_SIZES = [10, 15, 20, 30, 40, 50];
 
@@ -42,7 +43,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [filterName, setFilterName] = useState("");
-  const [filterColor, setFilterColor] = useState("");
+  const [filterColor, setFilterColor] = useState<string[]>([]);
   const [filterStatus, setFilterStatus] = useState<"all" | "missings" | "completed">("all");
 
   const availableColors = colors.filter((c) => bricks.some((b) => b.colorId === c.id));
@@ -56,7 +57,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
         !b.elementId.toLowerCase().includes(q)
       ) return false;
     }
-    if (filterColor && b.colorId !== Number(filterColor)) return false;
+    if (filterColor.length > 0 && !filterColor.includes(String(b.colorId))) return false;
     if (filterStatus === "missings" && b.stock >= b.required) return false;
     if (filterStatus === "completed" && b.stock < b.required) return false;
     return true;
@@ -201,24 +202,22 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
           <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface-container-lowest rounded-xl p-4 mb-4">
 
             <div class="flex items-center gap-4 text-sm flex-wrap">
-              <label class="flex items-center gap-2 text-secondary font-bold">
-                Name
+              <label class="flex items-center gap-2 text-secondary font-bold">{" "}
                 <input
                   type="text"
                   value={filterName}
                   onInput={(e) => { setFilterName((e.target as HTMLInputElement).value); setCurrentPage(1); }}
-                  placeholder="Search pieces..."
-                  class="bg-surface-container-high border-none rounded-lg px-3 py-1 text-sm font-bold text-on-surface placeholder:text-secondary/50 w-40"
+                  placeholder="Search by reference, name or ID..."
+                  class="bg-surface-container-high border-none rounded-lg px-3 py-2 text-sm font-bold text-on-surface placeholder:text-secondary/50 w-64"
                 />
               </label>
               <label class="flex items-center gap-2 text-secondary font-bold">
                 Color{" "}
-                <select value={filterColor} onChange={(e) => { setFilterColor((e.target as HTMLSelectElement).value); setCurrentPage(1); }} class="bg-surface-container-high border-none rounded-lg ps-3 pe-4 py-1 text-sm font-bold text-on-surface">
-                  <option value="">All</option>
-                  {availableColors.map((c) => (
-                    <option key={c.id} value={c.id}><span class="block w-4 h-4 rounded-full border border-contrast" style={{ backgroundColor: c.rgb }}></span>{c.name}</option>
-                  ))}
-                </select>
+                <ColorMultiSelect
+                  colors={availableColors}
+                  selected={filterColor}
+                  onChange={(selected) => { setFilterColor(selected); setCurrentPage(1); }}
+                />
               </label>
             </div>
 

@@ -11,7 +11,7 @@ const filters = {
   piece: url.searchParams.get("piece") ?? "",
   set: url.searchParams.getAll("set").map((value) => value.trim()).filter(Boolean),
   status: url.searchParams.get("status") ?? "all",
-  color: url.searchParams.get("color") ?? ""
+  color: url.searchParams.getAll("color").map((value) => value.trim()).filter(Boolean),
 }
 
 const bricks = await getInventoryBricks();

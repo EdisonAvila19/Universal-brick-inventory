@@ -51,7 +51,7 @@ export function useBricks( initialBricks: BrickRecord[] ) {
       const matchesPiece = !normalizedPieceFilter || group.reference.toLowerCase().includes(normalizedPieceFilter) || group.name.toLowerCase().includes(normalizedPieceFilter) || group.elementId.toLowerCase().includes(normalizedPieceFilter);
       const matchesSet = setFilters.length === 0 || group.sets.some((s) => setFilters.includes(s.setNumber));
       const matchesStatus = statusFilter === "all" || (statusFilter === "missing" ? group.needed > 0 : group.needed === 0);
-      const matchesColor = !colorFilter || group.colorId === Number(colorFilter);
+      const matchesColor = colorFilter.length === 0 || colorFilter.includes(String(group.colorId));
       return matchesPiece && matchesSet && matchesStatus && matchesColor;
     });
 

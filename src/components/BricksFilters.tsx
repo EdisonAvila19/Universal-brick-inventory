@@ -2,40 +2,45 @@ import { useEffect, useRef, useState } from 'preact/hooks'
 import { useStore } from '@nanostores/preact';
 import { $filters, updateFilters } from '@stores/storage-bricks';
 import type { ArchiveColor } from '@/types/archiveData'
+import ColorMultiSelect from '@components/ColorMultiSelect'
 import "@styles/select.css"
 
-export default function BricksFilters({ initialFilters, sets, colors }: Readonly<{ initialFilters: { piece: string, set: string[], status: string, color: string }, sets: { value: string, label: string }[], colors: ArchiveColor[] }>) {
+export default function BricksFilters({ initialFilters, sets, colors }: Readonly<{ initialFilters: { piece: string, set: string[], status: string, color: string[] }, sets: { value: string, label: string }[], colors: ArchiveColor[] }>) {
   const filters = useStore($filters);
   const [localPiece, setLocalPiece] = useState(filters.piece);
   const [localSets, setLocalSets] = useState<string[]>(filters.set);
+  const [localColors, setLocalColors] = useState<string[]>(filters.color);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const pieceRef = useRef(localPiece);
   const setsRef = useRef(localSets);
+  const colorsRef = useRef(localColors);
 
   pieceRef.current = localPiece;
   setsRef.current = localSets;
+  colorsRef.current = localColors;
 
   useEffect(() => {
     $filters.set(initialFilters);
     setLocalPiece(initialFilters.piece);
     setLocalSets(initialFilters.set);
+    setLocalColors(initialFilters.color);
   }, []);
 
   useEffect(() => {
     return () => clearTimeout(debounceRef.current);
   }, []);
 
-  const syncUrl = (piece: string, set: string[], status: string, color: string) => {
+  const syncUrl = (piece: string, set: string[], status: string, color: string[]) => {
     const params = new URLSearchParams();
     if (piece) params.append("piece", piece);
     set.forEach((s) => params.append("set", s));
     if (status && status !== "all") params.append("status", status);
-    if (color) params.append("color", color);
+    color.forEach((c) => params.append("color", c));
     const qs = params.toString() ? `?${params.toString()}` : '';
     globalThis.history.pushState({}, "", `${globalThis.location.pathname}${qs}`);
   };
 
-  const apply = (piece: string, set: string[], status: string, color: string) => {
+  const apply = (piece: string, set: string[], status: string, color: string[]) => {
     updateFilters({ piece, set, status, color });
     syncUrl(piece, set, status, color);
   };
@@ -43,7 +48,7 @@ export default function BricksFilters({ initialFilters, sets, colors }: Readonly
   const scheduleApply = () => {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      apply(pieceRef.current, setsRef.current, filters.status, filters.color);
+      apply(pieceRef.current, setsRef.current, filters.status, colorsRef.current);
     }, 400);
   };
 
@@ -60,11 +65,12 @@ export default function BricksFilters({ initialFilters, sets, colors }: Readonly
   };
 
   const handleStatusChange = (e: Event) => {
-    apply(localPiece, localSets, (e.target as HTMLSelectElement).value, filters.color);
+    apply(localPiece, localSets, (e.target as HTMLSelectElement).value, localColors);
   };
 
-  const handleColorChange = (e: Event) => {
-    apply(localPiece, localSets, filters.status, (e.target as HTMLSelectElement).value);
+  const handleColorChange = (selected: string[]) => {
+    setLocalColors(selected);
+    apply(localPiece, localSets, filters.status, selected);
   };
 
   return (
@@ -98,12 +104,7 @@ export default function BricksFilters({ initialFilters, sets, colors }: Readonly
       <div>
         <label class="block text-[10px] uppercase font-bold text-secondary px-2">
           Color{" "}
-          <select class="w-full bg-box text-contrast rounded-lg px-4 py-3 text-sm mt-2 border-none" name="color" onChange={handleColorChange}>
-            <option value="" selected={filters.color === ""}>All</option>
-            {colors.map((c) => (
-              <option key={c.id} value={c.id} selected={filters.color === String(c.id)}><span style={{ backgroundColor: c.rgb }} class="inline-block w-4 h-4 rounded-full mr-2"></span>{c.name}</option>
-            ))}
-          </select>
+          <ColorMultiSelect colors={colors} selected={localColors} onChange={handleColorChange} />
         </label>
       </div>
     </div>

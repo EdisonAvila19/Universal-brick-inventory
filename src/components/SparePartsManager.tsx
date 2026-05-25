@@ -8,6 +8,7 @@ import { $spareBricks, refreshSpareBricks } from "@stores/storage-spare-bricks";
 import { addSpareBrick as apiAddSpare, updateSpareBrick as apiUpdateSpare, deleteSpareBrick as apiDeleteSpare, searchNewBrick } from "@utils/bricksData";
 import { updateFeedback } from "@stores/feedback";
 
+import ColorMultiSelect from "@components/ColorMultiSelect";
 import "@styles/select.css"
 
 function SpareBrickCard({ brick, isEditing, onStartEdit, onDelete, onSave, onCancel }: Readonly<{
@@ -271,7 +272,7 @@ function AddSpareModal({ colors, onClose }: Readonly<{ colors: ArchiveColor[]; o
 export default function SparePartsManager({ colors }: Readonly<{ colors: ArchiveColor[] }>) {
   const spareBricks = useStore($spareBricks);
   const [search, setSearch] = useState("");
-  const [colorFilter, setColorFilter] = useState<number | "all">("all");
+  const [colorFilter, setColorFilter] = useState<string[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SpareBrickRecord | null>(null);
@@ -285,7 +286,7 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
   }, []);
 
   const filtered = spareBricks.filter((b) => {
-    if (colorFilter !== "all" && b.colorId !== colorFilter) return false;
+    if (colorFilter.length > 0 && !colorFilter.includes(String(b.colorId))) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return b.reference.toLowerCase().includes(q) || b.name.toLowerCase().includes(q) || b.elementId.toLowerCase().includes(q);
@@ -327,16 +328,11 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
             onInput={(e) => setSearch((e.target as HTMLInputElement).value)}
             class="w-full md:w-72 bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm"
           />
-          <select
-            value={colorFilter}
-            onChange={(e) => setColorFilter(e.currentTarget.value === "all" ? "all" : Number(e.currentTarget.value))}
-            class="bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm min-w-40"
-          >
-            <option value="all">All Colors</option>
-            {colors.map((c) => (
-              <option key={c.id} value={c.id}><span class={`block w-4 h-4 rounded-full`} style={{ backgroundColor: c.rgb }}></span> {c.name}</option>
-            ))}
-          </select>
+          <ColorMultiSelect
+            colors={colors}
+            selected={colorFilter}
+            onChange={setColorFilter}
+          />
         </div>
       </div>
 
