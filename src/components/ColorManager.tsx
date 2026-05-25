@@ -1,6 +1,7 @@
 import { useState } from "preact/hooks";
 import type { ArchiveColor } from "@/types/archiveData";
 import { updateFeedback } from "@stores/feedback";
+import ColorMultiSelect from "./ColorMultiSelect";
 
 interface Props {
   initialColors: ArchiveColor[];
@@ -13,6 +14,7 @@ export default function ColorManager({ initialColors }: Props) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editRgb, setEditRgb] = useState("");
+  const [filterIds, setFilterIds] = useState<string[]>([]);
 
   async function handleAdd(e: Event) {
     e.preventDefault();
@@ -90,6 +92,24 @@ export default function ColorManager({ initialColors }: Props) {
         <button type="submit" class="h-10 bg-primary-container text-primary-container-contrast font-bold px-6 py-2.5 rounded-lg hover:bg-[#f5d140] whitespace-nowrap">Add Color</button>
       </form>
 
+      {/* Color filter */}
+      <div class="flex items-center gap-4">
+        <div class="w-72">
+          <ColorMultiSelect
+            colors={colors}
+            selected={filterIds}
+            onChange={setFilterIds}
+            placeholder="Filter colors..."
+            allLabel="All Colors"
+          />
+        </div>
+        {filterIds.length > 0 && (
+          <p class="text-xs text-secondary font-medium">
+            Showing {colors.filter((c) => filterIds.includes(String(c.id))).length} of {colors.length}
+          </p>
+        )}
+      </div>
+
       {/* Color table */}
       <div class="bg-surface-container-low rounded-xl overflow-hidden shadow-[0_0_13px_-6px] shadow-contrast">
         <div class="overflow-x-auto">
@@ -103,7 +123,7 @@ export default function ColorManager({ initialColors }: Props) {
               </tr>
             </thead>
             <tbody>
-              {colors.map((color) => (
+              {(filterIds.length > 0 ? colors.filter((c) => filterIds.includes(String(c.id))) : colors).map((color) => (
                 <tr key={color.id} class="border-b border-outline-variant/10 hover:bg-surface-container-high transition-colors">
                   {editingId === color.id ? (
                     <>
