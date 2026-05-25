@@ -79,4 +79,5 @@ export interface ArchiveColor {
   id: number;
   name: string;
   rgb: string;
+  colorGroupId?: number;
 }

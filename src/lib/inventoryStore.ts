@@ -125,12 +125,26 @@ function getDb() {
     if (!brickColumns.some((c) => c.name === "spareQuantity")) {
       database.exec("ALTER TABLE bricks ADD COLUMN spareQuantity INTEGER NOT NULL DEFAULT 0");
     }
+
+    const colorColumns = database.prepare("PRAGMA table_info(colors)").all() as Array<{ name: string }>;
+    if (!colorColumns.some((c) => c.name === "color_group_id")) {
+      database.exec("ALTER TABLE colors ADD COLUMN color_group_id INTEGER REFERENCES colors(id)");
+    }
   }
   return database;
 }
 
 function toBoolean(value: unknown) {
   return Number(value) === 1;
+}
+
+function resolveColorGroup(colorId: number): number {
+  const db = getDb();
+  const color = db.prepare("SELECT color_group_id FROM colors WHERE id = ?").get(colorId) as { color_group_id: number | null } | undefined;
+  if (color && color.color_group_id != null) {
+    return color.color_group_id;
+  }
+  return colorId;
 }
 
 function parseBuyAt(value: string): PurchaseStore[] {
@@ -190,11 +204,12 @@ async function ensureColors() {
 export async function getColors(): Promise<Array<ArchiveColor>> {
   await ensureColors();
   const db = getDb();
-  const rows = db.prepare("SELECT id, name, rgb FROM colors ORDER BY name ASC").all() as Array<Record<string, unknown>>;
+  const rows = db.prepare("SELECT id, name, rgb, color_group_id FROM colors ORDER BY name ASC").all() as Array<Record<string, unknown>>;
   return rows.map((row) => ({
     id: Number(row.id),
     name: String(row.name),
-    rgb: String(row.rgb)
+    rgb: String(row.rgb),
+    colorGroupId: row.color_group_id != null ? Number(row.color_group_id) : undefined
   }));
 }
 
@@ -239,10 +254,49 @@ export async function deleteColor(id: number): Promise<{ deleted: boolean; reaso
   if (Number(inUse.total) > 0) {
     return { deleted: false, reason: "in-use" };
   }
+  db.prepare("UPDATE colors SET color_group_id = NULL WHERE color_group_id = ?").run(id);
   const result = db.prepare("DELETE FROM colors WHERE id = ?").run(id);
   if (result.changes === 0) {
     return { deleted: false, reason: "not-found" };
   }
+  return { deleted: true };
+}
+
+export async function createColorGroup(mainColorId: number): Promise<{ created: boolean; reason?: string }> {
+  const db = getDb();
+  const color = db.prepare("SELECT id FROM colors WHERE id = ?").get(mainColorId) as { id: number } | undefined;
+  if (!color) {
+    return { created: false, reason: "color-not-found" };
+  }
+  const existing = db.prepare("SELECT color_group_id FROM colors WHERE id = ?").get(mainColorId) as { color_group_id: number | null };
+  if (existing.color_group_id != null) {
+    return { created: false, reason: "already-in-group" };
+  }
+  db.prepare("UPDATE colors SET color_group_id = ? WHERE id = ?").run(mainColorId, mainColorId);
+  return { created: true };
+}
+
+export async function assignColorToGroup(colorId: number, groupId: number): Promise<{ assigned: boolean; reason?: string }> {
+  const db = getDb();
+  const color = db.prepare("SELECT id FROM colors WHERE id = ?").get(colorId) as { id: number } | undefined;
+  if (!color) {
+    return { assigned: false, reason: "color-not-found" };
+  }
+  const leader = db.prepare("SELECT id FROM colors WHERE id = ? AND color_group_id = ?").get(groupId, groupId) as { id: number } | undefined;
+  if (!leader) {
+    return { assigned: false, reason: "not-a-group-leader" };
+  }
+  db.prepare("UPDATE colors SET color_group_id = ? WHERE id = ?").run(groupId, colorId);
+  return { assigned: true };
+}
+
+export async function deleteColorGroup(mainColorId: number): Promise<{ deleted: boolean; reason?: string }> {
+  const db = getDb();
+  const color = db.prepare("SELECT color_group_id FROM colors WHERE id = ?").get(mainColorId) as { color_group_id: number | null } | undefined;
+  if (!color || color.color_group_id == null) {
+    return { deleted: false, reason: "not-a-group" };
+  }
+  db.prepare("UPDATE colors SET color_group_id = NULL WHERE color_group_id = ?").run(mainColorId);
   return { deleted: true };
 }
 
@@ -485,7 +539,7 @@ export async function addBrickToSet(input: { fromSet: string; elementId: string;
     fromSet: input.fromSet,
     reference,
     name: input.name.trim() || reference,
-    colorId: input.colorId,
+    colorId: resolveColorGroup(input.colorId),
     image: input.image.trim() || "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=900&q=80",
     required: Math.max(1, normalizeNonNegativeInt(input.required, 1)),
     stock: normalizeNonNegativeInt(input.stock, 0),
@@ -517,7 +571,7 @@ export async function updateBrickInSet(input: { fromSet: string; originalElement
     elementId: input.elementId.trim(),
     reference,
     name: input.name.trim() || reference,
-    colorId: input.colorId,
+    colorId: resolveColorGroup(input.colorId),
     image: input.image.trim() || store.bricks[targetIndex].image,
     required: Math.max(1, normalizeNonNegativeInt(input.required, 1)),
     stock: normalizeNonNegativeInt(input.stock, 0)
@@ -573,6 +627,7 @@ export async function addSpareBrick(input: {
   if (!elementId || !reference) {
     return { added: false, reason: "invalid-data" };
   }
+  const resolvedColorId = resolveColorGroup(input.colorId);
   const existing = db.prepare("SELECT elementId FROM bricks WHERE elementId = ?").get(elementId) as { elementId: string } | undefined;
   const quantity = Math.max(1, normalizeNonNegativeInt(input.spareQuantity, 1));
 
@@ -586,7 +641,7 @@ export async function addSpareBrick(input: {
       elementId,
       reference,
       input.name.trim() || reference,
-      input.colorId,
+      resolvedColorId,
       input.image.trim() || "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=900&q=80",
       JSON.stringify(["lego", "bricklink"]),
       quantity

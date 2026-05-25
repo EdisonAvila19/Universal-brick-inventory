@@ -1,4 +1,4 @@
-import { addColor, updateColor, deleteColor, getColors } from '@/lib/inventoryStore'
+import { addColor, updateColor, deleteColor, getColors, createColorGroup, deleteColorGroup, assignColorToGroup } from '@/lib/inventoryStore'
 
 export async function GET() {
   try {
@@ -42,6 +42,45 @@ export async function POST({ request }: { request: Request }) {
         return new Response(JSON.stringify({ success: false, message: msg }), { status: 409, headers: { 'Content-Type': 'application/json' } });
       }
       return new Response(JSON.stringify({ success: true, message: `Color "${name}" updated.` }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    if (action === "create-group") {
+      const id = Number(formData.get("id"));
+      if (!id) {
+        return new Response(JSON.stringify({ success: false, message: "Color ID is required" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      }
+      const result = await createColorGroup(id);
+      if (!result.created) {
+        const msg = result.reason === "already-in-group" ? "This color is already in a group." : "Color not found.";
+        return new Response(JSON.stringify({ success: false, message: msg }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+      }
+      return new Response(JSON.stringify({ success: true, message: "Color group created." }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    if (action === "delete-group") {
+      const id = Number(formData.get("id"));
+      if (!id) {
+        return new Response(JSON.stringify({ success: false, message: "Color ID is required" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      }
+      const result = await deleteColorGroup(id);
+      if (!result.deleted) {
+        return new Response(JSON.stringify({ success: false, message: "Color is not a group leader." }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+      }
+      return new Response(JSON.stringify({ success: true, message: "Color group deleted." }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    if (action === "assign-group") {
+      const id = Number(formData.get("id"));
+      const groupId = Number(formData.get("groupId"));
+      if (!id || !groupId) {
+        return new Response(JSON.stringify({ success: false, message: "Color ID and Group ID are required" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      }
+      const result = await assignColorToGroup(id, groupId);
+      if (!result.assigned) {
+        const msg = result.reason === "not-a-group-leader" ? "Selected color is not a group leader." : "Color not found.";
+        return new Response(JSON.stringify({ success: false, message: msg }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+      }
+      return new Response(JSON.stringify({ success: true, message: "Color assigned to group." }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
 
     return new Response(JSON.stringify({ success: false, message: "Invalid action" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
