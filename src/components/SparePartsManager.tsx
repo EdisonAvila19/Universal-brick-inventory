@@ -10,7 +10,27 @@ import { updateFeedback } from "@stores/feedback";
 
 import "@styles/select.css"
 
-function SpareBrickCard({ brick, onEdit, onDelete }: Readonly<{ brick: SpareBrickRecord; onEdit: (b: SpareBrickRecord) => void; onDelete: (b: SpareBrickRecord) => void }>) {
+function SpareBrickCard({ brick, isEditing, onStartEdit, onDelete, onSave, onCancel }: Readonly<{
+  brick: SpareBrickRecord;
+  isEditing: boolean;
+  onStartEdit: (b: SpareBrickRecord) => void;
+  onDelete: (b: SpareBrickRecord) => void;
+  onSave: (elementId: string, quantity: number) => Promise<void>;
+  onCancel: () => void;
+}>) {
+  const [editQty, setEditQty] = useState(brick.spareQuantity);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (isEditing) setEditQty(brick.spareQuantity);
+  }, [isEditing]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(brick.elementId, editQty);
+    setSaving(false);
+  };
+
   return (
     <article class="bg-surface-container-lowest rounded-xl p-5 shadow-[0_0_13px_-6px] shadow-contrast flex flex-col h-full">
       <div class="w-full aspect-square bg-box rounded-md mb-4 overflow-hidden">
@@ -25,14 +45,33 @@ function SpareBrickCard({ brick, onEdit, onDelete }: Readonly<{ brick: SpareBric
           {brick.colorHex && <span class="inline-block w-4 h-4 rounded aspect-square shadow-[0_0_13px_-6px] shadow-contrast ml-1" style={`background:${brick.colorHex}`}></span>}
         </p>
       </div>
-      <div class="flex items-center justify-between mt-4 pt-4 border-t border-outline-variant/20">
+      <div class="flex items-end gap-1 justify-between mt-4 pt-4 border-t border-outline-variant/20">
         <div>
           <p class="text-[10px] text-secondary font-bold uppercase">Spare Qty</p>
-          <p class="font-black text-xl">{brick.spareQuantity}</p>
+          {isEditing ? (
+            <input
+              type="number"
+              min="0"
+              value={editQty}
+              onInput={(e) => setEditQty(Number((e.target as HTMLInputElement).value))}
+              class="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm font-black mt-0.5"
+            />
+          ) : (
+            <p class="font-black text-xl">{brick.spareQuantity}</p>
+          )}
         </div>
         <div class="flex gap-2">
-          <button onClick={() => onEdit(brick)} class="bg-box text-contrast px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider">Edit</button>
-          <button onClick={() => onDelete(brick)} class="bg-error-container text-on-error-container px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider">Remove</button>
+          {isEditing ? (
+            <>
+              <button onClick={handleSave} disabled={saving} class="bg-primary text-surface px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider">{saving ? "Saving..." : "Save"}</button>
+              <button onClick={onCancel} class="bg-box text-contrast px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider">Cancel</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => onStartEdit(brick)} class="bg-box text-contrast px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider">Edit</button>
+              <button onClick={() => onDelete(brick)} class="bg-error-container text-on-error-container px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider">Remove</button>
+            </>
+          )}
         </div>
       </div>
     </article>
@@ -227,50 +266,14 @@ function AddSpareModal({ colors, onClose }: Readonly<{ colors: ArchiveColor[]; o
   );
 }
 
-function EditQuantityModal({ brick, onClose }: Readonly<{ brick: SpareBrickRecord; onClose: () => void }>) {
-  const [quantity, setQuantity] = useState(brick.spareQuantity);
-  const [loading, setLoading] = useState(false);
 
-  const handleSave = async () => {
-    setLoading(true);
-    const formData = new FormData();
-    formData.set("spareQuantity", String(quantity));
-    const result = await apiUpdateSpare(brick.elementId, formData);
-    setLoading(false);
-    if (result.status === "error") {
-      updateFeedback(result.message || "Failed to update", "error");
-      return;
-    }
-    await refreshSpareBricks();
-    updateFeedback("Quantity updated!", "info");
-    onClose();
-  };
-
-  return (
-    <div class="fixed inset-0 z-50 flex items-center justify-center" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div class="absolute inset-0 bg-black/40" />
-      <div class="relative bg-surface-container-low rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl">
-        <h3 class="text-lg font-black mb-4">Edit Spare Quantity</h3>
-        <p class="text-xs text-secondary mb-3">{brick.name} — Ref. {brick.reference}</p>
-        <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
-          Quantity
-          <input type="number" min="0" value={quantity} onInput={(e) => setQuantity(Number((e.target as HTMLInputElement).value))} class="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm mt-1" />
-        </label>
-        <div class="flex gap-2 mt-4">
-          <button onClick={handleSave} class="bg-primary text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider" disabled={loading}>{loading ? "Saving..." : "Save"}</button>
-          <button onClick={onClose} class="bg-surface-container-highest text-secondary px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider">Cancel</button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function SparePartsManager({ colors }: Readonly<{ colors: ArchiveColor[] }>) {
   const spareBricks = useStore($spareBricks);
   const [search, setSearch] = useState("");
   const [colorFilter, setColorFilter] = useState<number | "all">("all");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editTarget, setEditTarget] = useState<SpareBrickRecord | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SpareBrickRecord | null>(null);
 
   useEffect(() => {
@@ -283,6 +286,19 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
     const q = search.toLowerCase();
     return b.reference.toLowerCase().includes(q) || b.name.toLowerCase().includes(q) || b.elementId.toLowerCase().includes(q);
   });
+
+  const handleSaveEdit = async (elementId: string, quantity: number) => {
+    const formData = new FormData();
+    formData.set("spareQuantity", String(quantity));
+    const result = await apiUpdateSpare(elementId, formData);
+    if (result.status === "error") {
+      updateFeedback(result.message || "Failed to update", "error");
+      return;
+    }
+    await refreshSpareBricks();
+    updateFeedback("Quantity updated!", "info");
+    setEditingId(null);
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -329,13 +345,12 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
       ) : (
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filtered.map((brick) => (
-            <SpareBrickCard key={brick.elementId} brick={brick} onEdit={setEditTarget} onDelete={setDeleteTarget} />
+            <SpareBrickCard key={brick.elementId} brick={brick} isEditing={editingId === brick.elementId} onStartEdit={(b) => setEditingId(b.elementId)} onDelete={setDeleteTarget} onSave={handleSaveEdit} onCancel={() => setEditingId(null)} />
           ))}
         </div>
       )}
 
       {showAddModal && <AddSpareModal colors={colors} onClose={() => setShowAddModal(false)} />}
-      {editTarget && <EditQuantityModal brick={editTarget} onClose={() => setEditTarget(null)} />}
       {deleteTarget && (
         <div class="fixed inset-0 z-50 flex items-center justify-center" onClick={(e) => { if (e.target === e.currentTarget) setDeleteTarget(null); }}>
           <div class="absolute inset-0 bg-black/40" />
