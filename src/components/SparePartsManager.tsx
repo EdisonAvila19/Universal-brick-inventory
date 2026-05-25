@@ -81,7 +81,7 @@ function SpareBrickCard({ brick, isEditing, onStartEdit, onDelete, onSave, onCan
 function AddSpareModal({ colors, onClose }: Readonly<{ colors: ArchiveColor[]; onClose: () => void }>) {
   const [mounted, setMounted] = useState(false);
   const [entered, setEntered] = useState(false);
-  const [tab, setTab] = useState<"rebrickable" | "manual">("manual");
+  const [tab, setTab] = useState<"rebrickable" | "manual">("rebrickable");
   const [searchResult, setSearchResult] = useState<{ part_num: string; name: string; part_img_url: string } | null>(null);
   const [colorOptions, setColorOptions] = useState<RebrickablePartColorDetails[]>([]);
   const [reference, setReference] = useState("");
