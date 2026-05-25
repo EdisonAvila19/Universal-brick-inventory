@@ -268,6 +268,7 @@ function EditQuantityModal({ brick, onClose }: Readonly<{ brick: SpareBrickRecor
 export default function SparePartsManager({ colors }: Readonly<{ colors: ArchiveColor[] }>) {
   const spareBricks = useStore($spareBricks);
   const [search, setSearch] = useState("");
+  const [colorFilter, setColorFilter] = useState<number | "all">("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editTarget, setEditTarget] = useState<SpareBrickRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SpareBrickRecord | null>(null);
@@ -277,6 +278,7 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
   }, []);
 
   const filtered = spareBricks.filter((b) => {
+    if (colorFilter !== "all" && b.colorId !== colorFilter) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return b.reference.toLowerCase().includes(q) || b.name.toLowerCase().includes(q) || b.elementId.toLowerCase().includes(q);
@@ -297,14 +299,24 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
   return (
     <div>
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div class="flex-1 w-full md:w-auto">
+        <div class="flex-1 w-full md:w-auto flex flex-col sm:flex-row gap-3">
           <input
             type="text"
             placeholder="Search by reference, name or ID..."
             value={search}
             onInput={(e) => setSearch((e.target as HTMLInputElement).value)}
-            class="w-full md:w-96 bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm"
+            class="w-full md:w-72 bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm"
           />
+          <select
+            value={colorFilter}
+            onChange={(e) => setColorFilter(e.currentTarget.value === "all" ? "all" : Number(e.currentTarget.value))}
+            class="bg-surface-container-highest border-none rounded-lg px-4 py-3 text-sm min-w-40"
+          >
+            <option value="all">All Colors</option>
+            {colors.map((c) => (
+              <option key={c.id} value={c.id}><span class={`block w-4 h-4 rounded-full`} style={{ backgroundColor: c.rgb }}></span> {c.name}</option>
+            ))}
+          </select>
         </div>
         <button onClick={() => setShowAddModal(true)} class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm whitespace-nowrap">+ Add Spare Brick</button>
       </div>
