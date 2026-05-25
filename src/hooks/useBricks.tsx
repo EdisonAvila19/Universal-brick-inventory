@@ -55,6 +55,12 @@ export function useBricks( initialBricks: BrickRecord[] ) {
       return matchesPiece && matchesSet && matchesStatus && matchesColor;
     });
 
+    filteredBricks.sort((a, b) => {
+      const refCompare = a.reference.localeCompare(b.reference, undefined, { numeric: true });
+      if (refCompare !== 0) return refCompare;
+      return a.colorId - b.colorId;
+    });
+
     setFilteredBricks(filteredBricks);
     refreshBrickStats(filteredBricks);
   }, [bricks, filters])
