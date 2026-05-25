@@ -14,7 +14,7 @@ export function useBricks( initialBricks: BrickRecord[] ) {
 
   useEffect(() => {
     const brickGroups = new Map<string, (typeof bricks)[number][]>();
-    const { piece, set: setFilters, status: statusFilter, color: colorFilter } = filters
+    const { piece, set: setFilters, status: statusFilter, color: colorFilter, spareOnly } = filters
 
     for (const brick of bricks) {
       const existing = brickGroups.get(brick.elementId);
@@ -31,6 +31,7 @@ export function useBricks( initialBricks: BrickRecord[] ) {
       const totalRequired = group.reduce((acc, b) => acc + b.required, 0);
       const totalStock = group.reduce((acc, b) => acc + b.stock, 0);
       const needed = Math.max(0, totalRequired - totalStock);
+      const spareQuantity = group.reduce((max, b) => Math.max(max, b.spareQuantity ?? 0), 0);
       groupedBricks.push({
         elementId: first.elementId,
         reference: first.reference,
@@ -42,6 +43,7 @@ export function useBricks( initialBricks: BrickRecord[] ) {
         totalRequired,
         totalStock,
         needed,
+        spareQuantity,
         sets: group.map((b) => ({ setNumber: b.fromSet, required: b.required, stock: b.stock }))
       });
     }
@@ -52,7 +54,8 @@ export function useBricks( initialBricks: BrickRecord[] ) {
       const matchesSet = setFilters.length === 0 || group.sets.some((s) => setFilters.includes(s.setNumber));
       const matchesStatus = statusFilter === "all" || (statusFilter === "missing" ? group.needed > 0 : group.needed === 0);
       const matchesColor = colorFilter.length === 0 || colorFilter.includes(String(group.colorId));
-      return matchesPiece && matchesSet && matchesStatus && matchesColor;
+      const matchesSpare = !spareOnly || group.spareQuantity > 0;
+      return matchesPiece && matchesSet && matchesStatus && matchesColor && matchesSpare;
     });
 
     filteredBricks.sort((a, b) => {

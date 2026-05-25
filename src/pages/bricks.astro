@@ -12,6 +12,7 @@ const filters = {
   set: url.searchParams.getAll("set").map((value) => value.trim()).filter(Boolean),
   status: url.searchParams.get("status") ?? "all",
   color: url.searchParams.getAll("color").map((value) => value.trim()).filter(Boolean),
+  spareOnly: url.searchParams.get("spareOnly") === "true",
 }
 
 const bricks = await getInventoryBricks();

@@ -60,6 +60,7 @@ export interface GroupedBrick {
   totalRequired: number;
   totalStock: number;
   needed: number;
+  spareQuantity: number;
   sets: { setNumber: string; required: number; stock: number }[];
 }
 

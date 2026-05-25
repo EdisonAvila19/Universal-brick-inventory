@@ -5,50 +5,55 @@ import type { ArchiveColor } from '@/types/archiveData'
 import ColorMultiSelect from '@components/ColorMultiSelect'
 import "@styles/select.css"
 
-export default function BricksFilters({ initialFilters, sets, colors }: Readonly<{ initialFilters: { piece: string, set: string[], status: string, color: string[] }, sets: { value: string, label: string }[], colors: ArchiveColor[] }>) {
+export default function BricksFilters({ initialFilters, sets, colors }: Readonly<{ initialFilters: { piece: string, set: string[], status: string, color: string[], spareOnly: boolean }, sets: { value: string, label: string }[], colors: ArchiveColor[] }>) {
   const filters = useStore($filters);
   const [localPiece, setLocalPiece] = useState(filters.piece);
   const [localSets, setLocalSets] = useState<string[]>(filters.set);
   const [localColors, setLocalColors] = useState<string[]>(filters.color);
+  const [localSpareOnly, setLocalSpareOnly] = useState(filters.spareOnly);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const pieceRef = useRef(localPiece);
   const setsRef = useRef(localSets);
   const colorsRef = useRef(localColors);
+  const spareOnlyRef = useRef(localSpareOnly);
 
   pieceRef.current = localPiece;
   setsRef.current = localSets;
   colorsRef.current = localColors;
+  spareOnlyRef.current = localSpareOnly;
 
   useEffect(() => {
     $filters.set(initialFilters);
     setLocalPiece(initialFilters.piece);
     setLocalSets(initialFilters.set);
     setLocalColors(initialFilters.color);
+    setLocalSpareOnly(initialFilters.spareOnly);
   }, []);
 
   useEffect(() => {
     return () => clearTimeout(debounceRef.current);
   }, []);
 
-  const syncUrl = (piece: string, set: string[], status: string, color: string[]) => {
+  const syncUrl = (piece: string, set: string[], status: string, color: string[], spareOnly: boolean) => {
     const params = new URLSearchParams();
     if (piece) params.append("piece", piece);
     set.forEach((s) => params.append("set", s));
     if (status && status !== "all") params.append("status", status);
     color.forEach((c) => params.append("color", c));
+    if (spareOnly) params.append("spareOnly", "true");
     const qs = params.toString() ? `?${params.toString()}` : '';
     globalThis.history.pushState({}, "", `${globalThis.location.pathname}${qs}`);
   };
 
-  const apply = (piece: string, set: string[], status: string, color: string[]) => {
-    updateFilters({ piece, set, status, color });
-    syncUrl(piece, set, status, color);
+  const apply = (piece: string, set: string[], status: string, color: string[], spareOnly: boolean) => {
+    updateFilters({ piece, set, status, color, spareOnly });
+    syncUrl(piece, set, status, color, spareOnly);
   };
 
   const scheduleApply = () => {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      apply(pieceRef.current, setsRef.current, filters.status, colorsRef.current);
+      apply(pieceRef.current, setsRef.current, filters.status, colorsRef.current, spareOnlyRef.current);
     }, 400);
   };
 
@@ -65,16 +70,22 @@ export default function BricksFilters({ initialFilters, sets, colors }: Readonly
   };
 
   const handleStatusChange = (e: Event) => {
-    apply(localPiece, localSets, (e.target as HTMLSelectElement).value, localColors);
+    apply(localPiece, localSets, (e.target as HTMLSelectElement).value, localColors, localSpareOnly);
   };
 
   const handleColorChange = (selected: string[]) => {
     setLocalColors(selected);
-    apply(localPiece, localSets, filters.status, selected);
+    apply(localPiece, localSets, filters.status, selected, localSpareOnly);
+  };
+
+  const handleSpareChange = (e: Event) => {
+    const checked = (e.target as HTMLInputElement).checked;
+    setLocalSpareOnly(checked);
+    apply(localPiece, localSets, filters.status, localColors, checked);
   };
 
   return (
-    <div class="bg-surface-container-lowest p-6 rounded-xl mb-10 grid grid-cols-1 md:grid-cols-4 gap-4 items-end shadow-[0_0_13px_-6px] shadow-contrast">
+    <div class="bg-surface-container-lowest p-6 rounded-xl mb-10 grid grid-cols-1 md:grid-cols-5 gap-4 items-end shadow-[0_0_13px_-6px] shadow-contrast">
       <div>
         <label class="block text-[10px] uppercase font-bold text-secondary px-2">
           Piece Number or Name{" "}
@@ -105,6 +116,12 @@ export default function BricksFilters({ initialFilters, sets, colors }: Readonly
         <label class="block text-[10px] uppercase font-bold text-secondary px-2">
           Color{" "}
           <ColorMultiSelect colors={colors} selected={localColors} onChange={handleColorChange} />
+        </label>
+      </div>
+      <div class="flex items-end">
+        <label class="block text-[10px] uppercase font-bold text-secondary px-2 flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={localSpareOnly} onChange={handleSpareChange} class="w-4 h-4 rounded border-none" />
+          Spare Only
         </label>
       </div>
     </div>
