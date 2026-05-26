@@ -8,6 +8,7 @@ import SetsCounterIndicator from '@/components/SetsCounterIndicator'
 
 const url = new URL(Astro.request.url);
 const brandFilter = url.searchParams.get("brand") ?? "all";
+const searchFilter = url.searchParams.get("search") ?? "";
 
 const allSets = await getInventorySets();
 ---
@@ -31,5 +32,5 @@ const allSets = await getInventorySets();
   <BrandSetsFilters client:load/>
 
   <!-- Sets List -->
-  <SetsResults initialSets={allSets} initialFilters={{ brand: brandFilter }} client:load/>
+  <SetsResults initialSets={allSets} initialFilters={{ brand: brandFilter, search: searchFilter }} client:load/>
 </AppLayout>

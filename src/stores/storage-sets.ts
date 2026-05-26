@@ -2,14 +2,18 @@ import { atom } from 'nanostores';
 import type { SetRecord } from '@/types/archiveData';
 
 export const $sets = atom<SetRecord[]>([]);
-export const $filters = atom<{ brand: string }>({ brand: "" });
+export const $filters = atom<{ brand: string; search: string }>({ brand: "", search: "" });
 export const $filteredSets = atom<SetRecord[]>([]);
 
 function filterSets() {
-  const { brand } = $filters.get();
+  const { brand, search } = $filters.get();
   const sets = $sets.get();
   if (!sets) return;
-  const filtered = sets.filter((set) => brand === "all" || (brand === "lego" ? set.brand === "LEGO" : set.brand !== "LEGO"));
+  let filtered = sets.filter((set) => brand === "all" || (brand === "lego" ? set.brand === "LEGO" : set.brand !== "LEGO"));
+  if (search.trim()) {
+    const q = search.toLowerCase();
+    filtered = filtered.filter((set) => set.name.toLowerCase().includes(q) || set.setNumber.toLowerCase().includes(q));
+  }
   $filteredSets.set(filtered);
 }
 
@@ -98,7 +102,7 @@ export async function deleteSet (setNumber: string) {
 }
 
 // Update set filters
-export async function setFilters(filters: { brand: string }) {
-  $filters.set(filters);
+export async function setFilters(filters: { brand: string; search?: string }) {
+  $filters.set({ ...$filters.get(), ...filters });
   filterSets();
 }

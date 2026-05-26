@@ -4,7 +4,7 @@ import SetCard from './Set-card'
 import { $filteredSets, setSets, setFilters } from '@/stores/storage-sets';
 import { useEffect } from 'preact/hooks'
 
-export function SetsResults({initialSets, initialFilters}: {initialSets: SetRecord[], initialFilters: { brand: string } } ) {
+export function SetsResults({initialSets, initialFilters}: {initialSets: SetRecord[], initialFilters: { brand: string; search?: string } } ) {
   const sets = useStore($filteredSets);
 
   useEffect(() => {
