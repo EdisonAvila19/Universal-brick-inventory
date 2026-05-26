@@ -300,6 +300,19 @@ export async function deleteColorGroup(mainColorId: number): Promise<{ deleted: 
   return { deleted: true };
 }
 
+export async function unassignColorFromGroup(colorId: number): Promise<{ unassigned: boolean; reason?: string }> {
+  const db = getDb();
+  const color = db.prepare("SELECT color_group_id FROM colors WHERE id = ?").get(colorId) as { color_group_id: number | null } | undefined;
+  if (!color) {
+    return { unassigned: false, reason: "color-not-found" };
+  }
+  if (color.color_group_id == null) {
+    return { unassigned: false, reason: "not-in-group" };
+  }
+  db.prepare("UPDATE colors SET color_group_id = NULL WHERE id = ?").run(colorId);
+  return { unassigned: true };
+}
+
 async function readStore(): Promise<InventoryPayload> {
   await ensureStore();
   const db = getDb();

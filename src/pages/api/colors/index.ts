@@ -1,4 +1,4 @@
-import { addColor, updateColor, deleteColor, getColors, createColorGroup, deleteColorGroup, assignColorToGroup } from '@/lib/inventoryStore'
+import { addColor, updateColor, deleteColor, getColors, createColorGroup, deleteColorGroup, assignColorToGroup, unassignColorFromGroup } from '@/lib/inventoryStore'
 
 export async function GET() {
   try {
@@ -81,6 +81,19 @@ export async function POST({ request }: { request: Request }) {
         return new Response(JSON.stringify({ success: false, message: msg }), { status: 409, headers: { 'Content-Type': 'application/json' } });
       }
       return new Response(JSON.stringify({ success: true, message: "Color assigned to group." }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    if (action === "unassign-group") {
+      const id = Number(formData.get("id"));
+      if (!id) {
+        return new Response(JSON.stringify({ success: false, message: "Color ID is required" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      }
+      const result = await unassignColorFromGroup(id);
+      if (!result.unassigned) {
+        const msg = result.reason === "not-in-group" ? "Color is not in a group." : "Color not found.";
+        return new Response(JSON.stringify({ success: false, message: msg }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+      }
+      return new Response(JSON.stringify({ success: true, message: "Color removed from group." }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
 
     return new Response(JSON.stringify({ success: false, message: "Invalid action" }), { status: 400, headers: { 'Content-Type': 'application/json' } });

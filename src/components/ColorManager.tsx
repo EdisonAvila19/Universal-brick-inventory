@@ -124,11 +124,25 @@ export default function ColorManager({ initialColors }: Props) {
     }
   }
 
+  async function handleUnassignGroup(colorId: number) {
+    const formData = new FormData();
+    formData.set("action", "unassign-group");
+    formData.set("id", String(colorId));
+    const res = await fetch("/api/colors", { method: "POST", body: formData });
+    const json = await res.json();
+    if (json.success) {
+      updateFeedback(json.message, "info");
+      await refreshColors();
+    } else {
+      updateFeedback(json.message, "error");
+    }
+  }
+
   function getGroupLeader(id: number): ArchiveColor | undefined {
     return colors.find((c) => c.id === id);
   }
 
-  function GroupSelect({ colorId }: { colorId: number }) {
+  function GroupSelect({ colorId, groupId }: { colorId: number; groupId?: number }) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 
@@ -148,11 +162,24 @@ export default function ColorManager({ initialColors }: Props) {
           onClick={() => setOpen(!open)}
           class="flex items-center gap-1.5 bg-surface-container-high rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary cursor-pointer whitespace-nowrap"
         >
-          <span class="text-secondary font-medium">Assign...</span>
+          <span class="text-secondary font-medium">{groupId ? "Change..." : "Assign..."}</span>
           <svg class="w-3 h-3 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width={2} d="M19 9l-7 7-7-7" /></svg>
         </button>
         {open && (
           <div class="absolute top-full left-0 mt-1 bg-surface-container-high rounded-lg shadow-xl z-20 min-w-[160px] py-1 border border-outline-variant/20">
+            {groupId != null && (
+              <button
+                onClick={() => {
+                  handleUnassignGroup(colorId);
+                  setOpen(false);
+                }}
+                class="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-surface-container text-left text-error"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                <span class="font-medium">Unassign</span>
+              </button>
+            )}
+            {groupId != null && <div class="border-t border-outline-variant/20 my-1"></div>}
             {groupLeaders.map((leader) => (
               <button
                 key={leader.id}
@@ -275,9 +302,12 @@ export default function ColorManager({ initialColors }: Props) {
                           {belongsToGroup && (() => {
                             const leader = getGroupLeader(color.colorGroupId!);
                             return (
-                              <div class="flex items-center gap-1.5 text-xs text-secondary">
-                                <div class="w-3 h-3 rounded-full shrink-0 border border-outline-variant/30" style={{ backgroundColor: leader?.rgb ?? "#ccc" }}></div>
-                                <span>{leader?.name ?? "Unknown"}</span>
+                              <div class="flex items-center gap-2 flex-wrap">
+                                <div class="flex items-center gap-1.5 text-xs text-secondary">
+                                  <div class="w-3 h-3 rounded-full shrink-0 border border-outline-variant/30" style={{ backgroundColor: leader?.rgb ?? "#ccc" }}></div>
+                                  <span>{leader?.name ?? "Unknown"}</span>
+                                </div>
+                                <GroupSelect colorId={color.id} groupId={color.colorGroupId!} />
                               </div>
                             );
                           })()}
@@ -298,8 +328,10 @@ export default function ColorManager({ initialColors }: Props) {
                               <button onClick={() => handleDeleteGroup(color.id)} class="bg-error-container text-on-error-container px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">Delete Group</button>
                             }
                             {
-                              hasNoGroup && groupLeaders.length === 0 &&
-                              <button onClick={() => handleCreateGroup(color.id)} class="bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shrink-0">Create Group</button>
+                              hasNoGroup && <button onClick={() => handleCreateGroup(color.id)} class="bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shrink-0">Create Group</button>
+                            }
+                            { belongsToGroup  &&
+                              <button onClick={() => handleUnassignGroup(color.id)} class="bg-error-container text-on-error-container px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">Remove from Group</button>
                             }
                             
                             <button onClick={() => startEdit(color)} class="bg-box text-contrast px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider">Edit</button>
