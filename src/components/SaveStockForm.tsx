@@ -9,7 +9,7 @@ import { assignSpareToSet } from '@/utils/bricksData'
 export function SaveStockForm({ group, closeList }: Readonly<{ group: GroupedBrick, closeList: () => void }>) {
   const [status, setStatus] = useState("ok");
   const spareBricks = useStore($spareBricks);
-  const spare = spareBricks.find((s) => s.elementId === group.elementId);
+  const spare = spareBricks.find((s) => s.brickId === group.brickId);
   const spareQty = spare?.spareQuantity ?? 0;
 
   const [assigning, setAssigning] = useState<Record<string, boolean>>({});
@@ -45,7 +45,7 @@ export function SaveStockForm({ group, closeList }: Readonly<{ group: GroupedBri
     if (qty < 1) return;
     setAssigning((prev) => ({ ...prev, [setNumber]: true }));
     const formData = new FormData();
-    formData.set("elementId", group.elementId);
+    formData.set("brickId", group.brickId);
     formData.set("setNumber", setNumber);
     formData.set("quantity", String(qty));
 
@@ -68,7 +68,7 @@ export function SaveStockForm({ group, closeList }: Readonly<{ group: GroupedBri
       ? "Error Saving" : "Saving...";
   
   const currentSpareQty = (() => {
-    const s = spareBricks.find((b) => b.elementId === group.elementId);
+    const s = spareBricks.find((b) => b.brickId === group.brickId);
     return s?.spareQuantity ?? 0;
   })();
 
@@ -80,7 +80,7 @@ export function SaveStockForm({ group, closeList }: Readonly<{ group: GroupedBri
             const need = Math.max(0, s.required - s.stock);
             const canAssign = currentSpareQty > 0 && need > 0;
             return (
-              <div className="flex items-center gap-2 flex-wrap" key={`${group.elementId}_${s.setNumber}`}>
+              <div className="flex items-center gap-2 flex-wrap" key={`${group.brickId}_${s.setNumber}`}>
                 <label className="text-[10px] font-bold text-secondary uppercase tracking-wider w-16 truncate">{s.setNumber}</label>
                 <span className="text-[10px] text-secondary">Req: {s.required}</span>
                 <input type="hidden" name={`old_stock_${s.setNumber}`} value={s.stock} />
@@ -109,7 +109,7 @@ export function SaveStockForm({ group, closeList }: Readonly<{ group: GroupedBri
             );
           })}
         </div>
-        <input type="hidden" name="elementId" value={group.elementId} />
+        <input type="hidden" name="brickId" value={group.brickId} />
         <button type="submit" className="w-full bg-primary-container text-primary-container-contrast rounded-lg py-2 mt-3 text-xs font-bold uppercase tracking-wider">{ buttonLabel }</button>
       </form>
     </div>

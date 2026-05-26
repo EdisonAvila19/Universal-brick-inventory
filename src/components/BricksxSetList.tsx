@@ -27,7 +27,7 @@ function UpdateStockForm ({ selectedSet, brick, onBrickUpdated }: Readonly<{ sel
     <form class="grid grid-cols-1 md:grid-cols-1 gap-2 lg:items-end" onSubmit={handleSubmit}>
       <input type="hidden" name="action" value="update-brick" />
       <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
-      <input type="hidden" name="elementId" value={brick.elementId} />
+      <input type="hidden" name="brickId" value={brick.brickId} />
       <label className="block text-[10px] uppercase font-bold text-secondary">
         Required{" "}
         <input required min="1" type="number" name="required" value={brick.required} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm mt-1" disabled/>
@@ -46,7 +46,7 @@ function DeleteBrickForm ({ selectedSet, brick, onBrickUpdated }: Readonly<{ sel
   const handleSubmit = async (event: Event) => {
     event.preventDefault();
     // Handle form submission logic here
-    const response = await DeleteBrick(brick.elementId, selectedSet.setNumber);
+    const response = await DeleteBrick(brick.brickId, selectedSet.setNumber);
 
     if (!response.deleted) {
       console.error("Failed to delete brick");
@@ -62,7 +62,7 @@ function DeleteBrickForm ({ selectedSet, brick, onBrickUpdated }: Readonly<{ sel
     <form class="lg:ml-2" onSubmit={handleSubmit}>
       <input type="hidden" name="action" value="remove-brick" />
       <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
-      <input type="hidden" name="elementId" value={brick.elementId} />
+      <input type="hidden" name="brickId" value={brick.brickId} />
       <button type="submit" class="text-error text-xs font-bold uppercase tracking-widest">Remove Piece</button>
     </form>
   )
@@ -97,7 +97,6 @@ function UpdateInfoForm ({ selectedSet, brick, colors, onBrickUpdated }: Readonl
       <form className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3" onSubmit={handleSubmit}>
         <input type="hidden" name="action" value="update-brick" />
         <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
-        <input type="hidden" name="originalElementId" value={brick.elementId} />
         <input type="hidden" name="elementId" value={brick.elementId} />
         <div>
           <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
@@ -170,7 +169,7 @@ function SpareAssignForm({ selectedSet, brick, spareQuantity, onBrickUpdated }: 
     if (quantity < 1) return;
     setAssigning(true);
     const formData = new FormData();
-    formData.set("elementId", brick.elementId);
+    formData.set("brickId", brick.brickId);
     formData.set("setNumber", selectedSet.setNumber);
     formData.set("quantity", String(quantity));
 
@@ -221,7 +220,8 @@ export default function BricksxSetList({ selectedSet, brick, colors, spareQuanti
           <img src={brick.image} alt={brick.name} className="max-w-max-h-32 max-h-32 rounded-lg bg-surface-container-low object-contain p-2" loading="lazy" />
           <div className="min-w-0 flex gap-2 flex-col justify-center">
             <p className="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {brick.reference}</p>
-            <p className="text-[9px] font-semibold text-tertiary tracking-wider">ID: {brick.elementId}</p>
+            <p className="text-[9px] font-semibold text-tertiary tracking-wider">Brick ID: {brick.brickId}</p>
+            <p className="text-[9px] font-semibold text-tertiary tracking-wider">Element ID: {brick.elementId}</p>
             <h3 className="font-black text-base leading-tight">{brick.name}</h3>
             <p className="flex flex-row gap-1 text-xs text-secondary">{brick.colorName} · <span class="inline-block w-4 h-w-4 rounded aspect-square shadow-[0_0_13px_-6px] shadow-contrast" style={`background:${brick.colorHex}`}></span></p>
             {hasSpare && (

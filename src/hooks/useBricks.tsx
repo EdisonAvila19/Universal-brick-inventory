@@ -17,11 +17,11 @@ export function useBricks( initialBricks: BrickRecord[] ) {
     const { piece, set: setFilters, status: statusFilter, color: colorFilter, spareOnly } = filters
 
     for (const brick of bricks) {
-      const existing = brickGroups.get(brick.elementId);
+      const existing = brickGroups.get(brick.brickId);
       if (existing) {
         existing.push(brick);
       } else {
-        brickGroups.set(brick.elementId, [brick]);
+        brickGroups.set(brick.brickId, [brick]);
       }
     }
 
@@ -33,6 +33,7 @@ export function useBricks( initialBricks: BrickRecord[] ) {
       const needed = Math.max(0, totalRequired - totalStock);
       const spareQuantity = group.reduce((max, b) => Math.max(max, b.spareQuantity ?? 0), 0);
       groupedBricks.push({
+        brickId: first.brickId,
         elementId: first.elementId,
         reference: first.reference,
         name: first.name,
@@ -50,7 +51,7 @@ export function useBricks( initialBricks: BrickRecord[] ) {
 
     const normalizedPieceFilter = piece.toLowerCase();
     const filteredBricks = groupedBricks.filter((group) => {
-      const matchesPiece = !normalizedPieceFilter || group.reference.toLowerCase().includes(normalizedPieceFilter) || group.name.toLowerCase().includes(normalizedPieceFilter) || group.elementId.toLowerCase().includes(normalizedPieceFilter);
+      const matchesPiece = !normalizedPieceFilter || group.reference.toLowerCase().includes(normalizedPieceFilter) || group.name.toLowerCase().includes(normalizedPieceFilter) || group.brickId.toLowerCase().includes(normalizedPieceFilter) || group.elementId.toLowerCase().includes(normalizedPieceFilter);
       const matchesSet = setFilters.length === 0 || group.sets.some((s) => setFilters.includes(s.setNumber));
       const matchesStatus = statusFilter === "all" || (statusFilter === "missing" ? group.needed > 0 : group.needed === 0);
       const matchesColor = colorFilter.length === 0 || colorFilter.includes(String(group.colorId));

@@ -18,21 +18,22 @@ export async function GET() {
 export async function POST({ request }: { request: Request }) {
   try {
     const body = await request.formData();
-    const elementId = String(body.get("elementId") ?? "").trim();
+    const brickId = String(body.get("brickId") ?? "").trim() || undefined;
+    const elementId = String(body.get("elementId") ?? "").trim() || undefined;
     const reference = String(body.get("reference") ?? "").trim();
     const name = String(body.get("name") ?? "").trim();
     const colorId = Number(body.get("colorId") ?? 0);
     const image = String(body.get("image") ?? "").trim();
     const spareQuantity = Number(body.get("spareQuantity") ?? 1);
 
-    if (!elementId || !reference) {
+    if (!reference) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400,
         headers: { "Content-Type": "application/json" }
       });
     }
 
-    const result = await addSpareBrick({ elementId, reference, name, colorId, image, spareQuantity });
+    const result = await addSpareBrick({ brickId, elementId, reference, name, colorId, image, spareQuantity });
 
     if (!result.added) {
       return new Response(JSON.stringify({ error: result.reason || "Failed to add spare brick" }), {

@@ -23,7 +23,8 @@ function SearchExternalPartForm({ selectedSet }: Readonly<{ selectedSet: { setNu
     });
 
     const filteredColors = tempColorBricks.filter(({color_name, elements}) => {
-      return !setBricks.some(({elementId, reference}) => elementId === (elements[0] ? elements[0] : `${reference}-${color_name}`));
+      const brickId = elements[0] ? elements[0] : `${reference}-${color_name}`;
+      return !setBricks.some((brick) => brick.elementId === brickId || brick.brickId === brickId);
     })
 
     return filteredColors;
@@ -136,24 +137,24 @@ function AddExternalPieceForm({ selectedSet, onSuccess }: Readonly<{ selectedSet
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {colors.map((colorData: RebrickablePartColorDetails) => {
 
-            const brickID = colorData.elements?.[0] 
-              ? `${colorData.elements[0]}`
-              : `${part_num}-${colorData.color_id}`;
+            const brickId = `${part_num}-${colorData.color_id}`;
+            const elementId = colorData.elements?.[0] || "-";
 
             return (
-              <form method="post" class="bg-surface-container-lowest border border-contrast p-3 rounded-lg flex items-center gap-3" key={brickID} onSubmit={handleSubmit}>
+              <form method="post" class="bg-surface-container-lowest border border-contrast p-3 rounded-lg flex items-center gap-3" key={brickId} onSubmit={handleSubmit}>
                 <input type="hidden" name="setNumber" value={setNumber} />
                 <input type="hidden" name="reference" value={part_num} />
                 <input type="hidden" name="name" value={name} />
                 <input type="hidden" name="colorId" value={colorData.color_id} />
-                <input type="hidden" name="elementId" value={brickID} />
+                <input type="hidden" name="brickId" value={brickId} />
+                <input type="hidden" name="elementId" value={elementId} />
                 <input type="hidden" name="image" value={colorData.part_img_url ?? ""} />
                 <input type="hidden" name="required" value="1"/>
                 <input type="hidden" name="stock" value="0"/>
                 <div class="w-6 h-6 rounded-full shadow-inner" style={`background:${colorData.colorRgb}`}></div>
                 <div class="flex-1">
                   <p class="text-xs font-bold">{colorData.color_name}</p>
-                  <p class="text-[9px] text-secondary">ID: {brickID}</p>
+                  <p class="text-[9px] text-secondary">ID: {brickId}</p>
                 </div>
                 <button type="submit" class="bg-primary text-white px-3 py-1 rounded text-xs font-bold">Add</button>
               </form>
@@ -201,6 +202,7 @@ function AddManualPieceForm({selectedSet, colors, onSuccess}: Readonly<{ selecte
 
   const resetManualForm = () => {
     elementIdRef.current = "";
+    brickIdRef.current = "";
     referenceRef.current = "";
     nameRef.current = "";
     colorIdRef.current = "";
@@ -220,6 +222,7 @@ function AddManualPieceForm({selectedSet, colors, onSuccess}: Readonly<{ selecte
     }
 
     const matches = BricksCatalog.filter(b =>
+      b.brickId.toLowerCase().includes(query) ||
       b.elementId.toLowerCase().includes(query) ||
       b.reference.toLowerCase().includes(query) ||
       b.name.toLowerCase().includes(query) ||
@@ -240,6 +243,8 @@ function AddManualPieceForm({selectedSet, colors, onSuccess}: Readonly<{ selecte
     setSuggestions([]);
   }
 
+  const brickIdRef = useRef<string>("")
+
   const handleSubmit = async (event: Event) => {
     event.preventDefault();
     const form = event.target as HTMLFormElement;
@@ -250,13 +255,15 @@ function AddManualPieceForm({selectedSet, colors, onSuccess}: Readonly<{ selecte
         throw new Error("Missing required fields to add the brick");
       }
 
-      const elementId = formData.get("elementId")
-      if (!elementId) {
-        const rawReference = formData.get("reference")
-        const reference = typeof rawReference === "string" ? rawReference.trim() : "";
-        const colorId = Number(formData.get("colorId") ?? "0");
-        
-        formData.set("elementId", `${reference}-${colorId}`);
+      const rawReference = formData.get("reference")
+      const reference = typeof rawReference === "string" ? rawReference.trim() : "";
+      const colorId = Number(formData.get("colorId") ?? "0");
+      
+      if (!formData.get("brickId")) {
+        formData.set("brickId", `${reference}-${colorId}`);
+      }
+      if (!formData.get("elementId")) {
+        formData.set("elementId", "-");
       }
       
       const results = await addNewBrick(formData)
@@ -296,7 +303,7 @@ function AddManualPieceForm({selectedSet, colors, onSuccess}: Readonly<{ selecte
         {suggestions.length > 0 && (
           <div ref={suggestionBoxRef} class="absolute z-10 w-full bg-surface-container-highest rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1">
             {suggestions.map(b => (
-              <button class="w-full px-3 py-2 cursor-pointer hover:bg-surface-container-low flex items-center gap-3" data-element-id={b.elementId} key={b.elementId} onClick={() => handleSuggestionClick(b)}>
+              <button class="w-full px-3 py-2 cursor-pointer hover:bg-surface-container-low flex items-center gap-3" data-brick-id={b.brickId} key={b.brickId} onClick={() => handleSuggestionClick(b)}>
                 <img src={b.image} alt={b.name} class="w-h-10 h-10 rounded object-contain bg-surface-container-low p-1" />
                 <div class="min-w-0 flex flex-col items-start">
                   
@@ -314,7 +321,7 @@ function AddManualPieceForm({selectedSet, colors, onSuccess}: Readonly<{ selecte
           <div class="bg-surface-container-highest rounded-lg p-4 flex gap-4 items-center">
             <img src={previewBrick.image} alt={previewBrick.name} class="w-20 h-20 rounded-lg object-contain p-2 bg-surface-container-low" />
             <div>
-              <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Id. {previewBrick.elementId}</p>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Id. {previewBrick.brickId} · Element: {previewBrick.elementId}</p>
               <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {previewBrick.reference}</p>
               <h4 class="font-black text-base">{previewBrick.name}</h4>
               <p class="text-xs text-secondary">{previewBrick.colorName} · <span class="inline-block w-3 h-3 rounded" style={`background:${previewBrick.colorHex}`}></span></p>
@@ -328,7 +335,8 @@ function AddManualPieceForm({selectedSet, colors, onSuccess}: Readonly<{ selecte
         {previewBrick 
           ? (
             <>
-              <input value={elementIdRef.current} type="hidden" name="elementId" />
+              <input value={elementIdRef.current || "-"} type="hidden" name="elementId" />
+              <input value={brickIdRef.current || `${referenceRef.current}-${colorIdRef.current}`} type="hidden" name="brickId" />
               <input value={referenceRef.current} type="hidden" name="reference"/>
               <input value={nameRef.current} type="hidden" name="name"/>
               <input value={colorIdRef.current} type="hidden" name="colorId"/>
@@ -337,7 +345,8 @@ function AddManualPieceForm({selectedSet, colors, onSuccess}: Readonly<{ selecte
           )
           : (
             <div id="manual-fields" style="display: contents;">
-              <input type="hidden" name="elementId" />
+              <input type="hidden" name="elementId" value="-" />
+              <input type="hidden" name="brickId" />
               <div>
                 <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
                   Reference{" "}

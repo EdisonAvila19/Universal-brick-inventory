@@ -35,12 +35,12 @@ export async function POST({ params, request }: { params: { setID: string }, req
     
     if (action === "update-brick") {
       // Handle updating an existing brick in the set
-      const { elementId, fromSet, stock } = {
-        elementId: formData.get("elementId") as string,
+      const { brickId, fromSet, stock } = {
+        brickId: formData.get("brickId") as string,
         fromSet: setID,
         stock: Number(formData.get("stock"))
       }
-      const response = await updateBrickStock({ elementId, fromSet, stock })
+      const response = await updateBrickStock({ brickId, fromSet, stock })
 
       if (!response.updated) {
         throw new Error( "Failed to update brick stock");

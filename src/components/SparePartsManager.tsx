@@ -16,7 +16,7 @@ function SpareBrickCard({ brick, isEditing, onStartEdit, onDelete, onSave, onCan
   isEditing: boolean;
   onStartEdit: (b: SpareBrickRecord) => void;
   onDelete: (b: SpareBrickRecord) => void;
-  onSave: (elementId: string, quantity: number) => Promise<void>;
+  onSave: (brickId: string, quantity: number) => Promise<void>;
   onCancel: () => void;
 }>) {
   const [editQty, setEditQty] = useState(brick.spareQuantity);
@@ -28,7 +28,7 @@ function SpareBrickCard({ brick, isEditing, onStartEdit, onDelete, onSave, onCan
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(brick.elementId, editQty);
+    await onSave(brick.brickId, editQty);
     setSaving(false);
   };
 
@@ -39,7 +39,8 @@ function SpareBrickCard({ brick, isEditing, onStartEdit, onDelete, onSave, onCan
       </div>
       <div class="flex-1">
         <p class="text-[10px] font-bold text-secondary tracking-widest uppercase">Ref. {brick.reference}</p>
-        <p class="text-[9px] font-semibold text-tertiary tracking-wider">ID: {brick.elementId}</p>
+        <p class="text-[9px] font-semibold text-tertiary tracking-wider">Brick ID: {brick.brickId}</p>
+        <p class="text-[9px] font-semibold text-tertiary tracking-wider">Element ID: {brick.elementId}</p>
         <h3 class="font-black text-base leading-tight mt-1">{brick.name}</h3>
         <p class="flex flex-row gap-1 text-xs text-secondary mt-1">
           {brick.colorName}
@@ -121,8 +122,10 @@ function AddSpareModal({ colors, onClose }: Readonly<{ colors: ArchiveColor[]; o
 
   const handleAddFromRebrickable = async (color: RebrickablePartColorDetails) => {
     if (!searchResult) return;
-    const elementId = color.elements?.[0] || `${searchResult.part_num}-${color.color_id}`;
+    const brickId = `${searchResult.part_num}-${color.color_id}`;
+    const elementId = color.elements?.[0] || "-";
     const formData = new FormData();
+    formData.set("brickId", brickId);
     formData.set("elementId", elementId);
     formData.set("reference", searchResult.part_num);
     formData.set("name", searchResult.name);
@@ -142,9 +145,10 @@ function AddSpareModal({ colors, onClose }: Readonly<{ colors: ArchiveColor[]; o
 
   const handleAddManual = async (e: Event) => {
     e.preventDefault();
-    const generatedId = `${reference.trim()}-${manualColorId}`;
+    const brickId = `${reference.trim()}-${manualColorId}`;
     const formData = new FormData();
-    formData.set("elementId", generatedId);
+    formData.set("brickId", brickId);
+    formData.set("elementId", "-");
     formData.set("reference", reference.trim());
     formData.set("name", manualName || reference.trim());
     formData.set("colorId", String(manualColorId));
@@ -205,14 +209,14 @@ function AddSpareModal({ colors, onClose }: Readonly<{ colors: ArchiveColor[]; o
             <p class="text-xs text-secondary mb-3">Select a color:</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
               {colorOptions.map((color) => {
-                const elementId = color.elements?.[0] || `${searchResult.part_num}-${color.color_id}`;
+                const brickId = `${searchResult.part_num}-${color.color_id}`;
                 return (
-                  <button key={elementId} onClick={() => handleAddFromRebrickable(color)} class="bg-surface-container-highest p-3 rounded-lg flex items-center gap-3 hover:bg-surface-container-high transition-colors text-left justify-between">
+                  <button key={brickId} onClick={() => handleAddFromRebrickable(color)} class="bg-surface-container-highest p-3 rounded-lg flex items-center gap-3 hover:bg-surface-container-high transition-colors text-left justify-between">
                     <div className="flex flex-row gap-3">
                       <img src={color.part_img_url} alt={color.color_name} class="w-6 h-6 rounded-full shadow-inner shrink-0" loading="lazy" />
                       <div class="min-w-0">
                         <p class="text-xs font-bold truncate">{color.color_name}</p>
-                        <p class="text-[9px] text-secondary">ID: {elementId}</p>
+                        <p class="text-[9px] text-secondary">ID: {brickId}</p>
                       </div>
                     </div>
                     <div class="w-6 h-6 rounded-full shadow-inner shrink-0" style={`background:${color.colorRgb}`}></div>
@@ -289,13 +293,13 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
     if (colorFilter.length > 0 && !colorFilter.includes(String(b.colorId))) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    return b.reference.toLowerCase().includes(q) || b.name.toLowerCase().includes(q) || b.elementId.toLowerCase().includes(q);
+    return b.reference.toLowerCase().includes(q) || b.name.toLowerCase().includes(q) || b.brickId.toLowerCase().includes(q) || b.elementId.toLowerCase().includes(q);
   });
 
-  const handleSaveEdit = async (elementId: string, quantity: number) => {
+  const handleSaveEdit = async (brickId: string, quantity: number) => {
     const formData = new FormData();
     formData.set("spareQuantity", String(quantity));
-    const result = await apiUpdateSpare(elementId, formData);
+    const result = await apiUpdateSpare(brickId, formData);
     if (result.status === "error") {
       updateFeedback(result.message || "Failed to update", "error");
       return;
@@ -307,7 +311,7 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    const result = await apiDeleteSpare(deleteTarget.elementId);
+    const result = await apiDeleteSpare(deleteTarget.brickId);
     if (result.status === "error") {
       updateFeedback(result.message || "Failed to delete", "error");
       return;
@@ -344,7 +348,7 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
       ) : (
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filtered.map((brick) => (
-            <SpareBrickCard key={brick.elementId} brick={brick} isEditing={editingId === brick.elementId} onStartEdit={(b) => setEditingId(b.elementId)} onDelete={setDeleteTarget} onSave={handleSaveEdit} onCancel={() => setEditingId(null)} />
+            <SpareBrickCard key={brick.brickId} brick={brick} isEditing={editingId === brick.brickId} onStartEdit={(b) => setEditingId(b.brickId)} onDelete={setDeleteTarget} onSave={handleSaveEdit} onCancel={() => setEditingId(null)} />
           ))}
         </div>
       )}

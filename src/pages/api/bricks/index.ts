@@ -13,14 +13,14 @@ export async function GET({ request, }: { request: Request }) {
 export async function PUT({ request }: { request: Request }) {
   const body = await request.formData();
 
-  const IdRaw = body.get("elementId");
+  const IdRaw = body.get("brickId");
   if (typeof IdRaw !== "string") {
-    return new Response(JSON.stringify({ error: "Invalid elementId" }), {
+    return new Response(JSON.stringify({ error: "Invalid brickId" }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
   }
-  const elementId = IdRaw.trim();
+  const brickId = IdRaw.trim();
   const fromSet: { setNumber: string; stock: number; oldStock: number; isDifferent: boolean }[] = [];
   body.entries().filter(([key, value]) => key.startsWith("new_stock_")).forEach(([key, value]) => {
     const setNumber = key.replace("new_stock_", "");
@@ -31,7 +31,7 @@ export async function PUT({ request }: { request: Request }) {
     fromSet.push({ setNumber, stock, oldStock, isDifferent });
   });
 
-  if (!elementId || fromSet.length === 0) {
+  if (!brickId || fromSet.length === 0) {
     return new Response(JSON.stringify({ error: "Invalid input" }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
@@ -47,7 +47,7 @@ export async function PUT({ request }: { request: Request }) {
   }
   
   updatedSets.forEach(async ({ setNumber, stock }) => {
-    await updateBrickStock({ elementId, fromSet: setNumber, stock });
+    await updateBrickStock({ brickId, fromSet: setNumber, stock });
   });
 
   return new Response(JSON.stringify({ ok: true }), {

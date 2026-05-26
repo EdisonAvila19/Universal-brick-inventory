@@ -30,7 +30,7 @@ if (Astro.request.method === "POST") {
   legoStoreEnabled = String(formData.get("legoStore") ?? (legoStoreEnabled ? "on" : "off")) !== "off";
 
   if (action === "update-purchase-plan") {
-    const elementId = String(formData.get("elementId") ?? "");
+    const brickId = String(formData.get("brickId") ?? "");
     const plannedLegoQuantity = Number(formData.get("plannedLegoQuantity") ?? "0");
     const plannedBricklinkQuantity = Number(formData.get("plannedBricklinkQuantity") ?? "0");
     const neededValue = Number(formData.get("neededValue") ?? "0");
@@ -40,7 +40,7 @@ if (Astro.request.method === "POST") {
     const effectiveLegoQuantity = legoStoreEnabled ? normalizedLegoQuantity : 0;
     const plannedTotalQuantity = effectiveLegoQuantity + normalizedBricklinkQuantity;
 
-    if (!elementId) {
+    if (!brickId) {
       if (wantsJson) {
         return createJsonResponse({ updated: false, message: "Invalid purchase plan data." }, 400);
       }
@@ -52,11 +52,11 @@ if (Astro.request.method === "POST") {
       feedback = { type: "error", message: "Planned quantity cannot exceed needed quantity." };
     } else {
       const allBricks = await getInventoryBricks();
-      const instances = allBricks.filter((b) => b.elementId === elementId);
+      const instances = allBricks.filter((b) => b.brickId === brickId);
       let anyUpdated = false;
       for (const instance of instances) {
         const result = await updateBrickPurchasePlan({
-          elementId,
+          brickId,
           fromSet: instance.fromSet,
           plannedLegoQuantity: effectiveLegoQuantity,
           plannedBricklinkQuantity: normalizedBricklinkQuantity
@@ -87,15 +87,16 @@ const setNameMap = new Map(sets.map((set) => [set.setNumber, set.name]));
 
 const brickGroups = new Map<string, (typeof bricks)[number][]>();
 for (const brick of bricks) {
-  const existing = brickGroups.get(brick.elementId);
+  const existing = brickGroups.get(brick.brickId);
   if (existing) {
     existing.push(brick);
   } else {
-    brickGroups.set(brick.elementId, [brick]);
+    brickGroups.set(brick.brickId, [brick]);
   }
 }
 
 interface GroupedShoppingBrick {
+  brickId: string;
   elementId: string;
   reference: string;
   name: string;
@@ -113,7 +114,7 @@ interface GroupedShoppingBrick {
 }
 
 const groupedShoppingBricks: GroupedShoppingBrick[] = [];
-for (const [elementId, group] of brickGroups) {
+for (const [brickId, group] of brickGroups) {
   const first = group[0];
   const totalRequired = group.reduce((acc, b) => acc + b.required, 0);
   const totalStock = group.reduce((acc, b) => acc + b.stock, 0);
@@ -135,6 +136,7 @@ for (const [elementId, group] of brickGroups) {
   }, 0);
 
   groupedShoppingBricks.push({
+    brickId: first.brickId,
     elementId: first.elementId,
     reference: first.reference,
     name: first.name,
@@ -159,7 +161,7 @@ const neededBricks = groupedShoppingBricks
 const normalizedPieceFilter = pieceFilter.trim().toLowerCase();
 
 const filteredBricks = neededBricks.filter((group) => {
-  const matchesPiece = !normalizedPieceFilter || group.reference.toLowerCase().includes(normalizedPieceFilter) || group.name.toLowerCase().includes(normalizedPieceFilter) || group.elementId.toLowerCase().includes(normalizedPieceFilter);
+  const matchesPiece = !normalizedPieceFilter || group.reference.toLowerCase().includes(normalizedPieceFilter) || group.name.toLowerCase().includes(normalizedPieceFilter) || group.brickId.toLowerCase().includes(normalizedPieceFilter) || group.elementId.toLowerCase().includes(normalizedPieceFilter);
   const matchesSet = setFilters.length === 0 || group.sets.some((s) => setFilters.includes(s));
   const matchesNeeded =
     neededFilter === "all" ||
@@ -250,14 +252,14 @@ const setsAffected = new Set(filteredBricks.flatMap((brick) => brick.sets)).size
           <tbody class="divide-y divide-outline-variant/20">
             {filteredBricks.map((brick) => (
               <tr data-shopping-row data-needed={brick.needed} class={`transition-colors ${brick.plannedTotalQuantity === brick.needed ? "bg-primary-container/35 hover:bg-primary-container/45" : "hover:bg-surface-container-low"}`}>
-                <td class="px-6 py-4"><div class="flex items-center gap-4"><div class="w-12 h-12 bg-white rounded-md p-1 overflow-hidden flex-shrink-0"><img alt={brick.name} class="w-full h-full object-contain" src={brick.image} /></div><div><p class="font-bold text-sm leading-tight">{brick.name}</p><p class="text-secondary text-xs">Ref. {brick.reference} · ID: {brick.elementId} · {brick.color}</p></div></div></td>
+                <td class="px-6 py-4"><div class="flex items-center gap-4"><div class="w-12 h-12 bg-white rounded-md p-1 overflow-hidden flex-shrink-0"><img alt={brick.name} class="w-full h-full object-contain" src={brick.image} /></div><div><p class="font-bold text-sm leading-tight">{brick.name}</p><p class="text-secondary text-xs">Ref. {brick.reference} · Brick ID: {brick.brickId} · ID: {brick.elementId} · {brick.color}</p></div></div></td>
                 <td class="px-6 py-4"><div class="flex flex-wrap gap-1">{brick.sets.map((s) => <span class="text-[10px] font-bold bg-surface-container-highest text-secondary px-2 py-0.5 rounded">{s}</span>)}</div></td>
                 <td class="px-6 py-4 text-center"><span class="bg-error-container text-on-error-container text-xs font-black px-3 py-1 rounded-full">{brick.needed}</span></td>
                 <td class="px-6 py-4" colspan={legoStoreEnabled ? 4 : 3}>
                   <form method="post" data-async-purchase-form class:list={["items-center gap-2", legoStoreEnabled ? "grid grid-cols-[96px_96px_auto_1fr] min-w-[420px]" : "grid grid-cols-[96px_auto_1fr] min-w-[320px]"]}>
                     <input type="hidden" name="action" value="update-purchase-plan" />
                     <input type="hidden" name="responseType" value="json" />
-                    <input type="hidden" name="elementId" value={brick.elementId} />
+                    <input type="hidden" name="brickId" value={brick.brickId} />
                     <input type="hidden" name="neededValue" value={brick.needed} />
                     <input type="hidden" name="piece" value={pieceFilter} />
                     {setFilters.map((setNumber) => <input type="hidden" name="set" value={setNumber} />)}

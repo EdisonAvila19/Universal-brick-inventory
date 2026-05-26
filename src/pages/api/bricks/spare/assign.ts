@@ -3,18 +3,18 @@ import { assignSpareToSet } from "@lib/inventoryStore";
 export async function POST({ request }: { request: Request }) {
   try {
     const body = await request.formData();
-    const elementId = String(body.get("elementId") ?? "").trim();
+    const brickId = String(body.get("brickId") ?? "").trim();
     const setNumber = String(body.get("setNumber") ?? "").trim();
     const quantity = Number(body.get("quantity") ?? 1);
 
-    if (!elementId || !setNumber) {
+    if (!brickId || !setNumber) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400,
         headers: { "Content-Type": "application/json" }
       });
     }
 
-    const result = await assignSpareToSet({ elementId, setNumber, quantity });
+    const result = await assignSpareToSet({ brickId, setNumber, quantity });
 
     if (!result.assigned) {
       return new Response(JSON.stringify({ error: result.reason || "Failed to assign spare to set" }), {

@@ -15,7 +15,7 @@ export const GetNewBricksForSet = async (setNumber: string): Promise<BrickRecord
 
 export const UpdateBrickData = async (brick: BrickRecord, formData: FormData) => {
   try {
-    const response = await fetch(`/api/bricks/${brick.elementId}`, {
+    const response = await fetch(`/api/bricks/${brick.brickId}`, {
       method: "PUT",
       body: formData
     });
@@ -104,12 +104,12 @@ export const searchNewBrick = async (formData: FormData) : Promise<{ status: str
 }
 
 export const addNewBrick = async (formData: FormData) : Promise<{ status: string, message?: string }> => {
-  const element = formData.get("elementId");
+  const element = formData.get("brickId") || formData.get("elementId");
   const brickID = typeof element === "string" ? element.trim() : "";
 
   try {
     if (!brickID) {
-      throw new Error("Invalid element ID");
+      throw new Error("Invalid brick ID");
     }
 
     const response = await fetch(`/api/bricks/${brickID}`, {
@@ -159,9 +159,9 @@ export const addSpareBrick = async (formData: FormData): Promise<{ status: strin
   }
 };
 
-export const updateSpareBrick = async (elementId: string, formData: FormData): Promise<{ status: string; message?: string }> => {
+export const updateSpareBrick = async (brickId: string, formData: FormData): Promise<{ status: string; message?: string }> => {
   try {
-    const response = await fetch(`/api/bricks/spare/${encodeURIComponent(elementId)}`, {
+    const response = await fetch(`/api/bricks/spare/${encodeURIComponent(brickId)}`, {
       method: "PUT",
       body: formData
     });
@@ -174,9 +174,9 @@ export const updateSpareBrick = async (elementId: string, formData: FormData): P
   }
 };
 
-export const deleteSpareBrick = async (elementId: string): Promise<{ status: string; message?: string }> => {
+export const deleteSpareBrick = async (brickId: string): Promise<{ status: string; message?: string }> => {
   try {
-    const response = await fetch(`/api/bricks/spare/${encodeURIComponent(elementId)}`, {
+    const response = await fetch(`/api/bricks/spare/${encodeURIComponent(brickId)}`, {
       method: "DELETE"
     });
     const data = await response.json();

@@ -15,6 +15,7 @@ export interface SetRecord {
 }
 
 export interface BrickRecord {
+  brickId: string;
   elementId: string;
   reference: string;
   name: string;
@@ -35,6 +36,7 @@ export interface BrickRecord {
 
 export interface SetBrickRecord {
   fromSet: string;
+  brickId: string;
   elementId: string;
   required: number;
   stock: number;
@@ -50,6 +52,7 @@ export interface ManualSetInput {
 }
 
 export interface GroupedBrick {
+  brickId: string;
   elementId: string;
   reference: string;
   name: string;
@@ -65,6 +68,7 @@ export interface GroupedBrick {
 }
 
 export interface SpareBrickRecord {
+  brickId: string;
   elementId: string;
   reference: string;
   name: string;

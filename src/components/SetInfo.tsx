@@ -35,8 +35,8 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
     refreshSpareBricks();
   }, [activeSetNumber]);
 
-  const getSpareQty = (elementId: string) => {
-    const found = spareBricksMap.find((s) => s.elementId === elementId);
+  const getSpareQty = (brickId: string) => {
+    const found = spareBricksMap.find((s) => s.brickId === brickId);
     return found ? found.spareQuantity : 0;
   };
 
@@ -54,6 +54,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
       if (
         !b.name.toLowerCase().includes(q) &&
         !b.reference.toLowerCase().includes(q) &&
+        !b.brickId.toLowerCase().includes(q) &&
         !b.elementId.toLowerCase().includes(q)
       ) return false;
     }
@@ -243,7 +244,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
 
           {/* Brick Inventory */}
           <section class="space-y-4 mb-4">
-            {visibleBricks.map((brick) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} colors={colors} spareQuantity={getSpareQty(brick.elementId)} key={brick.elementId} onBrickUpdated={refreshBricks} />))}
+            {visibleBricks.map((brick) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} colors={colors} spareQuantity={getSpareQty(brick.brickId)} key={brick.brickId} onBrickUpdated={refreshBricks} />))}
           </section>
 
           {/* Pagination */}

@@ -5,7 +5,7 @@ import { $spareBricks } from '@stores/storage-spare-bricks';
 
 export default function BrickInfo(group: Readonly<GroupedBrick>) {
   const spareBricks = useStore($spareBricks);
-  const spare = spareBricks.find((s) => s.elementId === group.elementId);
+  const spare = spareBricks.find((s) => s.brickId === group.brickId);
   const spareQty = spare?.spareQuantity ?? 0;
 
   return (
@@ -23,7 +23,8 @@ export default function BrickInfo(group: Readonly<GroupedBrick>) {
           <div class='flex justify-between w-full'>
             <div>
               <p class="text-[10px] font-bold text-secondary tracking-widest uppercase">Ref. {group.reference}</p>
-              <p class="text-[9px] font-semibold text-tertiary tracking-wider">ID: {group.elementId}</p>
+              <p class="text-[9px] font-semibold text-tertiary tracking-wider">Brick ID: {group.brickId}</p>
+              <p class="text-[9px] font-semibold text-tertiary tracking-wider">Element ID: {group.elementId}</p>
             </div>
             <div class="w-6 h-6 rounded-full border border-contrast-shadow" style={`background:${group.colorHex};`} title={`Color: ${group.colorName}`}></div>
           </div>

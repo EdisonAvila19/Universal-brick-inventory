@@ -9,9 +9,13 @@ export async function POST({ request }: { request: Request }) {
       const v = body.get("setNumber");
       return typeof v === "string" ? v.trim() : "";
     })(),
+    brickId: (() => {
+      const v = body.get("brickId");
+      return typeof v === "string" ? v.trim() : undefined;
+    })(),
     elementId: (() => {
       const v = body.get("elementId");
-      return typeof v === "string" ? v.trim() : "";
+      return typeof v === "string" ? v.trim() : "-";
     })(),
     reference: (() => {
       const v = body.get("reference");
@@ -76,13 +80,9 @@ export async function PUT({ params, request }: { params: { brickID: string }, re
       const v = brickDataRaw.get("setNumber");
       return typeof v === "string" ? v.trim() : "";
     })(),
-    originalElementId: (() => {
-      const v = brickDataRaw.get("originalElementId");
-      return typeof v === "string" ? v.trim() : "";
-    })(),
     elementId: (() => {
       const v = brickDataRaw.get("elementId");
-      return typeof v === "string" ? v.trim() : "";
+      return typeof v === "string" ? v.trim() : "-";
     })(),
     reference: (() => {
       const v = brickDataRaw.get("reference");
@@ -121,7 +121,7 @@ export async function PUT({ params, request }: { params: { brickID: string }, re
   if (action === "update-brick") {
     const result = await updateBrickInSet({
       fromSet: brickData.setNumber,
-      originalElementId: brickData.originalElementId,
+      originalBrickId: brickID,
       elementId: brickData.elementId,
       reference: brickData.reference,
       name: brickData.name,
@@ -158,7 +158,7 @@ export async function DELETE({ params, request }: { params: { brickID: string },
   
   const result = await removeBrickFromSet({
     fromSet: setId,
-    elementId: brickID
+    brickId: brickID
   });
 
   if (!result.removed) {
