@@ -17,11 +17,13 @@ export function useBricks( initialBricks: BrickRecord[] ) {
     const { piece, set: setFilters, status: statusFilter, color: colorFilter, spareOnly } = filters
 
     for (const brick of bricks) {
-      const existing = brickGroups.get(brick.brickId);
+      const effectiveColorId = (brick as Record<string, unknown>).colorGroupId ?? brick.colorId;
+      const effectiveBrickId = `${brick.reference}-${effectiveColorId}`;
+      const existing = brickGroups.get(effectiveBrickId);
       if (existing) {
         existing.push(brick);
       } else {
-        brickGroups.set(brick.brickId, [brick]);
+        brickGroups.set(effectiveBrickId, [brick]);
       }
     }
 
@@ -32,12 +34,14 @@ export function useBricks( initialBricks: BrickRecord[] ) {
       const totalStock = group.reduce((acc, b) => acc + b.stock, 0);
       const needed = Math.max(0, totalRequired - totalStock);
       const spareQuantity = group.reduce((max, b) => Math.max(max, b.spareQuantity ?? 0), 0);
+      const effectiveColorId = (first as Record<string, unknown>).colorGroupId ?? first.colorId;
       groupedBricks.push({
-        brickId: first.brickId,
+        brickId: `${first.reference}-${effectiveColorId}`,
         elementId: first.elementId,
         reference: first.reference,
         name: first.name,
         colorId: first.colorId,
+        colorGroupId: (first as Record<string, unknown>).colorGroupId as number | undefined,
         colorName: (first as Record<string, unknown>).colorName as string ?? "Unknown",
         colorHex: (first as Record<string, unknown>).colorHex as string ?? "#000000",
         image: first.image,

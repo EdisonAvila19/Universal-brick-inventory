@@ -5,7 +5,11 @@ import { $spareBricks } from '@stores/storage-spare-bricks';
 
 export default function BrickInfo(group: Readonly<GroupedBrick>) {
   const spareBricks = useStore($spareBricks);
-  const spare = spareBricks.find((s) => s.brickId === group.brickId);
+  const spare = spareBricks.find((s) => {
+    const effectiveColorId = s.colorGroupId ?? s.colorId;
+    const effectiveBrickId = `${s.reference}-${effectiveColorId}`;
+    return effectiveBrickId === group.brickId;
+  });
   const spareQty = spare?.spareQuantity ?? 0;
 
   return (

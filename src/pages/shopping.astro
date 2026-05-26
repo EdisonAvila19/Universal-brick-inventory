@@ -87,11 +87,13 @@ const setNameMap = new Map(sets.map((set) => [set.setNumber, set.name]));
 
 const brickGroups = new Map<string, (typeof bricks)[number][]>();
 for (const brick of bricks) {
-  const existing = brickGroups.get(brick.brickId);
+  const effectiveColorId = (brick as Record<string, unknown>).colorGroupId ?? brick.colorId;
+  const effectiveBrickId = `${brick.reference}-${effectiveColorId}`;
+  const existing = brickGroups.get(effectiveBrickId);
   if (existing) {
     existing.push(brick);
   } else {
-    brickGroups.set(brick.brickId, [brick]);
+    brickGroups.set(effectiveBrickId, [brick]);
   }
 }
 
@@ -101,6 +103,7 @@ interface GroupedShoppingBrick {
   reference: string;
   name: string;
   colorId: number;
+  colorGroupId?: number;
   colorName: string;
   colorHex: string;
   image: string;
@@ -135,12 +138,14 @@ for (const [brickId, group] of brickGroups) {
     return acc + effective;
   }, 0);
 
+  const effectiveColorId = (first as Record<string, unknown>).colorGroupId ?? first.colorId;
   groupedShoppingBricks.push({
-    brickId: first.brickId,
+    brickId: `${first.reference}-${effectiveColorId}`,
     elementId: first.elementId,
     reference: first.reference,
     name: first.name,
     colorId: first.colorId,
+    colorGroupId: (first as Record<string, unknown>).colorGroupId as number | undefined,
     colorName: (first as Record<string, unknown>).colorName as string ?? "Unknown",
     colorHex: (first as Record<string, unknown>).colorHex as string ?? "#000000",
     image: first.image,

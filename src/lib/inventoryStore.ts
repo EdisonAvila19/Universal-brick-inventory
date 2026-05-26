@@ -322,7 +322,56 @@ export async function deleteColorGroup(mainColorId: number): Promise<{ deleted: 
   if (!color || color.color_group_id == null) {
     return { deleted: false, reason: "not-a-group" };
   }
+
+  const groupMembers = db.prepare("SELECT id FROM colors WHERE color_group_id = ? OR id = ?").all(mainColorId, mainColorId) as { id: number }[];
+  const groupColorIds = new Set(groupMembers.map((m) => m.id));
+
   db.prepare("UPDATE colors SET color_group_id = NULL WHERE color_group_id = ?").run(mainColorId);
+
+  const orphanedBricks = db.prepare(`
+    SELECT sb.setNumber, sb.brickId, sb.stock, b.reference, b.colorId,
+           b.elementId, b.name, b.image, b.buyAt
+    FROM set_bricks sb
+    INNER JOIN bricks b ON b.brickId = sb.brickId
+    WHERE sb.required = 0
+  `).all() as Array<{ setNumber: string; brickId: string; stock: number; reference: string; colorId: number; elementId: string; name: string; image: string; buyAt: string }>;
+
+  const affectedSets = new Set<string>();
+  for (const brick of orphanedBricks) {
+    if (!groupColorIds.has(brick.colorId)) continue;
+    if (brick.stock <= 0) continue;
+
+    const existingSpare = db.prepare("SELECT brickId FROM bricks WHERE brickId = ?").get(brick.brickId) as { brickId: string } | undefined;
+    if (existingSpare) {
+      db.prepare("UPDATE bricks SET spareQuantity = spareQuantity + ? WHERE brickId = ?").run(brick.stock, brick.brickId);
+    } else {
+      db.prepare(`
+        INSERT INTO bricks (brickId, elementId, reference, name, colorId, image, buyAt, spareQuantity)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(brick.brickId, brick.elementId, brick.reference, brick.name, brick.colorId, brick.image, JSON.stringify(["lego", "bricklink"]), brick.stock);
+    }
+
+    db.prepare("DELETE FROM set_bricks WHERE setNumber = ? AND brickId = ?").run(brick.setNumber, brick.brickId);
+    affectedSets.add(brick.setNumber);
+  }
+
+  for (const setNumber of affectedSets) {
+    const ownedResult = db.prepare(`
+      SELECT COALESCE(SUM(g.min_stock_required), 0) AS owned
+      FROM (
+        SELECT MIN(CASE WHEN sb.stock < sb.required THEN sb.stock ELSE sb.required END) AS min_stock_required
+        FROM set_bricks sb
+        INNER JOIN bricks b ON b.brickId = sb.brickId
+        LEFT JOIN colors c ON b.colorId = c.id
+        WHERE sb.setNumber = ?
+        GROUP BY b.reference, COALESCE(c.color_group_id, b.colorId)
+      ) g
+    `).get(setNumber) as { owned: number };
+    const setInfo = db.prepare("SELECT totalPieces FROM sets WHERE setNumber = ?").get(setNumber) as { totalPieces: number };
+    const newOwned = Math.min(Number(ownedResult.owned), Number(setInfo.totalPieces));
+    db.prepare("UPDATE sets SET ownedPieces = ? WHERE setNumber = ?").run(newOwned, setNumber);
+  }
+
   return { deleted: true };
 }
 
@@ -336,6 +385,50 @@ export async function unassignColorFromGroup(colorId: number): Promise<{ unassig
     return { unassigned: false, reason: "not-in-group" };
   }
   db.prepare("UPDATE colors SET color_group_id = NULL WHERE id = ?").run(colorId);
+
+  const orphanedBricks = db.prepare(`
+    SELECT sb.setNumber, sb.brickId, sb.stock, b.reference, b.colorId,
+           b.elementId, b.name, b.image, b.buyAt
+    FROM set_bricks sb
+    INNER JOIN bricks b ON b.brickId = sb.brickId
+    WHERE sb.required = 0 AND b.colorId = ?
+  `).all(colorId) as Array<{ setNumber: string; brickId: string; stock: number; reference: string; colorId: number; elementId: string; name: string; image: string; buyAt: string }>;
+
+  const affectedSets = new Set<string>();
+  for (const brick of orphanedBricks) {
+    if (brick.stock <= 0) continue;
+
+    const existingSpare = db.prepare("SELECT brickId FROM bricks WHERE brickId = ?").get(brick.brickId) as { brickId: string } | undefined;
+    if (existingSpare) {
+      db.prepare("UPDATE bricks SET spareQuantity = spareQuantity + ? WHERE brickId = ?").run(brick.stock, brick.brickId);
+    } else {
+      db.prepare(`
+        INSERT INTO bricks (brickId, elementId, reference, name, colorId, image, buyAt, spareQuantity)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(brick.brickId, brick.elementId, brick.reference, brick.name, brick.colorId, brick.image, JSON.stringify(["lego", "bricklink"]), brick.stock);
+    }
+
+    db.prepare("DELETE FROM set_bricks WHERE setNumber = ? AND brickId = ?").run(brick.setNumber, brick.brickId);
+    affectedSets.add(brick.setNumber);
+  }
+
+  for (const setNumber of affectedSets) {
+    const ownedResult = db.prepare(`
+      SELECT COALESCE(SUM(g.min_stock_required), 0) AS owned
+      FROM (
+        SELECT MIN(CASE WHEN sb.stock < sb.required THEN sb.stock ELSE sb.required END) AS min_stock_required
+        FROM set_bricks sb
+        INNER JOIN bricks b ON b.brickId = sb.brickId
+        LEFT JOIN colors c ON b.colorId = c.id
+        WHERE sb.setNumber = ?
+        GROUP BY b.reference, COALESCE(c.color_group_id, b.colorId)
+      ) g
+    `).get(setNumber) as { owned: number };
+    const setInfo = db.prepare("SELECT totalPieces FROM sets WHERE setNumber = ?").get(setNumber) as { totalPieces: number };
+    const newOwned = Math.min(Number(ownedResult.owned), Number(setInfo.totalPieces));
+    db.prepare("UPDATE sets SET ownedPieces = ? WHERE setNumber = ?").run(newOwned, setNumber);
+  }
+
   return { unassigned: true };
 }
 
@@ -348,7 +441,7 @@ async function readStore(): Promise<InventoryPayload> {
            b.plannedStore, b.plannedQuantity, b.plannedLegoQuantity, b.plannedBricklinkQuantity,
            b.spareQuantity,
            sb.setNumber AS fromSet, sb.required, sb.stock,
-           c.name AS colorName, c.rgb AS colorHex
+           c.name AS colorName, c.rgb AS colorHex, c.color_group_id AS colorGroupId
     FROM bricks b
     INNER JOIN set_bricks sb ON sb.brickId = b.brickId
     LEFT JOIN colors c ON b.colorId = c.id
@@ -407,9 +500,21 @@ function equalsIgnoreCase(left: string, right: string) {
 
 function recalculateOwnedPieces(sets: SetRecord[], bricks: BrickRecord[]) {
   return sets.map((set) => {
-    const owned = bricks
-      .filter((brick) => brick.fromSet === set.setNumber)
-      .reduce((acc, brick) => acc + Math.min(brick.stock, brick.required), 0);
+    const setBricks = bricks.filter((brick) => brick.fromSet === set.setNumber);
+    const groupMap = new Map<string, { totalStock: number; totalRequired: number }>();
+    for (const brick of setBricks) {
+      const effectiveColorId = brick.colorGroupId ?? brick.colorId;
+      const key = `${brick.reference}-${effectiveColorId}`;
+      const group = groupMap.get(key);
+      if (group) {
+        group.totalStock += brick.stock;
+        group.totalRequired += brick.required;
+      } else {
+        groupMap.set(key, { totalStock: brick.stock, totalRequired: brick.required });
+      }
+    }
+    const owned = Array.from(groupMap.values())
+      .reduce((acc, g) => acc + Math.min(g.totalStock, g.totalRequired), 0);
     return { ...set, ownedPieces: Math.min(owned, set.totalPieces) };
   });
 }
@@ -425,7 +530,7 @@ export async function getBricksCatalog(): Promise<BrickRecord[]> {
   const rows = db.prepare(`
     SELECT b.brickId, b.elementId, b.reference, b.name, b.colorId, b.image, b.buyAt,
            b.plannedStore, b.plannedQuantity, b.plannedLegoQuantity, b.plannedBricklinkQuantity,
-           c.name AS colorName, c.rgb AS colorHex
+           c.name AS colorName, c.rgb AS colorHex, c.color_group_id AS colorGroupId
     FROM bricks b
     LEFT JOIN colors c ON b.colorId = c.id
     ORDER BY b.brickId ASC
@@ -459,9 +564,27 @@ export async function addSetToInventory(nextSet: SetRecord, bricks: BrickRecord[
 export async function updateBrickStock(input: { brickId: string; fromSet: string; stock: number }): Promise<{ updated: boolean }> {
   const db = getDb();
   const nextStock = Number.isFinite(input.stock) ? Math.max(0, Math.floor(input.stock)) : 0;
-  const result = db.prepare("UPDATE set_bricks SET stock = ? WHERE setNumber = ? AND brickId = ?").run(nextStock, input.fromSet, input.brickId);
-  if (result.changes === 0) {
+  const directResult = db.prepare("UPDATE set_bricks SET stock = ? WHERE setNumber = ? AND brickId = ?").run(nextStock, input.fromSet, input.brickId);
+  if (directResult.changes > 0) {
+    const store = await readStore();
+    store.sets = recalculateOwnedPieces(store.sets, store.bricks);
+    await saveStore(store);
+    return { updated: true };
+  }
+  const parts = input.brickId.split('-');
+  const effectiveColorId = Number(parts.pop());
+  const reference = parts.join('-');
+  const matchingBricks = db.prepare(`
+    SELECT b.brickId FROM bricks b
+    INNER JOIN set_bricks sb ON sb.brickId = b.brickId
+    LEFT JOIN colors c ON b.colorId = c.id
+    WHERE sb.setNumber = ? AND b.reference = ? AND COALESCE(c.color_group_id, b.colorId) = ?
+  `).all(input.fromSet, reference, effectiveColorId) as { brickId: string }[];
+  if (matchingBricks.length === 0) {
     return { updated: false };
+  }
+  for (const { brickId } of matchingBricks) {
+    db.prepare("UPDATE set_bricks SET stock = ? WHERE setNumber = ? AND brickId = ?").run(nextStock, input.fromSet, brickId);
   }
   const store = await readStore();
   store.sets = recalculateOwnedPieces(store.sets, store.bricks);
@@ -488,14 +611,30 @@ export async function updateBrickPurchasePlan(input: { brickId: string; fromSet:
     else if (nextBricklinkQuantity > 0 && nextLegoQuantity === 0) plannedStore = "bricklink";
   }
 
-  const result = db
-    .prepare(
-      "UPDATE bricks SET plannedStore = ?, plannedQuantity = ?, plannedLegoQuantity = ?, plannedBricklinkQuantity = ? WHERE brickId = ?"
-    )
+  const directResult = db
+    .prepare("UPDATE bricks SET plannedStore = ?, plannedQuantity = ?, plannedLegoQuantity = ?, plannedBricklinkQuantity = ? WHERE brickId = ?")
     .run(plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity, input.brickId);
 
-  if (result.changes === 0) {
+  if (directResult.changes > 0) {
+    return { updated: true };
+  }
+
+  const parts = input.brickId.split('-');
+  const effectiveColorId = Number(parts.pop());
+  const reference = parts.join('-');
+  const matchingBricks = db.prepare(`
+    SELECT brickId FROM bricks b
+    LEFT JOIN colors c ON b.colorId = c.id
+    WHERE b.reference = ? AND COALESCE(c.color_group_id, b.colorId) = ?
+  `).all(reference, effectiveColorId) as { brickId: string }[];
+
+  if (matchingBricks.length === 0) {
     return { updated: false };
+  }
+
+  for (const { brickId } of matchingBricks) {
+    db.prepare("UPDATE bricks SET plannedStore = ?, plannedQuantity = ?, plannedLegoQuantity = ?, plannedBricklinkQuantity = ? WHERE brickId = ?")
+      .run(plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity, brickId);
   }
   return { updated: true };
 }
@@ -581,7 +720,7 @@ export async function addBrickToSet(input: { fromSet: string; elementId?: string
     fromSet: input.fromSet,
     reference,
     name: input.name.trim() || reference,
-    colorId: resolveColorGroup(input.colorId),
+    colorId: input.colorId,
     image: input.image.trim() || "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=900&q=80",
     required: Math.max(1, normalizeNonNegativeInt(input.required, 1)),
     stock: normalizeNonNegativeInt(input.stock, 0),
@@ -601,40 +740,117 @@ export async function updateBrickInSet(input: { fromSet: string; originalBrickId
     return { updated: false, reason: "invalid-data" };
   }
   const newBrickId = `${reference}-${input.colorId}`;
-  const targetIndex = store.bricks.findIndex((brick) => brick.fromSet === input.fromSet && equalsIgnoreCase(brick.brickId, input.originalBrickId));
-  if (targetIndex < 0) {
+
+  const directIndices = store.bricks
+    .map((b, i) => ({ b, i }))
+    .filter(({ b }) => b.fromSet === input.fromSet && equalsIgnoreCase(b.brickId, input.originalBrickId))
+    .map(({ i }) => i);
+
+  let targetIndices: number[];
+
+  if (directIndices.length > 0) {
+    targetIndices = directIndices;
+  } else {
+    const parts = input.originalBrickId.split('-');
+    const effectiveColorId = Number(parts.pop());
+    const ref = parts.join('-');
+    targetIndices = store.bricks
+      .map((b, i) => ({ b, i }))
+      .filter(({ b }) => {
+        if (b.fromSet !== input.fromSet) return false;
+        const brickEffectiveColorId = (b as Record<string, unknown>).colorGroupId ?? b.colorId;
+        return b.reference === ref && brickEffectiveColorId === effectiveColorId;
+      })
+      .map(({ i }) => i);
+  }
+
+  if (targetIndices.length === 0) {
     return { updated: false, reason: "piece-not-found" };
   }
-  const hasCollision = store.bricks.some((brick, index) => index !== targetIndex && brick.fromSet === input.fromSet && equalsIgnoreCase(brick.brickId, newBrickId));
-  if (hasCollision) {
-    return { updated: false, reason: "duplicate-piece" };
+
+  for (const targetIndex of targetIndices) {
+    const oldBrickId = store.bricks[targetIndex].brickId;
+    if (equalsIgnoreCase(oldBrickId, newBrickId)) continue;
+    const hasCollision = store.bricks.some((brick, index) =>
+      !targetIndices.includes(index) && brick.fromSet === input.fromSet && equalsIgnoreCase(brick.brickId, newBrickId)
+    );
+    if (hasCollision) {
+      return { updated: false, reason: "duplicate-piece" };
+    }
   }
-  store.bricks[targetIndex] = {
-    ...store.bricks[targetIndex],
-    brickId: newBrickId,
-    elementId: input.elementId?.trim() || store.bricks[targetIndex].elementId,
-    reference,
-    name: input.name.trim() || reference,
-    colorId: resolveColorGroup(input.colorId),
-    image: input.image.trim() || store.bricks[targetIndex].image,
-    required: Math.max(1, normalizeNonNegativeInt(input.required, 1)),
-    stock: normalizeNonNegativeInt(input.stock, 0)
-  };
+
+  for (const targetIndex of targetIndices) {
+    store.bricks[targetIndex] = {
+      ...store.bricks[targetIndex],
+      brickId: newBrickId,
+      elementId: input.elementId?.trim() || store.bricks[targetIndex].elementId,
+      reference,
+      name: input.name.trim() || reference,
+      colorId: input.colorId,
+      image: input.image.trim() || store.bricks[targetIndex].image,
+      required: Math.max(0, normalizeNonNegativeInt(input.required, 1)),
+      stock: normalizeNonNegativeInt(input.stock, 0)
+    };
+  }
   store.sets = recalculateOwnedPieces(store.sets, store.bricks);
   await saveStore(store);
   return { updated: true };
 }
 
 export async function removeBrickFromSet(input: { fromSet: string; brickId: string }): Promise<{ removed: boolean }> {
-  const store = await readStore();
-  const previousLength = store.bricks.length;
-  store.bricks = store.bricks.filter((brick) => !(brick.fromSet === input.fromSet && equalsIgnoreCase(brick.brickId, input.brickId)));
-  if (store.bricks.length === previousLength) {
+  const db = getDb();
+
+  // Try direct match
+  let targetBrickId = input.brickId;
+  let sbRow = db.prepare("SELECT brickId, required, stock FROM set_bricks WHERE setNumber = ? AND brickId = ?")
+    .get(input.fromSet, input.brickId) as { brickId: string; required: number; stock: number } | undefined;
+
+  if (!sbRow) {
+    const parts = input.brickId.split('-');
+    const effectiveColorId = Number(parts.pop());
+    const reference = parts.join('-');
+    sbRow = db.prepare(`
+      SELECT sb.brickId, sb.required, sb.stock FROM set_bricks sb
+      INNER JOIN bricks b ON b.brickId = sb.brickId
+      LEFT JOIN colors c ON b.colorId = c.id
+      WHERE sb.setNumber = ? AND b.reference = ? AND COALESCE(c.color_group_id, b.colorId) = ?
+    `).get(input.fromSet, reference, effectiveColorId) as { brickId: string; required: number; stock: number } | undefined;
+    if (!sbRow) return { removed: false };
+    targetBrickId = sbRow.brickId;
+  }
+
+  db.exec("BEGIN");
+  try {
+    if (sbRow.required === 0) {
+      const existing = db.prepare("SELECT spareQuantity FROM bricks WHERE brickId = ?").get(targetBrickId) as { spareQuantity: number } | undefined;
+      const newQty = (existing?.spareQuantity ?? 0) + sbRow.stock;
+      db.prepare("UPDATE bricks SET spareQuantity = ? WHERE brickId = ?").run(newQty, targetBrickId);
+    }
+
+    db.prepare("DELETE FROM set_bricks WHERE setNumber = ? AND brickId = ?").run(input.fromSet, targetBrickId);
+
+    const ownedResult = db.prepare(`
+      SELECT COALESCE(SUM(g.min_stock_required), 0) AS owned
+      FROM (
+        SELECT MIN(CASE WHEN sb.stock < sb.required THEN sb.stock ELSE sb.required END) AS min_stock_required
+        FROM set_bricks sb
+        INNER JOIN bricks b ON b.brickId = sb.brickId
+        LEFT JOIN colors c ON b.colorId = c.id
+        WHERE sb.setNumber = ?
+        GROUP BY b.reference, COALESCE(c.color_group_id, b.colorId)
+      ) g
+    `).get(input.fromSet) as { owned: number };
+    const setInfo = db.prepare("SELECT totalPieces FROM sets WHERE setNumber = ?").get(input.fromSet) as { totalPieces: number };
+    db.prepare("UPDATE sets SET ownedPieces = ? WHERE setNumber = ?").run(
+      Math.min(Number(ownedResult.owned), Number(setInfo.totalPieces)), input.fromSet
+    );
+
+    db.exec("COMMIT");
+    return { removed: true };
+  } catch (err) {
+    db.exec("ROLLBACK");
     return { removed: false };
   }
-  store.sets = recalculateOwnedPieces(store.sets, store.bricks);
-  await saveStore(store);
-  return { removed: true };
 }
 
 // --- Spare Parts Functions ---
@@ -644,7 +860,7 @@ export async function getSpareBricks(): Promise<SpareBrickRecord[]> {
   const db = getDb();
   const rows = db.prepare(`
     SELECT b.brickId, b.elementId, b.reference, b.name, b.colorId, b.image, b.buyAt,
-           b.spareQuantity, c.name AS colorName, c.rgb AS colorHex
+           b.spareQuantity, c.name AS colorName, c.rgb AS colorHex, c.color_group_id AS colorGroupId
     FROM bricks b
     LEFT JOIN colors c ON b.colorId = c.id
     WHERE b.spareQuantity > 0
@@ -673,7 +889,6 @@ export async function addSpareBrick(input: {
   }
   const brickId = input.brickId?.trim() || `${reference}-${input.colorId}`;
   const elementId = input.elementId?.trim() || "-";
-  const resolvedColorId = resolveColorGroup(input.colorId);
   const existing = db.prepare("SELECT brickId FROM bricks WHERE brickId = ?").get(brickId) as { brickId: string } | undefined;
   const quantity = Math.max(1, normalizeNonNegativeInt(input.spareQuantity, 1));
 
@@ -688,7 +903,7 @@ export async function addSpareBrick(input: {
       elementId,
       reference,
       input.name.trim() || reference,
-      resolvedColorId,
+      input.colorId,
       input.image.trim() || "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=900&q=80",
       JSON.stringify(["lego", "bricklink"]),
       quantity
@@ -736,28 +951,76 @@ export async function assignSpareToSet(input: {
     return { assigned: false, reason: "invalid-data" };
   }
 
-  const brick = db.prepare("SELECT spareQuantity FROM bricks WHERE brickId = ?").get(brickId) as { spareQuantity: number } | undefined;
-  if (!brick || brick.spareQuantity < quantity) {
-    return { assigned: false, reason: "insufficient-spare" };
-  }
-
+  const existingBrick = db.prepare("SELECT spareQuantity FROM bricks WHERE brickId = ?").get(brickId) as { spareQuantity: number } | undefined;
   const setExists = db.prepare("SELECT COUNT(*) AS total FROM sets WHERE setNumber = ?").get(setNumber) as { total: number };
   if (Number(setExists.total) === 0) {
     return { assigned: false, reason: "set-not-found" };
   }
 
-  db.prepare("UPDATE bricks SET spareQuantity = spareQuantity - ? WHERE brickId = ?").run(quantity, brickId);
-
-  const existingSb = db.prepare("SELECT stock FROM set_bricks WHERE setNumber = ? AND brickId = ?").get(setNumber, brickId) as { stock: number } | undefined;
-  if (existingSb) {
-    db.prepare("UPDATE set_bricks SET stock = stock + ? WHERE setNumber = ? AND brickId = ?").run(quantity, setNumber, brickId);
+  let actualBrickId = brickId;
+  if (existingBrick && existingBrick.spareQuantity >= quantity) {
+    db.prepare("UPDATE bricks SET spareQuantity = spareQuantity - ? WHERE brickId = ?").run(quantity, brickId);
+    actualBrickId = brickId;
   } else {
-    db.prepare("INSERT INTO set_bricks (setNumber, brickId, required, stock) VALUES (?, ?, ?, ?)").run(setNumber, brickId, quantity, quantity);
+    const parts = brickId.split('-');
+    const effectiveColorId = Number(parts.pop());
+    const reference = parts.join('-');
+    const matchingSpares = db.prepare(`
+      SELECT brickId, spareQuantity FROM bricks b
+      LEFT JOIN colors c ON b.colorId = c.id
+      WHERE b.reference = ? AND COALESCE(c.color_group_id, b.colorId) = ? AND b.spareQuantity > 0
+    `).all(reference, effectiveColorId) as { brickId: string; spareQuantity: number }[];
+    if (matchingSpares.length === 0) {
+      return { assigned: false, reason: "insufficient-spare" };
+    }
+    let remaining = quantity;
+    for (const spare of matchingSpares) {
+      const deduct = Math.min(spare.spareQuantity, remaining);
+      if (deduct <= 0) continue;
+      db.prepare("UPDATE bricks SET spareQuantity = spareQuantity - ? WHERE brickId = ?").run(deduct, spare.brickId);
+      remaining -= deduct;
+      if (remaining <= 0) {
+        actualBrickId = spare.brickId;
+      }
+    }
+    if (remaining > 0) {
+      return { assigned: false, reason: "insufficient-spare" };
+    }
+  }
+
+  const existingSb = db.prepare("SELECT stock FROM set_bricks WHERE setNumber = ? AND brickId = ?").get(setNumber, actualBrickId) as { stock: number } | undefined;
+  if (existingSb) {
+    db.prepare("UPDATE set_bricks SET stock = stock + ? WHERE setNumber = ? AND brickId = ?").run(quantity, setNumber, actualBrickId);
+  } else {
+    const parts = actualBrickId.split('-');
+    const actualColorId = Number(parts.pop());
+    const reference = parts.join('-');
+    const existingEffective = db.prepare(`
+      SELECT sb.brickId FROM set_bricks sb
+      INNER JOIN bricks b ON b.brickId = sb.brickId
+      LEFT JOIN colors c ON b.colorId = c.id
+      WHERE sb.setNumber = ? AND b.reference = ?
+        AND COALESCE(c.color_group_id, b.colorId) = ?
+        AND sb.brickId != ?
+      LIMIT 1
+    `).get(setNumber, reference, actualColorId, actualBrickId) as { brickId: string } | undefined;
+    if (existingEffective) {
+      db.prepare("INSERT INTO set_bricks (setNumber, brickId, required, stock) VALUES (?, ?, 0, ?)").run(setNumber, actualBrickId, quantity);
+    } else {
+      db.prepare("INSERT INTO set_bricks (setNumber, brickId, required, stock) VALUES (?, ?, ?, ?)").run(setNumber, actualBrickId, quantity, quantity);
+    }
   }
 
   const ownedResult = db.prepare(`
-    SELECT COALESCE(SUM(CASE WHEN sb.stock < sb.required THEN sb.stock ELSE sb.required END), 0) AS owned
-    FROM set_bricks sb WHERE sb.setNumber = ?
+    SELECT COALESCE(SUM(g.min_stock_required), 0) AS owned
+    FROM (
+      SELECT MIN(CASE WHEN sb.stock < sb.required THEN sb.stock ELSE sb.required END) AS min_stock_required
+      FROM set_bricks sb
+      INNER JOIN bricks b ON b.brickId = sb.brickId
+      LEFT JOIN colors c ON b.colorId = c.id
+      WHERE sb.setNumber = ?
+      GROUP BY b.reference, COALESCE(c.color_group_id, b.colorId)
+    ) g
   `).get(setNumber) as { owned: number };
   const setInfo = db.prepare("SELECT totalPieces FROM sets WHERE setNumber = ?").get(setNumber) as { totalPieces: number };
   const newOwned = Math.min(Number(ownedResult.owned), Number(setInfo.totalPieces));

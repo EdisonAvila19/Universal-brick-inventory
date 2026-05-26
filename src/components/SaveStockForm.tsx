@@ -9,7 +9,23 @@ import { assignSpareToSet } from '@/utils/bricksData'
 export function SaveStockForm({ group, closeList }: Readonly<{ group: GroupedBrick, closeList: () => void }>) {
   const [status, setStatus] = useState("ok");
   const spareBricks = useStore($spareBricks);
-  const spare = spareBricks.find((s) => s.brickId === group.brickId);
+
+  const mergedSets = group.sets.reduce<{ setNumber: string; required: number; stock: number }[]>((acc, s) => {
+    const existing = acc.find((e) => e.setNumber === s.setNumber);
+    if (existing) {
+      existing.required += s.required;
+      existing.stock += s.stock;
+    } else {
+      acc.push({ ...s });
+    }
+    return acc;
+  }, []);
+
+  const spare = spareBricks.find((s) => {
+    const effectiveColorId = s.colorGroupId ?? s.colorId;
+    const effectiveBrickId = `${s.reference}-${effectiveColorId}`;
+    return effectiveBrickId === group.brickId;
+  });
   const spareQty = spare?.spareQuantity ?? 0;
 
   const [assigning, setAssigning] = useState<Record<string, boolean>>({});
@@ -68,7 +84,11 @@ export function SaveStockForm({ group, closeList }: Readonly<{ group: GroupedBri
       ? "Error Saving" : "Saving...";
   
   const currentSpareQty = (() => {
-    const s = spareBricks.find((b) => b.brickId === group.brickId);
+    const s = spareBricks.find((b) => {
+      const effectiveColorId = b.colorGroupId ?? b.colorId;
+      const effectiveBrickId = `${b.reference}-${effectiveColorId}`;
+      return effectiveBrickId === group.brickId;
+    });
     return s?.spareQuantity ?? 0;
   })();
 
@@ -76,7 +96,7 @@ export function SaveStockForm({ group, closeList }: Readonly<{ group: GroupedBri
     <div className="mt-3">
       <form onSubmit={handleSubmit}>
         <div data-stock-list class="mt-3 space-y-2 px-2">
-          {group.sets.map((s) => {
+          {mergedSets.map((s) => {
             const need = Math.max(0, s.required - s.stock);
             const canAssign = currentSpareQty > 0 && need > 0;
             return (

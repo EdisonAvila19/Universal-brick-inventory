@@ -36,9 +36,35 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
   }, [activeSetNumber]);
 
   const getSpareQty = (brickId: string) => {
-    const found = spareBricksMap.find((s) => s.brickId === brickId);
+    const found = spareBricksMap.find((s) => {
+      const effectiveColorId = s.colorGroupId ?? s.colorId;
+      const effectiveBrickId = `${s.reference}-${effectiveColorId}`;
+      return effectiveBrickId === brickId;
+    });
     return found ? found.spareQuantity : 0;
   };
+
+  const mergedBricks = (() => {
+    const groups = new Map<string, { bricks: typeof bricks; count: number }>();
+    for (const brick of bricks) {
+      const effectiveColorId = (brick as Record<string, unknown>).colorGroupId ?? brick.colorId;
+      const key = `${brick.reference}-${effectiveColorId}`;
+      const existing = groups.get(key);
+      if (existing) {
+        existing.bricks.push(brick);
+        existing.count++;
+      } else {
+        groups.set(key, { bricks: [brick], count: 1 });
+      }
+    }
+    return Array.from(groups.values()).map(({ bricks: group, count }) => {
+      const first = { ...group[0] };
+      first.brickId = `${first.reference}-${(first as Record<string, unknown>).colorGroupId ?? first.colorId}`;
+      first.required = group.reduce((acc, b) => acc + b.required, 0);
+      first.stock = group.reduce((acc, b) => acc + b.stock, 0);
+      return { brick: first, count, bricksInGroup: group };
+    });
+  })();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -48,7 +74,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
 
   const availableColors = colors.filter((c) => bricks.some((b) => b.colorId === c.id));
 
-  const filteredBricks = bricks.filter((b) => {
+  const filteredBricks = mergedBricks.filter(({ brick: b }) => {
     if (filterName) {
       const q = filterName.toLowerCase();
       if (
@@ -68,6 +94,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * pageSize;
   const visibleBricks = filteredBricks.slice(startIndex, startIndex + pageSize);
+  const uniquePieceCount = mergedBricks.length;
 
   const handlePageSizeChange = (e: Event) => {
     const size = Number((e.target as HTMLSelectElement).value);
@@ -165,7 +192,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
             <p class="text-[10px] font-bold uppercase tracking-widest text-secondary">Set No. {selectedSet.setNumber}</p>
             <h2 class="text-2xl font-black leading-tight">{selectedSet.name}</h2>
 
-            <p class="text-sm text-secondary">Unique pieces: <span class="font-bold text-on-surface">{bricks.length}</span> · Required units: <span class="font-bold text-on-surface">{totalRequired.toLocaleString()}</span> · Owned units: <span class="font-bold text-on-surface">{totalOwned.toLocaleString()}</span></p>
+            <p class="text-sm text-secondary">Unique pieces: <span class="font-bold text-on-surface">{uniquePieceCount}</span> · Required units: <span class="font-bold text-on-surface">{totalRequired.toLocaleString()}</span> · Owned units: <span class="font-bold text-on-surface">{totalOwned.toLocaleString()}</span></p>
           </div>
         </div>
 
@@ -192,7 +219,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
             </div>
           </div>
         </section>
-      ) : (bricks.length === 0 || selectedSet === null) ? (
+      ) : (mergedBricks.length === 0 || selectedSet === null) ? (
         <section class="bg-surface-container-lowest rounded-xl p-8 text-center text-secondary mb-8">
           <h3 class="text-xl font-black mb-2">No pieces in this set yet</h3>
           <p class="text-sm">Use the form below to add your first piece.</p>
@@ -244,7 +271,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
 
           {/* Brick Inventory */}
           <section class="space-y-4 mb-4">
-            {visibleBricks.map((brick) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} colors={colors} spareQuantity={getSpareQty(brick.brickId)} key={brick.brickId} onBrickUpdated={refreshBricks} />))}
+            {visibleBricks.map(({ brick, count, bricksInGroup }) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} colors={colors} spareQuantity={getSpareQty(brick.brickId)} brickCount={count} groupBricks={bricksInGroup} key={brick.brickId} onBrickUpdated={refreshBricks} />))}
           </section>
 
           {/* Pagination */}

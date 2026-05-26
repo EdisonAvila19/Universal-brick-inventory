@@ -68,8 +68,78 @@ function DeleteBrickForm ({ selectedSet, brick, onBrickUpdated }: Readonly<{ sel
   )
 }
 
-function UpdateInfoForm ({ selectedSet, brick, colors, onBrickUpdated }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, colors: ArchiveColor[], onBrickUpdated: () => void }>) {
+function PerBrickQtyForm({ brick, onBrickUpdated }: Readonly<{ brick: BrickRecord; onBrickUpdated: () => void }>) {
+  const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
+  const handleSubmit = async (event: Event) => {
+    event.preventDefault();
+    setSaving(true);
+    const formData = new FormData(event.target as HTMLFormElement);
+    formData.set("action", "update-brick");
+    formData.set("setNumber", brick.fromSet);
+    formData.set("reference", brick.reference);
+    formData.set("name", brick.name);
+    formData.set("color", String(brick.colorId));
+    formData.set("image", brick.image || "");
+    formData.set("elementId", brick.elementId || "-");
+
+    const response = await UpdateBrickData(brick, formData);
+    if (!response.updated) {
+      updateFeedback("Failed to update brick quantities", "error");
+      setSaving(false);
+      return;
+    }
+    onBrickUpdated();
+    updateFeedback(`Brick ${brick.brickId} updated!`, "info");
+    setSaving(false);
+  };
+
+  const handleRemove = async () => {
+    if (removing) return;
+    setRemoving(true);
+    const response = await DeleteBrick(brick.brickId, brick.fromSet);
+    if (!response.deleted) {
+      updateFeedback("Failed to remove brick", "error");
+      setRemoving(false);
+      return;
+    }
+    onBrickUpdated();
+    updateFeedback(`Brick ${brick.brickId} removed${brick.required === 0 ? " — stock returned to spare parts" : ""}`, "info");
+    setRemoving(false);
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 bg-surface-container-high rounded-lg px-3 py-2">
+      <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-2 flex-1">
+        <span className="text-[10px] font-semibold text-tertiary tracking-wider min-w-[100px]">{brick.brickId}</span>
+        <span class="inline-block w-3 h-3 rounded-full shadow-[0_0_6px_-3px] shadow-contrast" style={`background:${brick.colorHex}`} />
+        <label className="flex items-center gap-1 text-[10px] font-bold text-secondary ml-2">
+          Req{" "}
+          <input required min="0" type="number" name="required" value={brick.required}
+            className="w-16 bg-box text-contrast border-none rounded-lg px-2 py-1 text-xs" disabled={saving || removing} />
+        </label>
+        <label className="flex items-center gap-1 text-[10px] font-bold text-secondary">
+          Stock{" "}
+          <input required min="0" type="number" name="stock" value={brick.stock}
+            className="w-16 bg-box text-contrast border-none rounded-lg px-2 py-1 text-xs" disabled={saving || removing} />
+        </label>
+        <button type="submit" disabled={saving || removing}
+          className="bg-primary text-white px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider disabled:opacity-50">
+          {saving ? "..." : "Save"}
+        </button>
+      </form>
+      <button onClick={handleRemove} disabled={removing || saving}
+        className="text-error text-[10px] font-bold uppercase tracking-wider disabled:opacity-50">
+        {removing ? "..." : "Remove"}
+      </button>
+    </div>
+  );
+}
+
+function UpdateInfoForm ({ selectedSet, brick, colors, onBrickUpdated, brickCount = 1, groupBricks }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, colors: ArchiveColor[], onBrickUpdated: () => void, brickCount?: number, groupBricks?: BrickRecord[] }>) {
   const [isOpen, setIsOpen] = useState(false)
+  const isGrouped = brickCount > 1;
 
   const handleToggle = (event: Event) => {
     setIsOpen((event.target as HTMLDetailsElement).open);
@@ -78,7 +148,6 @@ function UpdateInfoForm ({ selectedSet, brick, colors, onBrickUpdated }: Readonl
   const handleSubmit = async (event: Event) => {
     event.preventDefault();
     const formData = new FormData(event.target as HTMLFormElement);
-    // Handle form submission logic here
     const response = await UpdateBrickData(brick, formData);
 
     if (!response) {
@@ -91,13 +160,31 @@ function UpdateInfoForm ({ selectedSet, brick, colors, onBrickUpdated }: Readonl
     updateFeedback( "Brick details updated successfully!", "info" );
   }
 
+  const summaryText = isGrouped
+    ? `Merged view (${brickCount} bricks) — click to edit`
+    : "Edit Piece Details";
+
+  const groupBrickIds = isGrouped && groupBricks
+    ? groupBricks.map((gb) => gb.brickId).join(", ")
+    : "";
+
   return (
     <details className="mt-4" open={isOpen} onToggle={handleToggle}>
-      <summary className="cursor-pointer text-xs font-bold uppercase tracking-widest text-secondary" > Edit Piece Details </summary>
+      <summary className="cursor-pointer text-xs font-bold uppercase tracking-widest text-secondary">
+        {summaryText}
+        {isGrouped && groupBricks && (
+          <span class="block text-[9px] font-semibold text-primary tracking-wider mt-0.5 normal-case">{groupBrickIds}</span>
+        )}
+      </summary>
       <form className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3" onSubmit={handleSubmit}>
         <input type="hidden" name="action" value="update-brick" />
         <input type="hidden" name="setNumber" value={selectedSet.setNumber} />
         <input type="hidden" name="elementId" value={brick.elementId} />
+        {isGrouped && (
+          <div className="md:col-span-2 text-[10px] font-bold text-primary bg-primary-container/20 rounded-lg px-3 py-2">
+            Changes apply to all {brickCount} bricks in this group
+          </div>
+        )}
         <div>
           <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Reference{" "}
@@ -110,53 +197,61 @@ function UpdateInfoForm ({ selectedSet, brick, colors, onBrickUpdated }: Readonl
             <input required name="name" value={brick.name} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div>
-        {/* <div>
-          <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
-            Color{" "}
-            <input required name="color" type='number' value={brick.colorId} min={-1} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm" />
-          </label>
-        </div> */}
-        <div>
-          <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
-            Color{" "}
-            <select required name="color" className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm">
-              {colors.map((color) => (
-                <option value={color.id} selected={color.id === brick.colorId} key={color.id}>
-                  <span className="w-4 h-4 rounded-full border border-black" style={{ backgroundColor: color.rgb }} aria-hidden="true"></span>
-                  <span className="">{color.name}</span>
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {/* <div>
-          <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
-            Color Hex{" "}
-            <input name="colorHex" value={brick.colorHex} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm" />
-          </label>
-        </div> */}
+        {isGrouped ? (
+          <>
+            <input type="hidden" name="required" value={brick.required} />
+            <input type="hidden" name="stock" value={brick.stock} />
+            <input type="hidden" name="color" value={brick.colorId} />
+          </>
+        ) : (
+          <>
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
+                Color{" "}
+                <select required name="color" className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm">
+                  {colors.map((color) => (
+                    <option value={color.id} selected={color.id === brick.colorId} key={color.id}>
+                      <span className="w-4 h-4 rounded-full border border-black" style={{ backgroundColor: color.rgb }} aria-hidden="true"></span>
+                      <span className="">{color.name}</span>
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
+                Required{" "}
+                <input required min="0" type="number" name="required" value={brick.required} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm" />
+              </label>
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
+                Stock{" "}
+                <input required min="0" type="number" name="stock" value={brick.stock} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm" />
+              </label>
+            </div>
+          </>
+        )}
         <div>
           <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
             Image URL{" "}
             <input type="url" name="image" value={brick.image} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm" />
           </label>
         </div>
-        <div>
-          <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
-            Required{" "}
-            <input required min="1" type="number" name="required" value={brick.required} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm" />
-          </label>
-        </div>
-        <div>
-          <label className="block text-[10px] uppercase font-bold text-secondary mb-1">
-            Stock{" "}
-            <input required min="0" type="number" name="stock" value={brick.stock} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm" />
-          </label>
-        </div>
         <div className="md:col-span-2">
           <button type="submit" className="bg-primary text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">Save Details</button>
         </div>
       </form>
+      {isGrouped && groupBricks && (
+        <div className="mt-3 pt-3 border-t border-surface-dim">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-secondary mb-2">Individual Brick Quantities</p>
+          <div className="space-y-2">
+            {groupBricks.map((gb) => (
+              <PerBrickQtyForm key={gb.brickId} brick={gb} onBrickUpdated={onBrickUpdated} />
+            ))}
+          </div>
+        </div>
+      )}
     </details>
   )
 }
@@ -209,9 +304,10 @@ function SpareAssignForm({ selectedSet, brick, spareQuantity, onBrickUpdated }: 
 }
 
 
-export default function BricksxSetList({ selectedSet, brick, colors, spareQuantity = 0, onBrickUpdated }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, colors: ArchiveColor[], spareQuantity?: number, onBrickUpdated: () => void }>) {
+export default function BricksxSetList({ selectedSet, brick, colors, spareQuantity = 0, onBrickUpdated, brickCount = 1, groupBricks }: Readonly<{ selectedSet: SetRecord, brick: BrickRecord, colors: ArchiveColor[], spareQuantity?: number, onBrickUpdated: () => void, brickCount?: number, groupBricks?: BrickRecord[] }>) {
   const missing = brick.required - brick.stock;
   const hasSpare = spareQuantity > 0 && missing > 0;
+  const isGrouped = brickCount > 1;
 
   return (
     <article className={`bg-surface-container-lowest rounded-xl p-5 shadow-[0_0_13px_-6px] shadow-contrast ${hasSpare ? 'ring-1 ring-primary/30' : ''}`}>
@@ -221,7 +317,6 @@ export default function BricksxSetList({ selectedSet, brick, colors, spareQuanti
           <div className="min-w-0 flex gap-2 flex-col justify-center">
             <p className="text-[10px] font-bold uppercase tracking-widest text-secondary">Ref. {brick.reference}</p>
             <p className="text-[9px] font-semibold text-tertiary tracking-wider">Brick ID: {brick.brickId}</p>
-            <p className="text-[9px] font-semibold text-tertiary tracking-wider">Element ID: {brick.elementId}</p>
             <h3 className="font-black text-base leading-tight">{brick.name}</h3>
             <p className="flex flex-row gap-1 text-xs text-secondary">{brick.colorName} · <span class="inline-block w-4 h-w-4 rounded aspect-square shadow-[0_0_13px_-6px] shadow-contrast" style={`background:${brick.colorHex}`}></span></p>
             {hasSpare && (
@@ -232,9 +327,9 @@ export default function BricksxSetList({ selectedSet, brick, colors, spareQuanti
           </div>
         </div>
         <UpdateStockForm selectedSet={selectedSet} brick={brick} onBrickUpdated={onBrickUpdated} />
-        <DeleteBrickForm selectedSet={selectedSet} brick={brick} onBrickUpdated={onBrickUpdated} />
+        {!isGrouped && <DeleteBrickForm selectedSet={selectedSet} brick={brick} onBrickUpdated={onBrickUpdated} />}
       </div>
-        <UpdateInfoForm selectedSet={selectedSet} brick={brick} colors={colors} onBrickUpdated={onBrickUpdated} />
+        <UpdateInfoForm selectedSet={selectedSet} brick={brick} colors={colors} onBrickUpdated={onBrickUpdated} brickCount={brickCount} groupBricks={groupBricks} />
         {hasSpare && <SpareAssignForm selectedSet={selectedSet} brick={brick} spareQuantity={spareQuantity} onBrickUpdated={onBrickUpdated} />}
     </article>
   )
