@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/preact';
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useState, useRef } from "preact/hooks";
 
 import type { SetRecord, ArchiveColor } from "@/types/archiveData";
 import { useSetStore } from '@/hooks/useSetStore'
@@ -71,6 +71,34 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
   const [filterName, setFilterName] = useState("");
   const [filterColor, setFilterColor] = useState<string[]>([]);
   const [filterStatus, setFilterStatus] = useState<"all" | "missings" | "completed">("all");
+  const urlInited = useRef(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(globalThis.location.search);
+    const q = params.get("q");
+    if (q) setFilterName(q);
+    const colors = params.getAll("color");
+    if (colors.length > 0) setFilterColor(colors);
+    const status = params.get("status");
+    if (status && ["all", "missings", "completed"].includes(status)) setFilterStatus(status as typeof filterStatus);
+    const page = params.get("page");
+    if (page) setCurrentPage(Number(page));
+    const size = params.get("pageSize");
+    if (size && PAGE_SIZES.includes(Number(size))) setPageSize(Number(size));
+    urlInited.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!urlInited.current) return;
+    const params = new URLSearchParams();
+    if (filterName) params.set("q", filterName);
+    filterColor.forEach((c) => params.append("color", c));
+    if (filterStatus !== "all") params.set("status", filterStatus);
+    if (currentPage > 1) params.set("page", String(currentPage));
+    if (pageSize !== 20) params.set("pageSize", String(pageSize));
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    globalThis.history.pushState({}, "", `${globalThis.location.pathname}${qs}`);
+  }, [filterName, filterColor, filterStatus, currentPage, pageSize]);
 
   const availableColors = colors.filter((c) => bricks.some((b) => b.colorId === c.id));
 

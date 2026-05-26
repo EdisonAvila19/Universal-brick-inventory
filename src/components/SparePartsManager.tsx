@@ -1,5 +1,5 @@
 import { useStore } from "@nanostores/preact";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useState, useRef } from "preact/hooks";
 
 import type { SpareBrickRecord, ArchiveColor } from "@/types/archiveData";
 import type { RebrickablePartColorDetails } from "@/types/rebrickable";
@@ -277,6 +277,26 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
   const spareBricks = useStore($spareBricks);
   const [search, setSearch] = useState("");
   const [colorFilter, setColorFilter] = useState<string[]>([]);
+  const urlInited = useRef(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(globalThis.location.search);
+    const q = params.get("q");
+    if (q) setSearch(q);
+    const colors = params.getAll("color");
+    if (colors.length > 0) setColorFilter(colors);
+    urlInited.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!urlInited.current) return;
+    const params = new URLSearchParams();
+    if (search) params.set("q", search);
+    colorFilter.forEach((c) => params.append("color", c));
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    globalThis.history.pushState({}, "", `${globalThis.location.pathname}${qs}`);
+  }, [search, colorFilter]);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SpareBrickRecord | null>(null);
