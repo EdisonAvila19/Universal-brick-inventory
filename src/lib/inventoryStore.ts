@@ -170,6 +170,11 @@ function getDb() {
     if (!brickColumnsAfterMigration.some((c) => c.name === "design_group_id")) {
       database.exec("ALTER TABLE bricks ADD COLUMN design_group_id INTEGER REFERENCES design_groups(id)");
     }
+
+    const setColumns = database.prepare("PRAGMA table_info(sets)").all() as Array<{ name: string }>;
+    if (setColumns.some((c) => c.name === "homologatedToLego")) {
+      database.exec("ALTER TABLE sets DROP COLUMN homologatedToLego");
+    }
   }
   return database;
 }
