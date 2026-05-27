@@ -23,7 +23,7 @@ export default function SetCard(setData: Readonly<SetRecord>) {
       <div className="relative aspect-square mb-6 overflow-hidden rounded-md bg-surface-container-low">
         <img src={setData.image} alt={setData.name} className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
         <div className="absolute top-3 left-3 flex gap-2">
-          <span className="bg-primary-container text-[#6a5700] text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-widest">{setData.brand}</span>{setData.homologatedToLego && <span className="bg-tertiary-container text-on-tertiary-container text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-widest">Homologated</span>}
+          <span className="bg-primary-container text-[#6a5700] text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-widest">{setData.brand}</span>
         </div>
       </div>
       <p className="text-[10px] font-bold text-secondary uppercase tracking-[0.1em]">Set No. {setData.setNumber}</p>

@@ -204,7 +204,6 @@ function ManualForm() {
             </label>
           </div>
         </div>
-        <label class="flex items-center gap-2 text-sm text-secondary"><input type="checkbox" name="homologatedToLego" class="rounded" />Homologate to LEGO equivalent pieces where possible</label>
         <button type="submit" disabled={adding} class="bg-primary text-primary-container-contrast px-6 py-3 rounded-lg font-bold text-sm disabled:opacity-50">{adding ? "Saving..." : "Save Manual Set"}</button>
       </form>
     </article>

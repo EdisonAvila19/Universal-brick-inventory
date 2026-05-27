@@ -10,8 +10,7 @@ export function mapRebrickableSetToRecord(set: RebrickableSet): SetRecord {
     totalPieces: set.num_parts,
     ownedPieces: 0,
     image: set.set_img_url ?? "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=900&q=80",
-    source: "rebrickable",
-    homologatedToLego: false
+    source: "rebrickable"
   };
 }
 
@@ -24,8 +23,7 @@ export function mapManualSetToRecord(input: ManualSetInput): SetRecord {
     totalPieces: input.totalPieces,
     ownedPieces: 0,
     image: input.image ?? "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1000&q=80",
-    source: "manual",
-    homologatedToLego: input.homologatedToLego
+    source: "manual"
   };
 }
 

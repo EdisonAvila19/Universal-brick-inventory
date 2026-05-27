@@ -32,8 +32,7 @@ function getDb() {
         totalPieces INTEGER NOT NULL,
         ownedPieces INTEGER NOT NULL,
         image TEXT NOT NULL,
-        source TEXT NOT NULL,
-        homologatedToLego INTEGER NOT NULL
+        source TEXT NOT NULL
       )
     `);
 
@@ -450,7 +449,7 @@ export async function unassignColorFromGroup(colorId: number): Promise<{ unassig
 async function readStore(): Promise<InventoryPayload> {
   await ensureStore();
   const db = getDb();
-  const sets = db.prepare("SELECT id, setNumber, name, brand, totalPieces, ownedPieces, image, source, homologatedToLego FROM sets ORDER BY rowid ASC").all() as Array<Record<string, unknown>>;
+  const sets = db.prepare("SELECT id, setNumber, name, brand, totalPieces, ownedPieces, image, source FROM sets ORDER BY rowid ASC").all() as Array<Record<string, unknown>>;
   const bricks = db.prepare(`
     SELECT b.brickId, b.elementId, b.reference, b.name, b.colorId, b.image, b.buyAt,
            b.plannedStore, b.plannedQuantity, b.plannedLegoQuantity, b.plannedBricklinkQuantity,
@@ -467,7 +466,7 @@ async function readStore(): Promise<InventoryPayload> {
       b.reference
   `).all() as Array<Record<string, unknown>>;
   return {
-    sets: sets.map((set) => ({ ...set, homologatedToLego: toBoolean(set.homologatedToLego) })) as SetRecord[],
+    sets: sets as SetRecord[],
     bricks: bricks.map((brick) => ({ ...brick, buyAt: parseBuyAt(String(brick.buyAt ?? "[]")) })) as BrickRecord[]
   };
 }
@@ -492,10 +491,10 @@ async function saveStore(payload: InventoryPayload) {
     const trulySpareOnly = spareOnly.filter((s) => !payloadBrickIds.has(s.brickId as string));
 
     db.exec("DELETE FROM set_bricks; DELETE FROM bricks; DELETE FROM sets;");
-    const insertSet = db.prepare("INSERT INTO sets (id, setNumber, name, brand, totalPieces, ownedPieces, image, source, homologatedToLego) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    const insertSet = db.prepare("INSERT INTO sets (id, setNumber, name, brand, totalPieces, ownedPieces, image, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     const insertBrick = db.prepare("INSERT OR IGNORE INTO bricks (brickId, elementId, reference, name, colorId, image, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity, spareQuantity, design_group_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     const insertSetBrick = db.prepare("INSERT INTO set_bricks (setNumber, brickId, required, stock) VALUES (?, ?, ?, ?)");
-    for (const set of payload.sets) insertSet.run(set.id, set.setNumber, set.name, set.brand, set.totalPieces, set.ownedPieces, set.image, set.source, set.homologatedToLego ? 1 : 0);
+    for (const set of payload.sets) insertSet.run(set.id, set.setNumber, set.name, set.brand, set.totalPieces, set.ownedPieces, set.image, set.source);
     for (const brick of payload.bricks) {
       insertBrick.run(brick.brickId, brick.elementId ?? "-", brick.reference, brick.name, brick.colorId, brick.image, JSON.stringify(brick.buyAt), brick.plannedStore ?? null, brick.plannedQuantity ?? null, brick.plannedLegoQuantity ?? null, brick.plannedBricklinkQuantity ?? null, brick.spareQuantity ?? 0, designGroupMap.get(brick.brickId) ?? null);
       insertSetBrick.run(brick.fromSet, brick.brickId, brick.required, brick.stock);
@@ -674,7 +673,6 @@ export async function updateSetInInventory(input: {
   brand: SetRecord["brand"];
   totalPieces: number;
   image: string;
-  homologatedToLego: boolean;
 }): Promise<{ updated: boolean; reason?: string }> {
   const store = await readStore();
   const originalSetNumber = input.originalSetNumber.trim();
@@ -699,8 +697,7 @@ export async function updateSetInInventory(input: {
     name: nextName,
     brand: input.brand,
     totalPieces: Math.max(1, normalizeNonNegativeInt(input.totalPieces, currentSet.totalPieces)),
-    image: input.image.trim() || currentSet.image,
-    homologatedToLego: Boolean(input.homologatedToLego)
+    image: input.image.trim() || currentSet.image
   };
 
   if (!equalsIgnoreCase(originalSetNumber, nextSetNumber)) {

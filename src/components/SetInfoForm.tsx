@@ -25,7 +25,6 @@ export default function SetInfoForm({ selectedSet }: Readonly<{ selectedSet: Set
       <input type="hidden" name="action" value="update-info" />
       <input type="hidden" name="originalSetNumber" value={selectedSet.setNumber} />
       <input type="hidden" name="totalPieces" value={selectedSet.totalPieces} />
-      <input type="hidden" name="homologatedToLego" value={String(selectedSet.homologatedToLego)} />
       <div>
         <label className="block text-[10px] uppercase font-bold text-secondary">
           Set Number{" "}
@@ -55,10 +54,6 @@ export default function SetInfoForm({ selectedSet }: Readonly<{ selectedSet: Set
           <input required type="url" name="image" value={selectedSet.image} className="w-full bg-box text-contrast border-none rounded-lg px-3 py-2 text-sm mt-1" />
         </label>
       </div>
-      {/* <label className="md:col-span-2 flex items-center gap-2 text-sm text-secondary">
-        <input type="checkbox" name="homologatedToLego" checked={selectedSet.homologatedToLego} className="rounded" />
-        {" "}Homologated to LEGO equivalent pieces
-      </label> */}
       <div className="md:col-span-2 flex gap-2">
         <button type="submit" className="bg-primary-container text-primary-container-contrast px-6 py-3 rounded-lg font-bold text-sm">Save Set Info</button>
       </div>

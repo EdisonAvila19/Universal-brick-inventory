@@ -32,8 +32,7 @@ export async function POST({ params, request }: { params: { setID: string }, req
         image: (() => {
           const v = formDataRaw.get("image");
           return typeof v === "string" ? v.trim() : "";
-        })(),
-        homologatedToLego: formDataRaw.get("homologatedToLego") === "on"
+        })()
       }
   
       const result = await updateSetInInventory(formData);

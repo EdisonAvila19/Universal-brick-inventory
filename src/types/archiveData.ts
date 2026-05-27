@@ -11,7 +11,6 @@ export interface SetRecord {
   ownedPieces: number;
   image: string;
   source: "rebrickable" | "manual";
-  homologatedToLego: boolean;
 }
 
 export interface BrickRecord {
@@ -61,7 +60,6 @@ export interface ManualSetInput {
   brand: Exclude<Brand, "LEGO">;
   totalPieces: number;
   image?: string;
-  homologatedToLego: boolean;
 }
 
 export interface GroupedBrick {

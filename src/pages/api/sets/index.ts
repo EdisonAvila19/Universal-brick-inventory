@@ -35,11 +35,10 @@ export async function POST({ request }: { request: Request }) {
       const brand = String(formData.get("brand") ?? "Other") as Exclude<Brand, "LEGO">;
       const totalPieces = Number(formData.get("totalPieces") ?? 0);
       const image = String(formData.get("image") ?? "").trim();
-      const homologatedToLego = formData.get("homologatedToLego") === "on";
       if (!name || !setNumber) {
         return new Response(JSON.stringify({ success: false, message: "Manual set requires name, set number and total pieces" }), { status: 400, headers: { 'Content-Type': 'application/json' } });
       }
-      const record = mapManualSetToRecord({ name, setNumber, brand, totalPieces, image: image || undefined, homologatedToLego });
+      const record = mapManualSetToRecord({ name, setNumber, brand, totalPieces, image: image || undefined });
       const saved = await addSetToInventory(record);
       if (!saved.added) {
         return new Response(JSON.stringify({ success: false, message: `Set ${record.setNumber} is already in inventory.` }), { status: 409, headers: { 'Content-Type': 'application/json' } });
