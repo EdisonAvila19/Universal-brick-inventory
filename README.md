@@ -90,7 +90,6 @@ El mapeo de datos a modelos internos se hace en `src/lib/setMapper.ts`.
 - `src/pages/add-set.astro` — Alta de sets
 - `src/pages/bricks.astro` — Inventario de piezas
 - `src/pages/shopping.astro` — Lista de compras
-- `src/pages/set-parts.astro` — Gestión de piezas por set
 - `src/pages/edit-piece.astro` — Edición de pieza individual
 - `src/pages/colors.astro` — Gestión de colores
 - `src/pages/spare-parts.astro` — Gestión de piezas sobrantes
