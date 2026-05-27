@@ -204,24 +204,24 @@ export default function DesignGroupManager() {
               {searchResults[group.id] && searchResults[group.id].length > 0 && (
                 <div class="absolute z-10 w-full bg-surface-container-highest rounded-lg shadow-lg mt-1 max-h-72 overflow-y-auto">
                   {searchResults[group.id].map((ref) => (
-                    <div key={ref.reference} class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-container-low border-b border-surface-dim last:border-b-0">
+                    <button key={ref.reference} onClick={() => handleAssign(ref.reference, group.id)} class="flex items-center w-full gap-3 px-4 py-2.5 hover:bg-surface-container-low border-b border-surface-dim last:border-b-0">
                       <img
                         src={ref.image}
                         alt={ref.name}
                         class="w-10 h-10 rounded object-contain bg-surface-container-low p-1 shrink-0"
                         loading="lazy"
                       />
-                      <div class="min-w-0 flex-1">
+                      <div class="min-w-0 flex-1 text-start">
                         <p class="text-xs font-bold truncate">{ref.name}</p>
                         <p class="text-[11px] text-secondary">{ref.reference}</p>
                       </div>
-                      <button
+                      {/* <button
                         onClick={() => handleAssign(ref.reference, group.id)}
                         class="bg-primary text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider shrink-0 hover:bg-primary/90 transition-colors"
                       >
                         Add
-                      </button>
-                    </div>
+                      </button> */}
+                    </button>
                   ))}
                 </div>
               )}
@@ -244,7 +244,7 @@ export default function DesignGroupManager() {
                     </div>
                     <button
                       onClick={() => handleUnassign(ref.reference)}
-                      class="text-error text-[10px] font-bold uppercase tracking-wider shrink-0 hover:underline"
+                      class="p-2 bg-error-container text-on-error-container rounded-md text-[10px] font-bold uppercase tracking-wider shrink-0 hover:underline"
                     >
                       Remove
                     </button>
