@@ -314,6 +314,33 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return b.reference.toLowerCase().includes(q) || b.name.toLowerCase().includes(q) || b.brickId.toLowerCase().includes(q) || b.elementId.toLowerCase().includes(q);
+  }).sort((a, b) => {
+    const groupMinRef = new Map<number, string>();
+    for (const brick of spareBricks) {
+      if (brick.designGroupId != null) {
+        const current = groupMinRef.get(brick.designGroupId);
+        if (!current || brick.reference.localeCompare(current, undefined, { numeric: true }) < 0) {
+          groupMinRef.set(brick.designGroupId, brick.reference);
+        }
+      }
+    }
+    const keyA = a.designGroupId != null ? (groupMinRef.get(a.designGroupId) ?? a.reference) : a.reference;
+    const keyB = b.designGroupId != null ? (groupMinRef.get(b.designGroupId) ?? b.reference) : b.reference;
+    const keyCmp = keyA.localeCompare(keyB, undefined, { numeric: true });
+    if (keyCmp !== 0) return keyCmp;
+    const inGroupA = a.designGroupId != null;
+    const inGroupB = b.designGroupId != null;
+    if (inGroupA && inGroupB) {
+      if (a.designGroupId !== b.designGroupId) return (a.designGroupId ?? 0) - (b.designGroupId ?? 0);
+      const colorCmp = a.colorId - b.colorId;
+      if (colorCmp !== 0) return colorCmp;
+      return a.reference.localeCompare(b.reference, undefined, { numeric: true });
+    }
+    if (inGroupA) return -1;
+    if (inGroupB) return 1;
+    const refCompare = a.reference.localeCompare(b.reference, undefined, { numeric: true });
+    if (refCompare !== 0) return refCompare;
+    return a.colorId - b.colorId;
   });
 
   const handleSaveEdit = async (brickId: string, quantity: number) => {

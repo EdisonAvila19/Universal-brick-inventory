@@ -69,6 +69,7 @@ export interface GroupedBrick {
   elementId: string;
   reference: string;
   name: string;
+  designGroupId?: number;
   colorId: number;
   colorGroupId?: number;
   colorName: string;

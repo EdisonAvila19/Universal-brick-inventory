@@ -460,7 +460,11 @@ async function readStore(): Promise<InventoryPayload> {
     FROM bricks b
     INNER JOIN set_bricks sb ON sb.brickId = b.brickId
     LEFT JOIN colors c ON b.colorId = c.id
-    ORDER BY sb.rowid ASC
+    ORDER BY
+      CASE WHEN b.design_group_id IS NULL THEN 1 ELSE 0 END,
+      b.design_group_id,
+      b.colorId,
+      b.reference
   `).all() as Array<Record<string, unknown>>;
   return {
     sets: sets.map((set) => ({ ...set, homologatedToLego: toBoolean(set.homologatedToLego) })) as SetRecord[],
@@ -889,7 +893,11 @@ export async function getSpareBricks(): Promise<SpareBrickRecord[]> {
     FROM bricks b
     LEFT JOIN colors c ON b.colorId = c.id
     WHERE b.spareQuantity > 0
-    ORDER BY b.reference ASC
+    ORDER BY
+      CASE WHEN b.design_group_id IS NULL THEN 1 ELSE 0 END,
+      b.design_group_id,
+      b.colorId,
+      b.reference
   `).all() as Array<Record<string, unknown>>;
   return rows.map((row) => ({
     ...row,
@@ -988,8 +996,10 @@ export async function assignSpareToSet(input: {
     actualBrickId = brickId;
   } else {
     const parts = brickId.split('-');
-    const effectiveColorId = Number(parts.pop());
+    const rawColorId = Number(parts.pop());
     const reference = parts.join('-');
+    const colorGroup = db.prepare("SELECT color_group_id FROM colors WHERE id = ?").get(rawColorId) as { color_group_id: number | null } | undefined;
+    const effectiveColorId = colorGroup?.color_group_id ?? rawColorId;
 
     let matchingSpares = db.prepare(`
       SELECT brickId, spareQuantity FROM bricks b
@@ -1031,8 +1041,10 @@ export async function assignSpareToSet(input: {
     db.prepare("UPDATE set_bricks SET stock = stock + ? WHERE setNumber = ? AND brickId = ?").run(quantity, setNumber, actualBrickId);
   } else {
     const parts = actualBrickId.split('-');
-    const actualColorId = Number(parts.pop());
+    const rawColorId = Number(parts.pop());
     const reference = parts.join('-');
+    const actualColorGroup = db.prepare("SELECT color_group_id FROM colors WHERE id = ?").get(rawColorId) as { color_group_id: number | null } | undefined;
+    const effectiveColorId = actualColorGroup?.color_group_id ?? rawColorId;
     const actualDesignGroup = db.prepare("SELECT design_group_id FROM bricks WHERE brickId = ?").get(actualBrickId) as { design_group_id: number | null } | undefined;
     const existingEffective = db.prepare(`
       SELECT sb.brickId FROM set_bricks sb
@@ -1043,8 +1055,8 @@ export async function assignSpareToSet(input: {
         OR  (b.design_group_id IS NOT NULL AND b.design_group_id = ? AND COALESCE(c.color_group_id, b.colorId) = ?)
       ) AND sb.brickId != ?
       LIMIT 1
-    `).get(setNumber, reference, actualColorId,
-      actualDesignGroup?.design_group_id ?? -1, actualColorId,
+    `).get(setNumber, reference, effectiveColorId,
+      actualDesignGroup?.design_group_id ?? -1, effectiveColorId,
       actualBrickId) as { brickId: string } | undefined;
     if (existingEffective) {
       db.prepare("INSERT INTO set_bricks (setNumber, brickId, required, stock) VALUES (?, ?, 0, ?)").run(setNumber, actualBrickId, quantity);
