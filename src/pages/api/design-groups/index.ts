@@ -24,10 +24,9 @@ export const POST: APIRoute = async ({ request }) => {
     const { action } = body;
 
     if (action === "create") {
-      const { name } = body;
-      const result = await createDesignGroup(name);
+      const result = await createDesignGroup();
       if (!result.created) {
-        return new Response(JSON.stringify({ error: result.reason }), { status: 400 });
+        return new Response(JSON.stringify({ error: "Failed to create group" }), { status: 400 });
       }
       return new Response(JSON.stringify({ group: result.group }), { status: 200 });
     }

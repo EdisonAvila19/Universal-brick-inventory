@@ -44,8 +44,6 @@ export interface DesignGroupMember {
 
 export interface DesignGroup {
   id: number;
-  name: string;
-  notes?: string;
   bricks: DesignGroupMember[];
 }
 

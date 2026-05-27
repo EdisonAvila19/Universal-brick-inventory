@@ -157,11 +157,13 @@ function getDb() {
       database.exec("ALTER TABLE colors ADD COLUMN color_group_id INTEGER REFERENCES colors(id)");
     }
 
+    const groupColumns = database.prepare("PRAGMA table_info(design_groups)").all() as Array<{ name: string }>;
+    if (groupColumns.some((c) => c.name === "name")) {
+      database.exec("DROP TABLE IF EXISTS design_groups");
+    }
     database.exec(`
       CREATE TABLE IF NOT EXISTS design_groups (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE,
-        notes TEXT
+        id INTEGER PRIMARY KEY AUTOINCREMENT
       )
     `);
 
@@ -1074,8 +1076,8 @@ export async function assignSpareToSet(input: {
 export async function getDesignGroups(): Promise<DesignGroup[]> {
   const db = getDb();
   const groups = db.prepare(`
-    SELECT id, name, notes FROM design_groups ORDER BY name ASC
-  `).all() as Array<{ id: number; name: string; notes: string | null }>;
+    SELECT id FROM design_groups ORDER BY id ASC
+  `).all() as Array<{ id: number }>;
 
   const getMembers = db.prepare(`
     SELECT b.reference, b.name, b.image
@@ -1087,24 +1089,15 @@ export async function getDesignGroups(): Promise<DesignGroup[]> {
 
   return groups.map((g) => ({
     id: g.id,
-    name: g.name,
-    notes: g.notes ?? undefined,
     bricks: getMembers.all(g.id) as DesignGroupMember[]
   }));
 }
 
-export async function createDesignGroup(name: string): Promise<{ created: boolean; reason?: string; group?: DesignGroup }> {
+export async function createDesignGroup(): Promise<{ created: boolean; group?: DesignGroup }> {
   const db = getDb();
-  const trimmed = name.trim();
-  if (!trimmed) return { created: false, reason: "invalid-name" };
-
-  const existing = db.prepare("SELECT id FROM design_groups WHERE name = ?").get(trimmed);
-  if (existing) return { created: false, reason: "duplicate-name" };
-
-  const result = db.prepare("INSERT INTO design_groups (name) VALUES (?)").run(trimmed);
+  const result = db.prepare("INSERT INTO design_groups DEFAULT VALUES").run();
   const newGroup: DesignGroup = {
     id: Number(result.lastInsertRowid),
-    name: trimmed,
     bricks: []
   };
   return { created: true, group: newGroup };

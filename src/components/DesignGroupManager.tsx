@@ -3,7 +3,6 @@ import type { DesignGroup, DesignGroupMember } from "@/types/archiveData";
 
 export default function DesignGroupManager() {
   const [groups, setGroups] = useState<DesignGroup[]>([]);
-  const [newGroupName, setNewGroupName] = useState("");
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "info" | "error" } | null>(null);
   const [searchQueries, setSearchQueries] = useState<Record<number, string>>({});
@@ -31,21 +30,18 @@ export default function DesignGroupManager() {
   }, []);
 
   const handleCreate = async () => {
-    const name = newGroupName.trim();
-    if (!name) return;
     setCreating(true);
     try {
       const res = await fetch("/api/design-groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "create", name })
+        body: JSON.stringify({ action: "create" })
       });
       const data = await res.json();
       if (!res.ok) {
         showMessage(data.error ?? "Failed to create group", "error");
       } else {
-        setNewGroupName("");
-        showMessage(`Group "${name}" created`, "info");
+        showMessage("New group created", "info");
         await fetchGroups();
       }
     } catch {
@@ -55,8 +51,8 @@ export default function DesignGroupManager() {
     }
   };
 
-  const handleDelete = async (groupId: number, groupName: string) => {
-    if (!confirm(`Delete the group "${groupName}"? Bricks will be unassigned.`)) return;
+  const handleDelete = async (groupId: number) => {
+    if (!confirm(`Delete this group? Bricks will be unassigned.`)) return;
     try {
       const res = await fetch("/api/design-groups", {
         method: "POST",
@@ -155,24 +151,16 @@ export default function DesignGroupManager() {
         </div>
       )}
 
-      {/* Create Group Form */}
+      {/* Create Group Button */}
       <section class="bg-surface-container-lowest rounded-xl p-6 shadow-[0_0_13px_-6px] shadow-contrast">
-        <h2 class="text-lg font-black mb-4">Create Design Group</h2>
-        <div class="flex gap-3">
-          <input
-            type="text"
-            value={newGroupName}
-            onInput={(e) => setNewGroupName((e.target as HTMLInputElement).value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
-            placeholder="Group name..."
-            class="flex-1 bg-surface-container-highest border-none rounded-lg px-4 py-2.5 text-sm font-bold text-on-surface placeholder:text-secondary/50"
-          />
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-black">Design Groups</h2>
           <button
             onClick={handleCreate}
-            disabled={creating || !newGroupName.trim()}
+            disabled={creating}
             class="bg-primary text-white px-6 py-2.5 rounded-lg font-bold text-sm disabled:opacity-50 hover:bg-primary/90 transition-colors"
           >
-            {creating ? "Creating..." : "Create"}
+            {creating ? "Creating..." : "+ New Group"}
           </button>
         </div>
       </section>
@@ -181,7 +169,7 @@ export default function DesignGroupManager() {
       {groups.length === 0 ? (
         <section class="bg-surface-container-lowest rounded-xl p-12 text-center text-secondary">
           <h3 class="text-xl font-black mb-2">No design groups yet</h3>
-          <p class="text-sm">Create your first group above to organize compatible bricks.</p>
+          <p class="text-sm">Click "+ New Group" to create your first group.</p>
         </section>
       ) : (
         groups.map((group) => (
@@ -189,11 +177,11 @@ export default function DesignGroupManager() {
             {/* Group Header */}
             <div class="flex items-center justify-between mb-4">
               <div>
-                <h3 class="text-lg font-black">{group.name}</h3>
+                <h3 class="text-lg font-black">Group #{group.id}</h3>
                 <p class="text-xs text-secondary font-bold">{group.bricks.length} reference{group.bricks.length !== 1 ? "s" : ""}</p>
               </div>
               <button
-                onClick={() => handleDelete(group.id, group.name)}
+                onClick={() => handleDelete(group.id)}
                 class="text-error text-xs font-bold uppercase tracking-widest hover:underline"
               >
                 Delete Group
