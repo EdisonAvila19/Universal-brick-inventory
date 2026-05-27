@@ -1,6 +1,6 @@
 export type Brand = "LEGO" | "Mould King" | "CaDA" | "Other";
 export type PurchaseStore = "lego" | "bricklink";
-export type ActiveView = "dashboard" | "catalog" | "bricks" | "shopping" | "spare-parts" | "colors" | "";
+export type ActiveView = "dashboard" | "catalog" | "bricks" | "shopping" | "spare-parts" | "colors" | "design-groups" | "";
 
 export interface SetRecord {
   id: string;
@@ -33,6 +33,20 @@ export interface BrickRecord {
   plannedBricklinkQuantity?: number;
   fromSet: string;
   spareQuantity?: number;
+  designGroupId?: number;
+}
+
+export interface DesignGroupMember {
+  reference: string;
+  name: string;
+  image: string;
+}
+
+export interface DesignGroup {
+  id: number;
+  name: string;
+  notes?: string;
+  bricks: DesignGroupMember[];
 }
 
 export interface SetBrickRecord {
@@ -81,6 +95,7 @@ export interface SpareBrickRecord {
   image: string;
   spareQuantity: number;
   buyAt: PurchaseStore[];
+  designGroupId?: number;
 }
 
 export interface ArchiveColor {

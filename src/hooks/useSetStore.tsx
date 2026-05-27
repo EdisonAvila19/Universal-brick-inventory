@@ -31,7 +31,23 @@ export function useSetStore (activeSetNumber: string, sets: SetRecord[], setSele
 
   useEffect(() => {
     setTotalRequired(setBricks.reduce((acc, brick) => acc + brick.required, 0));
-    setTotalOwned(setBricks.reduce((acc, brick) => acc + Math.min(brick.required, brick.stock), 0));
+    const groupMap = new Map<string, { totalStock: number; totalRequired: number }>();
+    for (const brick of setBricks) {
+      const effectiveColorId = (brick as Record<string, unknown>).colorGroupId ?? brick.colorId;
+      const designGroupId = (brick as Record<string, unknown>).designGroupId;
+      const designKey = designGroupId ?? brick.reference;
+      const key = `${designKey}-${effectiveColorId}`;
+      const existing = groupMap.get(key);
+      if (existing) {
+        existing.totalStock += brick.stock;
+        existing.totalRequired += brick.required;
+      } else {
+        groupMap.set(key, { totalStock: brick.stock, totalRequired: brick.required });
+      }
+    }
+    setTotalOwned(
+      Array.from(groupMap.values()).reduce((acc, g) => acc + Math.min(g.totalStock, g.totalRequired), 0)
+    );
   }, [setBricks])
 
   const refreshRef = useRef(refreshBricks);

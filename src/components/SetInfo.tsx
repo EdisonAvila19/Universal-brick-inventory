@@ -35,11 +35,18 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
     refreshSpareBricks();
   }, [activeSetNumber]);
 
-  const getSpareQty = (brickId: string) => {
+  const getSpareQty = (brick: BrickRecord) => {
+    const effectiveColorId = brick.colorGroupId ?? brick.colorId;
     const found = spareBricksMap.find((s) => {
-      const effectiveColorId = s.colorGroupId ?? s.colorId;
-      const effectiveBrickId = `${s.reference}-${effectiveColorId}`;
-      return effectiveBrickId === brickId;
+      if (brick.designGroupId != null) {
+        const sEffectiveColor = s.colorGroupId ?? s.colorId;
+        if (s.designGroupId != null && s.designGroupId === brick.designGroupId && sEffectiveColor === effectiveColorId) {
+          return true;
+        }
+      }
+      const sEffectiveColor = s.colorGroupId ?? s.colorId;
+      const effectiveBrickId = `${s.reference}-${sEffectiveColor}`;
+      return effectiveBrickId === brick.brickId;
     });
     return found ? found.spareQuantity : 0;
   };
@@ -48,7 +55,9 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
     const groups = new Map<string, { bricks: typeof bricks; count: number }>();
     for (const brick of bricks) {
       const effectiveColorId = (brick as Record<string, unknown>).colorGroupId ?? brick.colorId;
-      const key = `${brick.reference}-${effectiveColorId}`;
+      const designGroupId = (brick as Record<string, unknown>).designGroupId;
+      const designKey = designGroupId ?? brick.reference;
+      const key = `${designKey}-${effectiveColorId}`;
       const existing = groups.get(key);
       if (existing) {
         existing.bricks.push(brick);
@@ -299,7 +308,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
 
           {/* Brick Inventory */}
           <section class="space-y-4 mb-4">
-            {visibleBricks.map(({ brick, count, bricksInGroup }) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} colors={colors} spareQuantity={getSpareQty(brick.brickId)} brickCount={count} groupBricks={bricksInGroup} key={brick.brickId} onBrickUpdated={refreshBricks} />))}
+            {visibleBricks.map(({ brick, count, bricksInGroup }) => ( <BricksxSetList selectedSet={selectedSet} brick={brick} colors={colors} spareQuantity={getSpareQty(brick)} brickCount={count} groupBricks={bricksInGroup} key={brick.brickId} onBrickUpdated={refreshBricks} />))}
           </section>
 
           {/* Pagination */}

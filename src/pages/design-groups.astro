@@ -1,0 +1,14 @@
+---
+import AppLayout from "@layouts/AppLayout.astro";
+import DesignGroupManager from "@components/DesignGroupManager";
+---
+
+<AppLayout title="Design Groups" active="design-groups">
+  <section class="mb-8">
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">Compatibility</p>
+    <h1 class="text-4xl font-black tracking-tight">Design Groups</h1>
+    <p class="text-sm text-secondary mt-1">Group compatible bricks with different references so they are recognized as interchangeable in set detail views.</p>
+  </section>
+
+  <DesignGroupManager client:load />
+</AppLayout>

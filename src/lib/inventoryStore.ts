@@ -2,7 +2,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import type { BrickRecord, PurchaseStore, SetRecord, ArchiveColor, SpareBrickRecord } from "@/types/archiveData";
+import type { BrickRecord, PurchaseStore, SetRecord, ArchiveColor, SpareBrickRecord, DesignGroup, DesignGroupMember } from "@/types/archiveData";
 import { fetchRebrickableColors } from "@lib/rebrickable";
 
 const APP_DATA_DIR = process.env.APP_DATA_DIR?.trim();
@@ -155,6 +155,19 @@ function getDb() {
     const colorColumns = database.prepare("PRAGMA table_info(colors)").all() as Array<{ name: string }>;
     if (!colorColumns.some((c) => c.name === "color_group_id")) {
       database.exec("ALTER TABLE colors ADD COLUMN color_group_id INTEGER REFERENCES colors(id)");
+    }
+
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS design_groups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        notes TEXT
+      )
+    `);
+
+    const brickColumnsAfterMigration = database.prepare("PRAGMA table_info(bricks)").all() as Array<{ name: string }>;
+    if (!brickColumnsAfterMigration.some((c) => c.name === "design_group_id")) {
+      database.exec("ALTER TABLE bricks ADD COLUMN design_group_id INTEGER REFERENCES design_groups(id)");
     }
   }
   return database;
@@ -364,7 +377,7 @@ export async function deleteColorGroup(mainColorId: number): Promise<{ deleted: 
         INNER JOIN bricks b ON b.brickId = sb.brickId
         LEFT JOIN colors c ON b.colorId = c.id
         WHERE sb.setNumber = ?
-        GROUP BY b.reference, COALESCE(c.color_group_id, b.colorId)
+        GROUP BY COALESCE(b.design_group_id, b.reference), COALESCE(c.color_group_id, b.colorId)
       ) g
     `).get(setNumber) as { owned: number };
     const setInfo = db.prepare("SELECT totalPieces FROM sets WHERE setNumber = ?").get(setNumber) as { totalPieces: number };
@@ -421,7 +434,7 @@ export async function unassignColorFromGroup(colorId: number): Promise<{ unassig
         INNER JOIN bricks b ON b.brickId = sb.brickId
         LEFT JOIN colors c ON b.colorId = c.id
         WHERE sb.setNumber = ?
-        GROUP BY b.reference, COALESCE(c.color_group_id, b.colorId)
+        GROUP BY COALESCE(b.design_group_id, b.reference), COALESCE(c.color_group_id, b.colorId)
       ) g
     `).get(setNumber) as { owned: number };
     const setInfo = db.prepare("SELECT totalPieces FROM sets WHERE setNumber = ?").get(setNumber) as { totalPieces: number };
@@ -439,7 +452,7 @@ async function readStore(): Promise<InventoryPayload> {
   const bricks = db.prepare(`
     SELECT b.brickId, b.elementId, b.reference, b.name, b.colorId, b.image, b.buyAt,
            b.plannedStore, b.plannedQuantity, b.plannedLegoQuantity, b.plannedBricklinkQuantity,
-           b.spareQuantity,
+           b.spareQuantity, b.design_group_id AS designGroupId,
            sb.setNumber AS fromSet, sb.required, sb.stock,
            c.name AS colorName, c.rgb AS colorHex, c.color_group_id AS colorGroupId
     FROM bricks b
@@ -455,6 +468,13 @@ async function readStore(): Promise<InventoryPayload> {
 
 async function saveStore(payload: InventoryPayload) {
   const db = getDb();
+
+  const designGroupMap = new Map<string, number>();
+  const existingDesignGroups = db.prepare("SELECT brickId, design_group_id FROM bricks WHERE design_group_id IS NOT NULL").all() as Array<{ brickId: string; design_group_id: number }>;
+  for (const row of existingDesignGroups) {
+    designGroupMap.set(row.brickId, row.design_group_id);
+  }
+
   db.exec("BEGIN");
   try {
     const spareOnly = db.prepare(`
@@ -467,11 +487,11 @@ async function saveStore(payload: InventoryPayload) {
 
     db.exec("DELETE FROM set_bricks; DELETE FROM bricks; DELETE FROM sets;");
     const insertSet = db.prepare("INSERT INTO sets (id, setNumber, name, brand, totalPieces, ownedPieces, image, source, homologatedToLego) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    const insertBrick = db.prepare("INSERT OR IGNORE INTO bricks (brickId, elementId, reference, name, colorId, image, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity, spareQuantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    const insertBrick = db.prepare("INSERT OR IGNORE INTO bricks (brickId, elementId, reference, name, colorId, image, buyAt, plannedStore, plannedQuantity, plannedLegoQuantity, plannedBricklinkQuantity, spareQuantity, design_group_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     const insertSetBrick = db.prepare("INSERT INTO set_bricks (setNumber, brickId, required, stock) VALUES (?, ?, ?, ?)");
     for (const set of payload.sets) insertSet.run(set.id, set.setNumber, set.name, set.brand, set.totalPieces, set.ownedPieces, set.image, set.source, set.homologatedToLego ? 1 : 0);
     for (const brick of payload.bricks) {
-      insertBrick.run(brick.brickId, brick.elementId ?? "-", brick.reference, brick.name, brick.colorId, brick.image, JSON.stringify(brick.buyAt), brick.plannedStore ?? null, brick.plannedQuantity ?? null, brick.plannedLegoQuantity ?? null, brick.plannedBricklinkQuantity ?? null, brick.spareQuantity ?? 0);
+      insertBrick.run(brick.brickId, brick.elementId ?? "-", brick.reference, brick.name, brick.colorId, brick.image, JSON.stringify(brick.buyAt), brick.plannedStore ?? null, brick.plannedQuantity ?? null, brick.plannedLegoQuantity ?? null, brick.plannedBricklinkQuantity ?? null, brick.spareQuantity ?? 0, designGroupMap.get(brick.brickId) ?? null);
       insertSetBrick.run(brick.fromSet, brick.brickId, brick.required, brick.stock);
     }
     for (const spare of trulySpareOnly) {
@@ -480,7 +500,7 @@ async function saveStore(payload: InventoryPayload) {
         spare.buyAt ?? JSON.stringify(["lego", "bricklink"]),
         spare.plannedStore ?? null, spare.plannedQuantity ?? null,
         spare.plannedLegoQuantity ?? null, spare.plannedBricklinkQuantity ?? null,
-        Number(spare.spareQuantity)
+        Number(spare.spareQuantity), designGroupMap.get(spare.brickId as string) ?? null
       );
     }
     db.exec("COMMIT");
@@ -504,7 +524,8 @@ function recalculateOwnedPieces(sets: SetRecord[], bricks: BrickRecord[]) {
     const groupMap = new Map<string, { totalStock: number; totalRequired: number }>();
     for (const brick of setBricks) {
       const effectiveColorId = brick.colorGroupId ?? brick.colorId;
-      const key = `${brick.reference}-${effectiveColorId}`;
+      const designKey = brick.designGroupId ?? brick.reference;
+      const key = `${designKey}-${effectiveColorId}`;
       const group = groupMap.get(key);
       if (group) {
         group.totalStock += brick.stock;
@@ -530,6 +551,7 @@ export async function getBricksCatalog(): Promise<BrickRecord[]> {
   const rows = db.prepare(`
     SELECT b.brickId, b.elementId, b.reference, b.name, b.colorId, b.image, b.buyAt,
            b.plannedStore, b.plannedQuantity, b.plannedLegoQuantity, b.plannedBricklinkQuantity,
+           b.design_group_id AS designGroupId,
            c.name AS colorName, c.rgb AS colorHex, c.color_group_id AS colorGroupId
     FROM bricks b
     LEFT JOIN colors c ON b.colorId = c.id
@@ -837,7 +859,7 @@ export async function removeBrickFromSet(input: { fromSet: string; brickId: stri
         INNER JOIN bricks b ON b.brickId = sb.brickId
         LEFT JOIN colors c ON b.colorId = c.id
         WHERE sb.setNumber = ?
-        GROUP BY b.reference, COALESCE(c.color_group_id, b.colorId)
+        GROUP BY COALESCE(b.design_group_id, b.reference), COALESCE(c.color_group_id, b.colorId)
       ) g
     `).get(input.fromSet) as { owned: number };
     const setInfo = db.prepare("SELECT totalPieces FROM sets WHERE setNumber = ?").get(input.fromSet) as { totalPieces: number };
@@ -860,7 +882,8 @@ export async function getSpareBricks(): Promise<SpareBrickRecord[]> {
   const db = getDb();
   const rows = db.prepare(`
     SELECT b.brickId, b.elementId, b.reference, b.name, b.colorId, b.image, b.buyAt,
-           b.spareQuantity, c.name AS colorName, c.rgb AS colorHex, c.color_group_id AS colorGroupId
+           b.spareQuantity, b.design_group_id AS designGroupId,
+           c.name AS colorName, c.rgb AS colorHex, c.color_group_id AS colorGroupId
     FROM bricks b
     LEFT JOIN colors c ON b.colorId = c.id
     WHERE b.spareQuantity > 0
@@ -965,11 +988,24 @@ export async function assignSpareToSet(input: {
     const parts = brickId.split('-');
     const effectiveColorId = Number(parts.pop());
     const reference = parts.join('-');
-    const matchingSpares = db.prepare(`
+
+    let matchingSpares = db.prepare(`
       SELECT brickId, spareQuantity FROM bricks b
       LEFT JOIN colors c ON b.colorId = c.id
       WHERE b.reference = ? AND COALESCE(c.color_group_id, b.colorId) = ? AND b.spareQuantity > 0
     `).all(reference, effectiveColorId) as { brickId: string; spareQuantity: number }[];
+
+    if (matchingSpares.length === 0) {
+      const brickGroup = db.prepare("SELECT design_group_id FROM bricks WHERE brickId = ?").get(brickId) as { design_group_id: number | null } | undefined;
+      if (brickGroup && brickGroup.design_group_id != null) {
+        matchingSpares = db.prepare(`
+          SELECT brickId, spareQuantity FROM bricks b
+          LEFT JOIN colors c ON b.colorId = c.id
+          WHERE b.design_group_id = ? AND COALESCE(c.color_group_id, b.colorId) = ? AND b.spareQuantity > 0
+        `).all(brickGroup.design_group_id, effectiveColorId) as { brickId: string; spareQuantity: number }[];
+      }
+    }
+
     if (matchingSpares.length === 0) {
       return { assigned: false, reason: "insufficient-spare" };
     }
@@ -995,15 +1031,19 @@ export async function assignSpareToSet(input: {
     const parts = actualBrickId.split('-');
     const actualColorId = Number(parts.pop());
     const reference = parts.join('-');
+    const actualDesignGroup = db.prepare("SELECT design_group_id FROM bricks WHERE brickId = ?").get(actualBrickId) as { design_group_id: number | null } | undefined;
     const existingEffective = db.prepare(`
       SELECT sb.brickId FROM set_bricks sb
       INNER JOIN bricks b ON b.brickId = sb.brickId
       LEFT JOIN colors c ON b.colorId = c.id
-      WHERE sb.setNumber = ? AND b.reference = ?
-        AND COALESCE(c.color_group_id, b.colorId) = ?
-        AND sb.brickId != ?
+      WHERE sb.setNumber = ? AND (
+            (b.reference = ? AND COALESCE(c.color_group_id, b.colorId) = ?)
+        OR  (b.design_group_id IS NOT NULL AND b.design_group_id = ? AND COALESCE(c.color_group_id, b.colorId) = ?)
+      ) AND sb.brickId != ?
       LIMIT 1
-    `).get(setNumber, reference, actualColorId, actualBrickId) as { brickId: string } | undefined;
+    `).get(setNumber, reference, actualColorId,
+      actualDesignGroup?.design_group_id ?? -1, actualColorId,
+      actualBrickId) as { brickId: string } | undefined;
     if (existingEffective) {
       db.prepare("INSERT INTO set_bricks (setNumber, brickId, required, stock) VALUES (?, ?, 0, ?)").run(setNumber, actualBrickId, quantity);
     } else {
@@ -1019,7 +1059,7 @@ export async function assignSpareToSet(input: {
       INNER JOIN bricks b ON b.brickId = sb.brickId
       LEFT JOIN colors c ON b.colorId = c.id
       WHERE sb.setNumber = ?
-      GROUP BY b.reference, COALESCE(c.color_group_id, b.colorId)
+      GROUP BY COALESCE(b.design_group_id, b.reference), COALESCE(c.color_group_id, b.colorId)
     ) g
   `).get(setNumber) as { owned: number };
   const setInfo = db.prepare("SELECT totalPieces FROM sets WHERE setNumber = ?").get(setNumber) as { totalPieces: number };
@@ -1027,4 +1067,102 @@ export async function assignSpareToSet(input: {
   db.prepare("UPDATE sets SET ownedPieces = ? WHERE setNumber = ?").run(newOwned, setNumber);
 
   return { assigned: true };
+}
+
+// --- Design Group Functions ---
+
+export async function getDesignGroups(): Promise<DesignGroup[]> {
+  const db = getDb();
+  const groups = db.prepare(`
+    SELECT id, name, notes FROM design_groups ORDER BY name ASC
+  `).all() as Array<{ id: number; name: string; notes: string | null }>;
+
+  const getMembers = db.prepare(`
+    SELECT b.reference, b.name, b.image
+    FROM bricks b
+    WHERE b.design_group_id = ?
+    GROUP BY b.reference
+    ORDER BY b.reference ASC
+  `);
+
+  return groups.map((g) => ({
+    id: g.id,
+    name: g.name,
+    notes: g.notes ?? undefined,
+    bricks: getMembers.all(g.id) as DesignGroupMember[]
+  }));
+}
+
+export async function createDesignGroup(name: string): Promise<{ created: boolean; reason?: string; group?: DesignGroup }> {
+  const db = getDb();
+  const trimmed = name.trim();
+  if (!trimmed) return { created: false, reason: "invalid-name" };
+
+  const existing = db.prepare("SELECT id FROM design_groups WHERE name = ?").get(trimmed);
+  if (existing) return { created: false, reason: "duplicate-name" };
+
+  const result = db.prepare("INSERT INTO design_groups (name) VALUES (?)").run(trimmed);
+  const newGroup: DesignGroup = {
+    id: Number(result.lastInsertRowid),
+    name: trimmed,
+    bricks: []
+  };
+  return { created: true, group: newGroup };
+}
+
+export async function deleteDesignGroup(id: number): Promise<{ deleted: boolean; reason?: string }> {
+  const db = getDb();
+  db.exec("BEGIN");
+  try {
+    db.prepare("UPDATE bricks SET design_group_id = NULL WHERE design_group_id = ?").run(id);
+    db.prepare("DELETE FROM design_groups WHERE id = ?").run(id);
+    db.exec("COMMIT");
+    return { deleted: true };
+  } catch {
+    db.exec("ROLLBACK");
+    return { deleted: false, reason: "db-error" };
+  }
+}
+
+export async function assignReferenceToDesignGroup(reference: string, groupId: number): Promise<{ assigned: boolean; reason?: string }> {
+  const db = getDb();
+  const group = db.prepare("SELECT id FROM design_groups WHERE id = ?").get(groupId);
+  if (!group) return { assigned: false, reason: "group-not-found" };
+
+  const hasBrick = db.prepare("SELECT brickId FROM bricks WHERE reference = ? LIMIT 1").get(reference);
+  if (!hasBrick) return { assigned: false, reason: "reference-not-found" };
+
+  const existingGroups = db.prepare("SELECT DISTINCT design_group_id FROM bricks WHERE reference = ? AND design_group_id IS NOT NULL").all(reference) as Array<{ design_group_id: number }>;
+  const currentGroupId = existingGroups[0]?.design_group_id;
+  if (currentGroupId != null) {
+    if (currentGroupId !== groupId) return { assigned: false, reason: "already-in-group" };
+    return { assigned: true };
+  }
+
+  db.prepare("UPDATE bricks SET design_group_id = ? WHERE reference = ?").run(groupId, reference);
+  return { assigned: true };
+}
+
+export async function unassignReferenceFromDesignGroup(reference: string): Promise<{ unassigned: boolean; reason?: string }> {
+  const db = getDb();
+  const brick = db.prepare("SELECT design_group_id FROM bricks WHERE reference = ? LIMIT 1").get(reference) as { design_group_id: number | null } | undefined;
+  if (!brick) return { unassigned: false, reason: "reference-not-found" };
+  if (brick.design_group_id == null) return { unassigned: false, reason: "not-in-group" };
+
+  db.prepare("UPDATE bricks SET design_group_id = NULL WHERE reference = ?").run(reference);
+  return { unassigned: true };
+}
+
+export async function searchReferencesForDesignGroup(query: string): Promise<DesignGroupMember[]> {
+  const db = getDb();
+  const pattern = `%${query.trim()}%`;
+  const rows = db.prepare(`
+    SELECT b.reference, b.name, b.image
+    FROM bricks b
+    WHERE (b.reference LIKE ? OR b.name LIKE ?)
+      AND b.reference NOT IN (SELECT DISTINCT reference FROM bricks WHERE design_group_id IS NOT NULL)
+    GROUP BY b.reference
+    LIMIT 10
+  `).all(pattern, pattern) as Array<{ reference: string; name: string; image: string }>;
+  return rows;
 }
