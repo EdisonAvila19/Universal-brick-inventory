@@ -25,10 +25,6 @@ function BrickStats({ group }: Readonly<{ group: GroupedBrick }>) {
 export function BrickStock({ group }: Readonly<{ group: GroupedBrick }>) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleCloseList = () => {
-    setIsOpen(false);
-  }
-
   const handleSwitchList = () => {
     setIsOpen(!isOpen)
   }
@@ -38,8 +34,8 @@ export function BrickStock({ group }: Readonly<{ group: GroupedBrick }>) {
       <BrickStats group={group} />
 
       <div class="mb-0 flex justify-center flex-col items-center gap-1">
-        <button class="list-none cursor-pointer bg-box rounded-lg px-3 py-2 mx-auto w-fit text-xs font-bold uppercase tracking-wider text-contrast" onClick={handleSwitchList} >Edit Stock</button>
-        {isOpen && <SaveStockForm group={group} closeList={handleCloseList} />}
+        <button class="list-none cursor-pointer bg-box rounded-lg px-3 py-2 mx-auto w-fit text-xs font-bold uppercase tracking-wider text-contrast" onClick={handleSwitchList} >{isOpen ? "Hide Stock" : "View Stock"}</button>
+        {isOpen && <SaveStockForm group={group} />}
       </div>
       
     </section>
