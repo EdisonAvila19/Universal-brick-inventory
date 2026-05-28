@@ -10,6 +10,7 @@ import { $displayColors, $colorBricks, setDisplayColors, setColorBricks, resetFo
 import { $bricks, $BricksCatalog, fetchBricks, setBricksCatalog } from '@stores/storage-bricks';
 
 
+
 function SearchExternalPartForm({ selectedSet }: Readonly<{ selectedSet: { setNumber: string } }>) {
   const existingBricks = useStore($bricks);
 
@@ -98,14 +99,6 @@ function AddExternalPieceForm({ selectedSet, onSuccess }: Readonly<{ selectedSet
 
     try {
       if (!formData.get("setNumber") || !formData.get("reference") || !formData.get("name") || !formData.get("colorId") || !formData.get("elementId")) {
-        console.log("FormData values:", {
-          setNumber: formData.get("setNumber"),
-          reference: formData.get("reference"),
-          name: formData.get("name"),
-          colorId: formData.get("colorId"),
-          elementId: formData.get("elementId"),
-        });
-        
         throw new Error("Missing required fields to add the brick");
       }
 
@@ -207,6 +200,16 @@ function AddManualPieceForm({selectedSet, colors, onSuccess}: Readonly<{ selecte
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [suggestions]);
+
+  useEffect(() => {
+    const unsub = $colorBricks.subscribe((bricksData) => {
+      if (bricksData) {
+        referenceRef.current = bricksData.info.part_num;
+        nameRef.current = bricksData.info.name;
+      }
+    });
+    return unsub;
+  }, []);
 
   const resetManualForm = () => {
     elementIdRef.current = "";
