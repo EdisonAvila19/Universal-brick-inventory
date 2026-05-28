@@ -98,6 +98,14 @@ function AddExternalPieceForm({ selectedSet, onSuccess }: Readonly<{ selectedSet
 
     try {
       if (!formData.get("setNumber") || !formData.get("reference") || !formData.get("name") || !formData.get("colorId") || !formData.get("elementId")) {
+        console.log("FormData values:", {
+          setNumber: formData.get("setNumber"),
+          reference: formData.get("reference"),
+          name: formData.get("name"),
+          colorId: formData.get("colorId"),
+          elementId: formData.get("elementId"),
+        });
+        
         throw new Error("Missing required fields to add the brick");
       }
 
@@ -362,7 +370,7 @@ function AddManualPieceForm({selectedSet, colors, onSuccess}: Readonly<{ selecte
               <div>
                 <label class="block text-[10px] uppercase font-bold text-secondary mb-1">
                   Color ID{" "}
-                  <select required name="color" className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" value={colorIdRef.current} onChange={(e) => colorIdRef.current = e.currentTarget.value}>
+                  <select required name="colorId" className="w-full bg-surface-container-highest border-none rounded-lg px-3 py-2 text-sm" value={colorIdRef.current} onChange={(e) => colorIdRef.current = e.currentTarget.value}>
                     {colors.map((color) => (
                       <option value={color.id} key={color.id}>
                         <span className="w-4 h-4 rounded-full border border-black" style={{ backgroundColor: color.rgb }} aria-hidden="true"></span>

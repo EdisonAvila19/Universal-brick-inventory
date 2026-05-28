@@ -43,6 +43,8 @@ export async function POST({ request }: { request: Request }) {
     })()
   };
 
+  console.log(newBrick.colorId)
+
   const response = await addBrickToSet(newBrick);
 
   if (!response.added) {
