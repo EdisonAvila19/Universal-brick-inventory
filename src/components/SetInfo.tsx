@@ -72,6 +72,10 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
       first.required = group.reduce((acc, b) => acc + b.required, 0);
       first.stock = group.reduce((acc, b) => acc + b.stock, 0);
       return { brick: first, count, bricksInGroup: group };
+    }).sort((a, b) => {
+      const byBrickId = a.brick.brickId.localeCompare(b.brick.brickId);
+      if (byBrickId !== 0) return byBrickId;
+      return a.brick.colorId - b.brick.colorId;
     });
   })();
 
