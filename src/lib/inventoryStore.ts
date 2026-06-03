@@ -544,9 +544,12 @@ function recalculateOwnedPieces(sets: SetRecord[], bricks: BrickRecord[]) {
         groupMap.set(key, { totalStock: brick.stock, totalRequired: brick.required });
       }
     }
+    const totalRequiredFromBricks = Array.from(groupMap.values())
+      .reduce((acc, g) => acc + g.totalRequired, 0);
     const owned = Array.from(groupMap.values())
       .reduce((acc, g) => acc + Math.min(g.totalStock, g.totalRequired), 0);
-    return { ...set, ownedPieces: Math.min(owned, set.totalPieces) };
+    const effectiveTotalPieces = Math.max(set.totalPieces, totalRequiredFromBricks);
+    return { ...set, totalPieces: effectiveTotalPieces, ownedPieces: Math.min(owned, effectiveTotalPieces) };
   });
 }
 

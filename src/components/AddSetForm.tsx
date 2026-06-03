@@ -167,7 +167,6 @@ function ManualForm() {
       <h2 class="text-xl font-black">Third-party / Manual Set</h2>
       <form onSubmit={handleSubmit} class="space-y-4">
         <input type="hidden" name="action" value="add-manual" />
-        <input type="hidden" name="totalPieces" value="0" />
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold uppercase tracking-widest text-secondary mb-2">
@@ -191,12 +190,6 @@ function ManualForm() {
               </select>
             </label>
           </div>
-          {/* <div>
-            <label class="block text-xs font-bold uppercase tracking-widest text-secondary mb-2">
-              Total Pieces{" "}
-              <input name="totalPieces" required min="1" type="number" class="w-full bg-box text-contrast placeholder:text-contrast placeholder:opacity-60 border-none rounded-lg px-4 py-3 text-sm" />
-            </label>
-          </div> */}
           <div>
             <label class="block text-xs font-bold uppercase tracking-widest text-secondary mb-2">
               Image URL{" "}
