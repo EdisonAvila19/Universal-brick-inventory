@@ -1,0 +1,31 @@
+---
+import AppLayout from "@layouts/AppLayout.astro";
+import { getBrickCatalogEntry, getColors } from "@lib/inventoryStore";
+import { Feedback } from "@components/Feedback";
+import BrickReferenceEditor from "@/components/BrickReferenceEditor";
+
+const { reference } = Astro.params;
+
+if (!reference) {
+  return Astro.redirect("/bricks", 302);
+}
+
+const entry = await getBrickCatalogEntry(reference);
+const colors = await getColors();
+
+if (!entry) {
+  return Astro.redirect("/bricks", 302);
+}
+---
+
+<AppLayout title={`${entry.reference} — ${entry.name} | Brick Inventory`} active="bricks">
+  <Feedback client:load />
+  <BrickReferenceEditor
+    initialReference={entry.reference}
+    initialName={entry.name}
+    initialImage={entry.image}
+    initialVariants={entry.variants}
+    colors={colors}
+    client:load
+  />
+</AppLayout>

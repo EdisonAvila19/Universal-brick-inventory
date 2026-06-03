@@ -1,4 +1,4 @@
-import type { BrickRecord, SpareBrickRecord } from "@/types/archiveData";
+import type { BrickRecord, SpareBrickRecord, CatalogEntry } from "@/types/archiveData";
 import type { RebrickablePartDetails, RebrickablePartColorDetails } from '@/types/rebrickable'
 
 export const GetNewBricksForSet = async (setNumber: string): Promise<BrickRecord[]> => {
@@ -200,5 +200,47 @@ export const assignSpareToSet = async (formData: FormData): Promise<{ status: st
   } catch (error) {
     console.error("Error assigning spare to set:", error);
     return { status: "error", message: error instanceof Error ? error.message : "Failed to assign spare to set" };
+  }
+};
+
+// --- Brick Catalog API ---
+
+export const getBrickCatalogEntry = async (reference: string): Promise<{ status: string; data?: CatalogEntry; message?: string }> => {
+  try {
+    const response = await fetch(`/api/brick-catalog/${encodeURIComponent(reference)}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to fetch catalog entry");
+    }
+    const data = await response.json();
+    return { status: "ok", data };
+  } catch (error) {
+    console.error("Error fetching catalog entry:", error);
+    return { status: "error", message: error instanceof Error ? error.message : "Failed to fetch catalog entry" };
+  }
+};
+
+export const updateBrickCatalogEntry = async (reference: string, body: {
+  reference?: string;
+  name?: string;
+  variants?: Array<{
+    originalBrickId: string;
+    elementId?: string;
+    colorId?: number;
+    image?: string;
+  }>;
+}): Promise<{ status: string; message?: string; newReference?: string }> => {
+  try {
+    const response = await fetch(`/api/brick-catalog/${encodeURIComponent(reference)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to update catalog entry");
+    return { status: "ok", message: "Catalog entry updated successfully", newReference: data.newReference };
+  } catch (error) {
+    console.error("Error updating catalog entry:", error);
+    return { status: "error", message: error instanceof Error ? error.message : "Failed to update catalog entry" };
   }
 };

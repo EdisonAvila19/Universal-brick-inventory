@@ -20,7 +20,9 @@ export default function BrickInfo(group: Readonly<GroupedBrick>) {
         </div>
 
         <div className="w-full aspect-square bg-box rounded-md mb-6 overflow-hidden">
-          <img alt={group.name} class="w-full h-full object-contain p-8" loading="lazy" src={group.image} />
+          <a href={`/bricks/${group.reference}`}>
+            <img alt={group.name} class="w-full h-full object-contain p-8 hover:scale-110 transition-transform duration-300" loading="lazy" src={group.image} />
+          </a>
         </div>
 
         <div className="flex flex-col justify-between items-start mb-4">

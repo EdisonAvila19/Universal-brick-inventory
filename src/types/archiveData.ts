@@ -1,6 +1,6 @@
 export type Brand = "LEGO" | "Mould King" | "CaDA" | "Other";
 export type PurchaseStore = "lego" | "bricklink";
-export type ActiveView = "dashboard" | "catalog" | "bricks" | "shopping" | "spare-parts" | "colors" | "design-groups" | "";
+export type ActiveView = "dashboard" | "catalog" | "bricks" | "shopping" | "spare-parts" | "colors" | "design-groups" | "brick-catalog" | "";
 
 export interface SetRecord {
   id: string;
@@ -100,4 +100,20 @@ export interface ArchiveColor {
   name: string;
   rgb: string;
   colorGroupId?: number;
+}
+
+export interface CatalogVariant {
+  brickId: string;
+  elementId: string;
+  colorId: number;
+  colorName?: string;
+  colorHex?: string;
+  image: string;
+}
+
+export interface CatalogEntry {
+  reference: string;
+  name: string;
+  image: string;
+  variants: CatalogVariant[];
 }

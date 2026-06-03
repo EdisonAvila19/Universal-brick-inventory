@@ -2,7 +2,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import type { BrickRecord, PurchaseStore, SetRecord, ArchiveColor, SpareBrickRecord, DesignGroup, DesignGroupMember } from "@/types/archiveData";
+import type { BrickRecord, PurchaseStore, SetRecord, ArchiveColor, SpareBrickRecord, DesignGroup, DesignGroupMember, CatalogEntry, CatalogVariant } from "@/types/archiveData";
 import { fetchRebrickableColors } from "@lib/rebrickable";
 
 const APP_DATA_DIR = process.env.APP_DATA_DIR?.trim();
@@ -501,16 +501,18 @@ async function saveStore(payload: InventoryPayload) {
     const insertSetBrick = db.prepare("INSERT INTO set_bricks (setNumber, brickId, required, stock) VALUES (?, ?, ?, ?)");
     for (const set of payload.sets) insertSet.run(set.id, set.setNumber, set.name, set.brand, set.totalPieces, set.ownedPieces, set.image, set.source);
     for (const brick of payload.bricks) {
-      insertBrick.run(brick.brickId, brick.elementId ?? "-", brick.reference, brick.name, brick.colorId, brick.image, JSON.stringify(brick.buyAt), brick.plannedStore ?? null, brick.plannedQuantity ?? null, brick.plannedLegoQuantity ?? null, brick.plannedBricklinkQuantity ?? null, brick.spareQuantity ?? 0, designGroupMap.get(brick.brickId) ?? null);
+      const dgId = designGroupMap.get(brick.brickId);
+      insertBrick.run(brick.brickId, brick.elementId ?? "-", brick.reference, brick.name, brick.colorId, brick.image, JSON.stringify(brick.buyAt), brick.plannedStore ?? null, brick.plannedQuantity ?? null, brick.plannedLegoQuantity ?? null, brick.plannedBricklinkQuantity ?? null, brick.spareQuantity ?? 0, dgId !== undefined ? dgId : (brick as Record<string, unknown>).designGroupId != null ? Number((brick as Record<string, unknown>).designGroupId) : null);
       insertSetBrick.run(brick.fromSet, brick.brickId, brick.required, brick.stock);
     }
     for (const spare of trulySpareOnly) {
+      const spareDgId = designGroupMap.get(spare.brickId as string);
       insertBrick.run(
         spare.brickId, spare.elementId ?? "-", spare.reference, spare.name, spare.colorId, spare.image,
         spare.buyAt ?? JSON.stringify(["lego", "bricklink"]),
         spare.plannedStore ?? null, spare.plannedQuantity ?? null,
         spare.plannedLegoQuantity ?? null, spare.plannedBricklinkQuantity ?? null,
-        Number(spare.spareQuantity), designGroupMap.get(spare.brickId as string) ?? null
+        Number(spare.spareQuantity), spareDgId !== undefined ? spareDgId : (spare as Record<string, unknown>).designGroupId != null ? Number((spare as Record<string, unknown>).designGroupId) : null
       );
     }
     db.exec("COMMIT");
@@ -571,6 +573,130 @@ export async function getBricksCatalog(): Promise<BrickRecord[]> {
     ORDER BY b.brickId ASC
   `).all() as Array<Record<string, unknown>>;
   return rows.map((row) => ({ ...row, buyAt: parseBuyAt(String(row.buyAt ?? "[]")) })) as BrickRecord[];
+}
+
+export async function getBrickCatalogEntry(reference: string): Promise<CatalogEntry | null> {
+  await ensureStore();
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT b.brickId, b.elementId, b.reference, b.name, b.colorId, b.image,
+           c.name AS colorName, c.rgb AS colorHex
+    FROM bricks b
+    LEFT JOIN colors c ON b.colorId = c.id
+    WHERE b.reference = ?
+    ORDER BY b.colorId ASC
+  `).all(reference) as Array<Record<string, unknown>>;
+
+  if (rows.length === 0) return null;
+
+  const variants: CatalogVariant[] = rows.map((row) => ({
+    brickId: String(row.brickId),
+    elementId: String(row.elementId ?? "-"),
+    colorId: Number(row.colorId),
+    colorName: row.colorName ? String(row.colorName) : undefined,
+    colorHex: row.colorHex ? String(row.colorHex) : undefined,
+    image: String(row.image)
+  }));
+
+  return {
+    reference: String(rows[0].reference),
+    name: String(rows[0].name),
+    image: String(rows[0].image),
+    variants
+  };
+}
+
+export async function updateBrickCatalogEntry(input: {
+  originalReference: string;
+  reference?: string;
+  name?: string;
+  variants?: Array<{
+    originalBrickId: string;
+    elementId?: string;
+    colorId?: number;
+    image?: string;
+  }>;
+}): Promise<{ updated: boolean; reason?: string; newReference?: string }> {
+  const originalReference = input.originalReference.trim();
+  const finalReference = (input.reference ?? originalReference).trim();
+
+  if (!originalReference) {
+    return { updated: false, reason: "invalid-data" };
+  }
+
+  const store = await readStore();
+  const bricks = store.bricks;
+
+  const targetIndices = bricks
+    .map((b, i) => ({ b, i }))
+    .filter(({ b }) => b.reference === originalReference)
+    .map(({ i }) => i);
+
+  if (targetIndices.length === 0) {
+    return { updated: false, reason: "not-found" };
+  }
+
+  const variantMap = new Map<string, NonNullable<typeof input.variants>[number]>();
+  for (const v of input.variants ?? []) {
+    variantMap.set(v.originalBrickId, v);
+  }
+
+  const finalBrickIds = new Set<string>();
+  const oldBrickIds: string[] = [];
+
+  for (const idx of targetIndices) {
+    const brick = bricks[idx];
+    const v = variantMap.get(brick.brickId);
+    const ref = finalReference;
+    const newColorId = v?.colorId ?? brick.colorId;
+    const newBrickId = `${ref}-${newColorId}`;
+
+    if (finalBrickIds.has(newBrickId)) {
+      return { updated: false, reason: `duplicate-variant: color ${newColorId} appears more than once` };
+    }
+    finalBrickIds.add(newBrickId);
+
+    if (newBrickId !== brick.brickId) {
+      const collision = bricks.some((b, i) => !targetIndices.includes(i) && b.brickId === newBrickId);
+      if (collision) {
+        return { updated: false, reason: `duplicate-brick: ${newBrickId} already exists` };
+      }
+    }
+
+    oldBrickIds.push(brick.brickId);
+  }
+
+  for (const idx of targetIndices) {
+    const brick = bricks[idx];
+    const v = variantMap.get(brick.brickId);
+    const ref = finalReference;
+    const name = input.name?.trim() ?? brick.name;
+    const newColorId = v?.colorId ?? brick.colorId;
+    const elementId = v?.elementId !== undefined ? (v.elementId.trim() || "-") : brick.elementId;
+    const image = v?.image !== undefined ? v.image.trim() : brick.image;
+    const newBrickId = `${ref}-${newColorId}`;
+
+    bricks[idx] = {
+      ...brick,
+      brickId: newBrickId,
+      reference: ref,
+      name,
+      colorId: newColorId,
+      elementId,
+      image
+    };
+  }
+
+  store.bricks = bricks;
+  store.sets = recalculateOwnedPieces(store.sets, store.bricks);
+
+  const db = getDb();
+  for (const oldBrickId of oldBrickIds) {
+    db.prepare("UPDATE bricks SET spareQuantity = 0 WHERE brickId = ?").run(oldBrickId);
+  }
+
+  await saveStore(store);
+  return { updated: true, newReference: finalReference };
 }
 
 export async function getInventoryBricks(): Promise<BrickRecord[]> {
