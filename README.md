@@ -14,6 +14,7 @@ Aplicación de inventario para bloques de construcción y sets de LEGO y tercero
 - Edición de datos de set y edición de pieza individual.
 - Gestión de piezas sobrantes (spare parts) con asignación a sets.
 - Gestión de colores con alta, edición y eliminación.
+- Gestión de grupos de diseño (design groups) para agrupar piezas compatibles intercambiables.
 
 ## Stack
 
@@ -90,7 +91,7 @@ El mapeo de datos a modelos internos se hace en `src/lib/setMapper.ts`.
 - `src/pages/add-set.astro` — Alta de sets
 - `src/pages/bricks.astro` — Inventario de piezas
 - `src/pages/shopping.astro` — Lista de compras
-- `src/pages/edit-piece.astro` — Edición de pieza individual
+- `src/pages/design-groups.astro` — Gestión de grupos de diseño
 - `src/pages/colors.astro` — Gestión de colores
 - `src/pages/spare-parts.astro` — Gestión de piezas sobrantes
 - `src/pages/test.astro` — Página de pruebas
@@ -100,9 +101,10 @@ El mapeo de datos a modelos internos se hace en `src/lib/setMapper.ts`.
 - `src/pages/api/bricks/external/[brickID].ts`
 - `src/pages/api/bricks/set/[setID].ts`
 - `src/pages/api/bricks/spare/index.ts`
-- `src/pages/api/bricks/spare/[elementId].ts`
+- `src/pages/api/bricks/spare/[brickId].ts`
 - `src/pages/api/bricks/spare/assign.ts`
 - `src/pages/api/colors/index.ts`
+- `src/pages/api/design-groups/index.ts`
 - `src/pages/api/sets/index.ts`
 - `src/pages/api/sets/[setID].ts`
 - `src/pages/api/sets/rebrickable-preview.ts`
@@ -111,8 +113,8 @@ El mapeo de datos a modelos internos se hace en `src/lib/setMapper.ts`.
 - `src/lib/setMapper.ts`
 - `src/types/archiveData.ts`
 - `src/types/rebrickable.ts`
-- `src/stores/` (6 stores: counter, feedback, storage-bricks, storage-sets, storage-newPieceForm, storage-spare-bricks)
-- `src/components/` (22 componentes: filtros, tarjetas, formularios, color manager, spare parts manager, etc.)
+- `src/stores/` (7 stores: counter, feedback, storage-bricks, storage-sets, storage-newPieceForm, storage-spare-bricks, storage-design-groups)
+- `src/components/` (24 componentes: filtros, tarjetas, formularios, color manager, design group manager, spare parts manager, etc.)
 - `src/hooks/useBricks.tsx`
 - `src/hooks/useSetStore.tsx`
 - `src/utils/bricksData.ts`
@@ -144,6 +146,12 @@ El mapeo de datos a modelos internos se hace en `src/lib/setMapper.ts`.
 - `addColor`
 - `updateColor`
 - `deleteColor`
+- `getDesignGroups`
+- `createDesignGroup`
+- `deleteDesignGroup`
+- `assignReferenceToDesignGroup`
+- `unassignReferenceFromDesignGroup`
+- `searchReferencesForDesignGroup`
 
 ## Reglas de dominio implementadas
 
