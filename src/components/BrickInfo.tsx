@@ -51,6 +51,14 @@ export default function BrickInfo(group: Readonly<GroupedBrick>) {
           )}
         </div>
 
+        {group.categories && group.categories.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-4">
+            {group.categories.map((cat) => (
+              <span class="text-[9px] font-bold bg-primary-container/20 text-primary px-2 py-0.5 rounded" key={cat.id}>{cat.name}</span>
+            ))}
+          </div>
+        )}
+
         <BrickStock group={group}/>
         
     </article>

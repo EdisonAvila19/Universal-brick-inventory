@@ -1,0 +1,25 @@
+---
+import AppLayout from "@layouts/AppLayout.astro";
+import { getCategories } from "@lib/inventoryStore";
+import { Feedback } from "@components/Feedback";
+import CategoryManager from "@/components/CategoryManager";
+
+const categories = await getCategories();
+---
+
+<AppLayout title="Categories | Brick Inventory" active="categories">
+  <Feedback client:load />
+
+  <section class="mb-10 flex flex-col md:flex-row justify-between items-end gap-6">
+    <div>
+      <h1 class="text-4xl font-black tracking-tight mb-2">Categories</h1>
+      <p class="text-secondary font-medium uppercase text-xs tracking-[0.2em]">Manage brick categories</p>
+    </div>
+    <div class="text-right">
+      <p class="font-black text-2xl">{categories.length}</p>
+      <p class="text-secondary font-medium uppercase text-xs tracking-[0.2em]">Total Categories</p>
+    </div>
+  </section>
+
+  <CategoryManager initialCategories={categories} client:load />
+</AppLayout>

@@ -1,4 +1,4 @@
-import type { BrickRecord, SpareBrickRecord, CatalogEntry } from "@/types/archiveData";
+import type { BrickRecord, SpareBrickRecord, CatalogEntry, Category } from "@/types/archiveData";
 import type { RebrickablePartDetails, RebrickablePartColorDetails } from '@/types/rebrickable'
 
 export const GetNewBricksForSet = async (setNumber: string): Promise<BrickRecord[]> => {
@@ -242,5 +242,64 @@ export const updateBrickCatalogEntry = async (reference: string, body: {
   } catch (error) {
     console.error("Error updating catalog entry:", error);
     return { status: "error", message: error instanceof Error ? error.message : "Failed to update catalog entry" };
+  }
+};
+
+// --- Category API ---
+
+export const fetchCategories = async (): Promise<Category[]> => {
+  try {
+    const response = await fetch("/api/categories");
+    if (!response.ok) throw new Error("Failed to fetch categories");
+    const { categories } = await response.json();
+    return categories;
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    return [];
+  }
+};
+
+export const createCategory = async (name: string): Promise<{ status: string; message?: string; id?: number }> => {
+  try {
+    const response = await fetch("/api/categories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "create", name })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to create category");
+    return { status: "ok", message: "Category created", id: data.category.id };
+  } catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : "Failed to create category" };
+  }
+};
+
+export const updateCategory = async (id: number, name: string): Promise<{ status: string; message?: string }> => {
+  try {
+    const response = await fetch("/api/categories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update", id, name })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to update category");
+    return { status: "ok", message: "Category updated" };
+  } catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : "Failed to update category" };
+  }
+};
+
+export const deleteCategory = async (id: number): Promise<{ status: string; message?: string }> => {
+  try {
+    const response = await fetch("/api/categories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", id })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Failed to delete category");
+    return { status: "ok", message: "Category deleted" };
+  } catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : "Failed to delete category" };
   }
 };

@@ -1,25 +1,29 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
 import { useStore } from '@nanostores/preact';
 import { $filters, updateFilters } from '@stores/storage-bricks';
-import type { ArchiveColor } from '@/types/archiveData'
+import type { ArchiveColor, Category } from '@/types/archiveData'
 import ColorMultiSelect from '@components/ColorMultiSelect'
+import CategoryMultiSelect from '@components/CategoryMultiSelect'
 import "@styles/select.css"
 
-export default function BricksFilters({ initialFilters, sets, colors }: Readonly<{ initialFilters: { piece: string, set: string[], status: string, color: string[], spareOnly: boolean }, sets: { value: string, label: string }[], colors: ArchiveColor[] }>) {
+export default function BricksFilters({ initialFilters, sets, colors, categories }: Readonly<{ initialFilters: { piece: string, set: string[], status: string, color: string[], category: string[], spareOnly: boolean }, sets: { value: string, label: string }[], colors: ArchiveColor[], categories: Category[] }>) {
   const filters = useStore($filters);
   const [localPiece, setLocalPiece] = useState(filters.piece);
   const [localSets, setLocalSets] = useState<string[]>(filters.set);
   const [localColors, setLocalColors] = useState<string[]>(filters.color);
+  const [localCategories, setLocalCategories] = useState<string[]>(filters.category);
   const [localSpareOnly, setLocalSpareOnly] = useState(filters.spareOnly);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const pieceRef = useRef(localPiece);
   const setsRef = useRef(localSets);
   const colorsRef = useRef(localColors);
+  const categoriesRef = useRef(localCategories);
   const spareOnlyRef = useRef(localSpareOnly);
 
   pieceRef.current = localPiece;
   setsRef.current = localSets;
   colorsRef.current = localColors;
+  categoriesRef.current = localCategories;
   spareOnlyRef.current = localSpareOnly;
 
   useEffect(() => {
@@ -27,6 +31,7 @@ export default function BricksFilters({ initialFilters, sets, colors }: Readonly
     setLocalPiece(initialFilters.piece);
     setLocalSets(initialFilters.set);
     setLocalColors(initialFilters.color);
+    setLocalCategories(initialFilters.category);
     setLocalSpareOnly(initialFilters.spareOnly);
   }, []);
 
@@ -34,26 +39,27 @@ export default function BricksFilters({ initialFilters, sets, colors }: Readonly
     return () => clearTimeout(debounceRef.current);
   }, []);
 
-  const syncUrl = (piece: string, set: string[], status: string, color: string[], spareOnly: boolean) => {
+  const syncUrl = (piece: string, set: string[], status: string, color: string[], category: string[], spareOnly: boolean) => {
     const params = new URLSearchParams();
     if (piece) params.append("piece", piece);
     set.forEach((s) => params.append("set", s));
     if (status && status !== "all") params.append("status", status);
     color.forEach((c) => params.append("color", c));
+    category.forEach((c) => params.append("category", c));
     if (spareOnly) params.append("spareOnly", "true");
     const qs = params.toString() ? `?${params.toString()}` : '';
     globalThis.history.pushState({}, "", `${globalThis.location.pathname}${qs}`);
   };
 
-  const apply = (piece: string, set: string[], status: string, color: string[], spareOnly: boolean) => {
-    updateFilters({ piece, set, status, color, spareOnly });
-    syncUrl(piece, set, status, color, spareOnly);
+  const apply = (piece: string, set: string[], status: string, color: string[], category: string[], spareOnly: boolean) => {
+    updateFilters({ piece, set, status, color, category, spareOnly });
+    syncUrl(piece, set, status, color, category, spareOnly);
   };
 
   const scheduleApply = () => {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      apply(pieceRef.current, setsRef.current, filters.status, colorsRef.current, spareOnlyRef.current);
+      apply(pieceRef.current, setsRef.current, filters.status, colorsRef.current, categoriesRef.current, spareOnlyRef.current);
     }, 400);
   };
 
@@ -70,22 +76,27 @@ export default function BricksFilters({ initialFilters, sets, colors }: Readonly
   };
 
   const handleStatusChange = (e: Event) => {
-    apply(localPiece, localSets, (e.target as HTMLSelectElement).value, localColors, localSpareOnly);
+    apply(localPiece, localSets, (e.target as HTMLSelectElement).value, localColors, localCategories, localSpareOnly);
   };
 
   const handleColorChange = (selected: string[]) => {
     setLocalColors(selected);
-    apply(localPiece, localSets, filters.status, selected, localSpareOnly);
+    apply(localPiece, localSets, filters.status, selected, localCategories, localSpareOnly);
+  };
+
+  const handleCategoryChange = (selected: string[]) => {
+    setLocalCategories(selected);
+    apply(localPiece, localSets, filters.status, localColors, selected, localSpareOnly);
   };
 
   const handleSpareChange = (e: Event) => {
     const checked = (e.target as HTMLInputElement).checked;
     setLocalSpareOnly(checked);
-    apply(localPiece, localSets, filters.status, localColors, checked);
+    apply(localPiece, localSets, filters.status, localColors, localCategories, checked);
   };
 
   return (
-    <div class="bg-surface-container-lowest p-6 rounded-xl mb-10 grid grid-cols-1 md:grid-cols-5 gap-4 items-end shadow-[0_0_13px_-6px] shadow-contrast">
+    <div class="bg-surface-container-lowest p-6 rounded-xl mb-10 grid grid-cols-1 md:grid-cols-6 gap-4 items-end shadow-[0_0_13px_-6px] shadow-contrast">
       <div>
         <label class="block text-[10px] uppercase font-bold text-secondary px-2">
           Piece Number or Name{" "}
@@ -116,6 +127,12 @@ export default function BricksFilters({ initialFilters, sets, colors }: Readonly
         <label class="block text-[10px] uppercase font-bold text-secondary px-2">
           Color{" "}
           <ColorMultiSelect colors={colors} selected={localColors} onChange={handleColorChange} />
+        </label>
+      </div>
+      <div>
+        <label class="block text-[10px] uppercase font-bold text-secondary px-2">
+          Category{" "}
+          <CategoryMultiSelect categories={categories} selected={localCategories} onChange={handleCategoryChange} />
         </label>
       </div>
       <div class="flex items-end">

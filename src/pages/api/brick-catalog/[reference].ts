@@ -46,6 +46,7 @@ export async function PUT({ params, request }: { params: { reference: string }; 
       originalReference: reference,
       reference: body.reference,
       name: body.name,
+      categoryIds: body.categoryIds,
       variants: body.variants
     });
 

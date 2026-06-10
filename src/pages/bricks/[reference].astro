@@ -1,6 +1,6 @@
 ---
 import AppLayout from "@layouts/AppLayout.astro";
-import { getBrickCatalogEntry, getColors } from "@lib/inventoryStore";
+import { getBrickCatalogEntry, getColors, getCategories } from "@lib/inventoryStore";
 import { Feedback } from "@components/Feedback";
 import BrickReferenceEditor from "@/components/BrickReferenceEditor";
 
@@ -12,6 +12,7 @@ if (!reference) {
 
 const entry = await getBrickCatalogEntry(reference);
 const colors = await getColors();
+const allCategories = await getCategories();
 
 if (!entry) {
   return Astro.redirect("/bricks", 302);
@@ -26,6 +27,8 @@ if (!entry) {
     initialImage={entry.image}
     initialVariants={entry.variants}
     colors={colors}
+    allCategories={allCategories}
+    selectedCategoryIds={entry.categories?.map((c) => c.id) ?? []}
     client:load
   />
 </AppLayout>

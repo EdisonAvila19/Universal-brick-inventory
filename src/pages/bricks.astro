@@ -1,6 +1,6 @@
 ---
 import AppLayout from "@layouts/AppLayout.astro";
-import { getColors, getInventoryBricks, getInventorySets } from "@lib/inventoryStore";
+import { getCategories, getColors, getInventoryBricks, getInventorySets, getAllReferenceCategories } from "@lib/inventoryStore";
 import { Feedback } from "@components/Feedback";
 import PieceCountIndicator from "@components/PieceCountIndicator";
 import BricksResults from '@/components/Bricks-results'
@@ -12,17 +12,24 @@ const filters = {
   set: url.searchParams.getAll("set").map((value) => value.trim()).filter(Boolean),
   status: url.searchParams.get("status") ?? "all",
   color: url.searchParams.getAll("color").map((value) => value.trim()).filter(Boolean),
+  category: url.searchParams.getAll("category").map((value) => value.trim()).filter(Boolean),
   spareOnly: url.searchParams.get("spareOnly") === "true",
 }
 
 const bricks = await getInventoryBricks();
 const sets = await getInventorySets();
 const colors = await getColors();
+const categories = await getCategories();
+const refCategories = await getAllReferenceCategories();
+const bricksWithCategories = bricks.map((b) => ({
+  ...b,
+  categories: refCategories.get(b.reference)
+}));
+
 const colorIds = new Set(bricks.map((b) => b.colorId));
 const availableColors = colors.filter((c) => colorIds.has(c.id));
 
 const setOptions = sets.map((set) => ({ label: `${set.setNumber} — ${set.name}`, value: set.setNumber }));
-
 ---
 
 <AppLayout title="Bricks Inventory | Brick Inventory" active="bricks">
@@ -42,9 +49,9 @@ const setOptions = sets.map((set) => ({ label: `${set.setNumber} — ${set.name}
   </section>
 
   <!-- Filters Form -->
-  <BricksFilters initialFilters={filters} sets={setOptions} colors={availableColors} client:load/>
+  <BricksFilters initialFilters={filters} sets={setOptions} colors={availableColors} categories={categories} client:load/>
 
   <!-- Results Section -->
-  <BricksResults initialBricks={bricks} client:load/>
+  <BricksResults initialBricks={bricksWithCategories} client:load/>
   
 </AppLayout>

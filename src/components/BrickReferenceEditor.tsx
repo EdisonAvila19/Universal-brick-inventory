@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import type { CatalogVariant, ArchiveColor } from "@/types/archiveData";
+import type { CatalogVariant, ArchiveColor, Category } from "@/types/archiveData";
 import { updateFeedback } from "@stores/feedback";
 import { updateBrickCatalogEntry } from "@utils/bricksData";
 
@@ -9,14 +9,17 @@ interface Props {
   initialImage: string;
   initialVariants: CatalogVariant[];
   colors: ArchiveColor[];
+  allCategories: Category[];
+  selectedCategoryIds: number[];
 }
 
-export default function BrickReferenceEditor({ initialReference, initialName, initialImage, initialVariants, colors }: Readonly<Props>) {
+export default function BrickReferenceEditor({ initialReference, initialName, initialImage, initialVariants, colors, allCategories, selectedCategoryIds }: Readonly<Props>) {
   const [reference, setReference] = useState(initialReference);
   const [name, setName] = useState(initialName);
   const [variants, setVariants] = useState(
     initialVariants.map((v) => ({ ...v, originalBrickId: v.brickId }))
   );
+  const [categoryIds, setCategoryIds] = useState<number[]>(selectedCategoryIds);
   const [saving, setSaving] = useState(false);
   const [originalReference, setOriginalReference] = useState(initialReference);
 
@@ -36,6 +39,14 @@ export default function BrickReferenceEditor({ initialReference, initialName, in
 
   function hasDuplicateColor(colorId: number, excludeIndex: number): boolean {
     return variants.some((v, i) => i !== excludeIndex && v.colorId === colorId);
+  }
+
+  function toggleCategory(categoryId: number) {
+    setCategoryIds((prev) =>
+      prev.includes(categoryId)
+        ? prev.filter((id) => id !== categoryId)
+        : [...prev, categoryId]
+    );
   }
 
   async function handleSave() {
@@ -61,6 +72,7 @@ export default function BrickReferenceEditor({ initialReference, initialName, in
     const payload = {
       reference: reference.trim(),
       name: name.trim(),
+      categoryIds,
       variants: variants.map((v) => ({
         originalBrickId: v.originalBrickId,
         elementId: v.elementId,
@@ -126,6 +138,32 @@ export default function BrickReferenceEditor({ initialReference, initialName, in
           <p class="text-xs text-secondary italic">Editing reference or name affects all color variants</p>
         </div>
       </section>
+
+      {allCategories.length > 0 && (
+        <section>
+          <h2 class="text-lg font-bold mb-4">Categories</h2>
+          <div class="bg-surface-container-low rounded-xl p-4 shadow-[0_0_13px_-6px] shadow-contrast">
+            <div class="flex flex-wrap gap-3">
+              {allCategories.map((cat) => {
+                const selected = categoryIds.includes(cat.id);
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => toggleCategory(cat.id)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all border-2 ${
+                      selected
+                        ? "bg-primary-container text-primary-container-contrast border-primary-container"
+                        : "bg-surface-container-high text-secondary border-outline-variant/30 hover:border-primary/50"
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 class="text-lg font-bold mb-4">

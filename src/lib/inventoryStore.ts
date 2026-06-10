@@ -2,7 +2,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import type { BrickRecord, PurchaseStore, SetRecord, ArchiveColor, SpareBrickRecord, DesignGroup, DesignGroupMember, CatalogEntry, CatalogVariant } from "@/types/archiveData";
+import type { BrickRecord, PurchaseStore, SetRecord, ArchiveColor, SpareBrickRecord, DesignGroup, DesignGroupMember, CatalogEntry, CatalogVariant, Category } from "@/types/archiveData";
 import { fetchRebrickableColors } from "@lib/rebrickable";
 
 const APP_DATA_DIR = process.env.APP_DATA_DIR?.trim();
@@ -170,6 +170,21 @@ function getDb() {
     if (!brickColumnsAfterMigration.some((c) => c.name === "design_group_id")) {
       database.exec("ALTER TABLE bricks ADD COLUMN design_group_id INTEGER REFERENCES design_groups(id)");
     }
+
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE
+      )
+    `);
+
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS reference_categories (
+        reference TEXT NOT NULL,
+        categoryId INTEGER NOT NULL REFERENCES categories(id),
+        PRIMARY KEY (reference, categoryId)
+      )
+    `);
 
     const setColumns = database.prepare("PRAGMA table_info(sets)").all() as Array<{ name: string }>;
     if (setColumns.some((c) => c.name === "homologatedToLego")) {
@@ -598,11 +613,19 @@ export async function getBrickCatalogEntry(reference: string): Promise<CatalogEn
     image: String(row.image)
   }));
 
+  const categories = db.prepare(`
+    SELECT c.id, c.name FROM categories c
+    INNER JOIN reference_categories rc ON rc.categoryId = c.id
+    WHERE rc.reference = ?
+    ORDER BY c.name ASC
+  `).all(reference) as Array<{ id: number; name: string }>;
+
   return {
     reference: String(rows[0].reference),
     name: String(rows[0].name),
     image: String(rows[0].image),
-    variants
+    variants,
+    categories: categories.length > 0 ? categories : undefined
   };
 }
 
@@ -610,6 +633,7 @@ export async function updateBrickCatalogEntry(input: {
   originalReference: string;
   reference?: string;
   name?: string;
+  categoryIds?: number[];
   variants?: Array<{
     originalBrickId: string;
     elementId?: string;
@@ -627,13 +651,23 @@ export async function updateBrickCatalogEntry(input: {
   const store = await readStore();
   const bricks = store.bricks;
 
-  const targetIndices = bricks
+  const targetIndicesAll = bricks
     .map((b, i) => ({ b, i }))
     .filter(({ b }) => b.reference === originalReference)
     .map(({ i }) => i);
 
-  if (targetIndices.length === 0) {
+  if (targetIndicesAll.length === 0) {
     return { updated: false, reason: "not-found" };
+  }
+
+  const seenBrickIds = new Set<string>();
+  const targetIndices: number[] = [];
+  for (const idx of targetIndicesAll) {
+    const bid = bricks[idx].brickId;
+    if (!seenBrickIds.has(bid)) {
+      seenBrickIds.add(bid);
+      targetIndices.push(idx);
+    }
   }
 
   const variantMap = new Map<string, NonNullable<typeof input.variants>[number]>();
@@ -693,6 +727,10 @@ export async function updateBrickCatalogEntry(input: {
   const db = getDb();
   for (const oldBrickId of oldBrickIds) {
     db.prepare("UPDATE bricks SET spareQuantity = 0 WHERE brickId = ?").run(oldBrickId);
+  }
+
+  if (input.categoryIds !== undefined) {
+    await setReferenceCategories(finalReference, input.categoryIds);
   }
 
   await saveStore(store);
@@ -1301,4 +1339,108 @@ export async function searchReferencesForDesignGroup(query: string): Promise<Des
     LIMIT 10
   `).all(pattern, pattern) as Array<{ reference: string; name: string; image: string }>;
   return rows;
+}
+
+// --- Category functions ---
+
+export async function getCategories(): Promise<Category[]> {
+  const db = getDb();
+  const rows = db.prepare("SELECT id, name FROM categories ORDER BY name ASC").all() as Array<{ id: number; name: string }>;
+  return rows;
+}
+
+export async function createCategory(name: string): Promise<{ created: boolean; id?: number; reason?: string }> {
+  const db = getDb();
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return { created: false, reason: "invalid-name" };
+  }
+  const existing = db.prepare("SELECT id FROM categories WHERE name = ?").get(trimmed) as { id: number } | undefined;
+  if (existing) {
+    return { created: false, reason: "duplicate" };
+  }
+  const result = db.prepare("INSERT INTO categories (name) VALUES (?)").run(trimmed);
+  return { created: true, id: Number(result.lastInsertRowid) };
+}
+
+export async function updateCategory(id: number, name: string): Promise<{ updated: boolean; reason?: string }> {
+  const db = getDb();
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return { updated: false, reason: "invalid-name" };
+  }
+  const duplicate = db.prepare("SELECT id FROM categories WHERE name = ? AND id != ?").get(trimmed, id) as { id: number } | undefined;
+  if (duplicate) {
+    return { updated: false, reason: "duplicate" };
+  }
+  const result = db.prepare("UPDATE categories SET name = ? WHERE id = ?").run(trimmed, id);
+  if (result.changes === 0) {
+    return { updated: false, reason: "not-found" };
+  }
+  return { updated: true };
+}
+
+export async function deleteCategory(id: number): Promise<{ deleted: boolean; reason?: string }> {
+  const db = getDb();
+  db.exec("BEGIN");
+  try {
+    db.prepare("DELETE FROM reference_categories WHERE categoryId = ?").run(id);
+    const result = db.prepare("DELETE FROM categories WHERE id = ?").run(id);
+    db.exec("COMMIT");
+    if (result.changes === 0) {
+      return { deleted: false, reason: "not-found" };
+    }
+    return { deleted: true };
+  } catch {
+    db.exec("ROLLBACK");
+    return { deleted: false, reason: "db-error" };
+  }
+}
+
+export async function getReferenceCategories(reference: string): Promise<Category[]> {
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT c.id, c.name FROM categories c
+    INNER JOIN reference_categories rc ON rc.categoryId = c.id
+    WHERE rc.reference = ?
+    ORDER BY c.name ASC
+  `).all(reference) as Array<{ id: number; name: string }>;
+  return rows;
+}
+
+export async function setReferenceCategories(reference: string, categoryIds: number[]): Promise<void> {
+  const db = getDb();
+  db.exec("BEGIN");
+  try {
+    db.prepare("DELETE FROM reference_categories WHERE reference = ?").run(reference);
+    const insert = db.prepare("INSERT INTO reference_categories (reference, categoryId) VALUES (?, ?)");
+    for (const categoryId of categoryIds) {
+      insert.run(reference, categoryId);
+    }
+    db.exec("COMMIT");
+  } catch {
+    db.exec("ROLLBACK");
+    throw new Error("Failed to set reference categories");
+  }
+}
+
+export async function getAllReferenceCategories(): Promise<Map<string, Category[]>> {
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT rc.reference, c.id, c.name
+    FROM reference_categories rc
+    INNER JOIN categories c ON c.id = rc.categoryId
+    ORDER BY rc.reference, c.name ASC
+  `).all() as Array<{ reference: string; id: number; name: string }>;
+  const map = new Map<string, Category[]>();
+  for (const row of rows) {
+    const existing = map.get(row.reference);
+    const cat: Category = { id: row.id, name: row.name };
+    if (existing) {
+      existing.push(cat);
+    } else {
+      map.set(row.reference, [cat]);
+    }
+  }
+  return map;
 }

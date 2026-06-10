@@ -1,6 +1,11 @@
 export type Brand = "LEGO" | "Mould King" | "CaDA" | "Other";
 export type PurchaseStore = "lego" | "bricklink";
-export type ActiveView = "dashboard" | "catalog" | "bricks" | "shopping" | "spare-parts" | "colors" | "design-groups" | "brick-catalog" | "";
+export type ActiveView = "dashboard" | "catalog" | "bricks" | "shopping" | "spare-parts" | "colors" | "design-groups" | "categories" | "brick-catalog" | "";
+
+export interface Category {
+  id: number;
+  name: string;
+}
 
 export interface SetRecord {
   id: string;
@@ -33,6 +38,7 @@ export interface BrickRecord {
   fromSet: string;
   spareQuantity?: number;
   designGroupId?: number;
+  categories?: Category[];
 }
 
 export interface DesignGroupMember {
@@ -77,6 +83,7 @@ export interface GroupedBrick {
   totalStock: number;
   needed: number;
   spareQuantity: number;
+  categories?: Category[];
   sets: { setNumber: string; required: number; stock: number }[];
 }
 
@@ -116,4 +123,5 @@ export interface CatalogEntry {
   name: string;
   image: string;
   variants: CatalogVariant[];
+  categories?: Category[];
 }
