@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/preact';
 import { useEffect, useState, useRef } from "preact/hooks";
 
-import type { SetRecord, ArchiveColor } from "@/types/archiveData";
+import type { SetRecord, ArchiveColor, Category } from "@/types/archiveData";
 import { useSetStore } from '@/hooks/useSetStore'
 
 import { $sets } from '@stores/storage-sets';
@@ -10,10 +10,11 @@ import { $spareBricks, refreshSpareBricks } from '@stores/storage-spare-bricks';
 import SetInfoForm from "@components/SetInfoForm";
 import BricksxSetList from '@components/BricksxSetList'
 import ColorMultiSelect from '@components/ColorMultiSelect'
+import CategoryMultiSelect from '@components/CategoryMultiSelect'
 
 const PAGE_SIZES = [10, 15, 20, 30, 40, 50];
 
-export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }: Readonly<{ activeSetNumber: string | null, initialSelectedSet: SetRecord | null, colors: ArchiveColor[] }>) {
+export default function SetInfo({ activeSetNumber, initialSelectedSet, colors, categories, refCategories }: Readonly<{ activeSetNumber: string | null, initialSelectedSet: SetRecord | null, colors: ArchiveColor[], categories: Category[], refCategories: Record<string, Array<{ id: number; name: string }>> }>) {
   
   // Handle cases where no set is selected or the selected set is not found
   if (!activeSetNumber) {
@@ -84,6 +85,7 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
   const [filterName, setFilterName] = useState("");
   const [filterColor, setFilterColor] = useState<string[]>([]);
   const [filterStatus, setFilterStatus] = useState<"all" | "missings" | "completed">("all");
+  const [filterCategory, setFilterCategory] = useState<string[]>([]);
   const urlInited = useRef(false);
 
   useEffect(() => {
@@ -92,6 +94,8 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
     if (q) setFilterName(q);
     const colors = params.getAll("color");
     if (colors.length > 0) setFilterColor(colors);
+    const category = params.getAll("category");
+    if (category.length > 0) setFilterCategory(category);
     const status = params.get("status");
     if (status && ["all", "missings", "completed"].includes(status)) setFilterStatus(status as typeof filterStatus);
     const page = params.get("page");
@@ -106,14 +110,18 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
     const params = new URLSearchParams();
     if (filterName) params.set("q", filterName);
     filterColor.forEach((c) => params.append("color", c));
+    filterCategory.forEach((c) => params.append("category", c));
     if (filterStatus !== "all") params.set("status", filterStatus);
     if (currentPage > 1) params.set("page", String(currentPage));
     if (pageSize !== 20) params.set("pageSize", String(pageSize));
     const qs = params.toString() ? `?${params.toString()}` : "";
     globalThis.history.pushState({}, "", `${globalThis.location.pathname}${qs}`);
-  }, [filterName, filterColor, filterStatus, currentPage, pageSize]);
+  }, [filterName, filterColor, filterCategory, filterStatus, currentPage, pageSize]);
 
   const availableColors = colors.filter((c) => bricks.some((b) => b.colorId === c.id));
+  const availableCategories = categories.filter((c) =>
+    bricks.some((b) => (refCategories[b.reference] ?? []).some((bc) => bc.id === c.id))
+  );
 
   const filteredBricks = mergedBricks.filter(({ brick: b }) => {
     if (filterName) {
@@ -126,6 +134,15 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
       ) return false;
     }
     if (filterColor.length > 0 && !filterColor.includes(String(b.colorId))) return false;
+    if (filterCategory.length > 0) {
+      const brickCats = refCategories[b.reference] ?? [];
+      const hasNone = filterCategory.includes("_none");
+      const selectedIds = filterCategory.filter((c) => c !== "_none");
+      let matchesCategory = false;
+      if (hasNone && brickCats.length === 0) matchesCategory = true;
+      if (selectedIds.length > 0 && brickCats.some((bc) => selectedIds.includes(String(bc.id)))) matchesCategory = true;
+      if (!matchesCategory) return false;
+    }
     if (filterStatus === "missings" && b.stock >= b.required) return false;
     if (filterStatus === "completed" && b.stock < b.required) return false;
     return true;
@@ -286,6 +303,14 @@ export default function SetInfo({ activeSetNumber, initialSelectedSet, colors }:
                   colors={availableColors}
                   selected={filterColor}
                   onChange={(selected) => { setFilterColor(selected); setCurrentPage(1); }}
+                />
+              </label>
+              <label class="flex items-center gap-2 text-secondary font-bold">
+                Category{" "}
+                <CategoryMultiSelect
+                  categories={availableCategories}
+                  selected={filterCategory}
+                  onChange={(selected) => { setFilterCategory(selected); setCurrentPage(1); }}
                 />
               </label>
             </div>

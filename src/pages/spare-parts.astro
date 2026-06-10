@@ -1,10 +1,17 @@
 ---
 import AppLayout from "@layouts/AppLayout.astro";
-import { getColors } from "@lib/inventoryStore";
+import { getColors, getCategories, getAllReferenceCategories } from "@lib/inventoryStore";
 import SparePartsManager from "@/components/SparePartsManager";
 import { Feedback } from "@components/Feedback";
 
 const colors = await getColors();
+const categories = await getCategories();
+const refCategoriesMap = await getAllReferenceCategories();
+
+const refCategories: Record<string, Array<{ id: number; name: string }>> = {};
+for (const [ref, cats] of refCategoriesMap) {
+  refCategories[ref] = cats;
+}
 ---
 
 <AppLayout title="Spare Parts | Brick Inventory" active="spare-parts">
@@ -18,5 +25,5 @@ const colors = await getColors();
     <button id="add-spare-btn" class="fixed top-4 right-4 z-50 bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm whitespace-nowrap shadow-lg">+ Add Spare Brick</button>
   </section>
 
-  <SparePartsManager colors={colors} client:load />
+  <SparePartsManager colors={colors} categories={categories} refCategories={refCategories} client:load />
 </AppLayout>

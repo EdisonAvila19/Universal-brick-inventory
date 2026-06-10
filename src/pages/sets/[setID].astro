@@ -1,6 +1,6 @@
 ---
 import AppLayout from "@layouts/AppLayout.astro";
-import { getColors, getInventorySets } from "@lib/inventoryStore";
+import { getColors, getInventorySets, getCategories, getAllReferenceCategories } from "@lib/inventoryStore";
 import { Feedback } from "@components/Feedback";
 import SetsSelect from "@components/SetsSelect";
 import SetInfo from "@components/SetInfo";
@@ -12,6 +12,13 @@ let activeSetNumber = querySetNumber || "";
 
 const allSets = await getInventorySets();
 const colors = await getColors();
+const categories = await getCategories();
+const refCategoriesMap = await getAllReferenceCategories();
+
+const refCategories: Record<string, Array<{ id: number; name: string }>> = {};
+for (const [ref, cats] of refCategoriesMap) {
+  refCategories[ref] = cats;
+}
 
 const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? null;
 ---
@@ -34,7 +41,7 @@ const selectedSet = allSets.find((set) => set.setNumber === activeSetNumber) ?? 
   <!-- Result -->
   { selectedSet
     ? (
-      <SetInfo activeSetNumber={activeSetNumber} initialSelectedSet={selectedSet} colors={colors} client:load/>
+      <SetInfo activeSetNumber={activeSetNumber} initialSelectedSet={selectedSet} colors={colors} categories={categories} refCategories={refCategories} client:load/>
 
       <AddNewPiece selectedSet={selectedSet} colors={colors} client:load/>
     )

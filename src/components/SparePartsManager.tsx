@@ -1,7 +1,7 @@
 import { useStore } from "@nanostores/preact";
 import { useEffect, useState, useRef } from "preact/hooks";
 
-import type { SpareBrickRecord, ArchiveColor } from "@/types/archiveData";
+import type { SpareBrickRecord, ArchiveColor, Category } from "@/types/archiveData";
 import type { RebrickablePartColorDetails } from "@/types/rebrickable";
 
 import { $spareBricks, refreshSpareBricks } from "@stores/storage-spare-bricks";
@@ -9,6 +9,7 @@ import { addSpareBrick as apiAddSpare, updateSpareBrick as apiUpdateSpare, delet
 import { updateFeedback } from "@stores/feedback";
 
 import ColorMultiSelect from "@components/ColorMultiSelect";
+import CategoryMultiSelect from "@components/CategoryMultiSelect";
 import "@styles/select.css"
 
 function SpareBrickCard({ brick, isEditing, onStartEdit, onDelete, onSave, onCancel }: Readonly<{
@@ -273,10 +274,11 @@ function AddSpareModal({ colors, onClose }: Readonly<{ colors: ArchiveColor[]; o
 
 
 
-export default function SparePartsManager({ colors }: Readonly<{ colors: ArchiveColor[] }>) {
+export default function SparePartsManager({ colors, categories, refCategories }: Readonly<{ colors: ArchiveColor[]; categories: Category[]; refCategories: Record<string, Array<{ id: number; name: string }>> }>) {
   const spareBricks = useStore($spareBricks);
   const [search, setSearch] = useState("");
   const [colorFilter, setColorFilter] = useState<string[]>([]);
+  const [filterCategory, setFilterCategory] = useState<string[]>([]);
   const urlInited = useRef(false);
 
   useEffect(() => {
@@ -285,6 +287,8 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
     if (q) setSearch(q);
     const colors = params.getAll("color");
     if (colors.length > 0) setColorFilter(colors);
+    const category = params.getAll("category");
+    if (category.length > 0) setFilterCategory(category);
     urlInited.current = true;
   }, []);
 
@@ -293,9 +297,14 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
     const params = new URLSearchParams();
     if (search) params.set("q", search);
     colorFilter.forEach((c) => params.append("color", c));
+    filterCategory.forEach((c) => params.append("category", c));
     const qs = params.toString() ? `?${params.toString()}` : "";
     globalThis.history.pushState({}, "", `${globalThis.location.pathname}${qs}`);
-  }, [search, colorFilter]);
+  }, [search, colorFilter, filterCategory]);
+
+  const availableCategories = categories.filter((c) =>
+    spareBricks.some((b) => (refCategories[b.reference] ?? []).some((bc) => bc.id === c.id))
+  );
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -311,6 +320,15 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
 
   const filtered = spareBricks.filter((b) => {
     if (colorFilter.length > 0 && !colorFilter.includes(String(b.colorId))) return false;
+    if (filterCategory.length > 0) {
+      const brickCats = refCategories[b.reference] ?? [];
+      const hasNone = filterCategory.includes("_none");
+      const selectedIds = filterCategory.filter((c) => c !== "_none");
+      let matchesCategory = false;
+      if (hasNone && brickCats.length === 0) matchesCategory = true;
+      if (selectedIds.length > 0 && brickCats.some((bc) => selectedIds.includes(String(bc.id)))) matchesCategory = true;
+      if (!matchesCategory) return false;
+    }
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return b.reference.toLowerCase().includes(q) || b.name.toLowerCase().includes(q) || b.brickId.toLowerCase().includes(q) || b.elementId.toLowerCase().includes(q);
@@ -383,6 +401,11 @@ export default function SparePartsManager({ colors }: Readonly<{ colors: Archive
             colors={colors}
             selected={colorFilter}
             onChange={setColorFilter}
+          />
+          <CategoryMultiSelect
+            categories={availableCategories}
+            selected={filterCategory}
+            onChange={setFilterCategory}
           />
         </div>
       </div>
